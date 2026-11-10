@@ -35,29 +35,34 @@
 - [ ] Ay sonu toplu tahsilat listesi (toplu ödeyenler)
 - [ ] Her gün otomatik yerel yedek
 
-### Yeni öneriler (seçim bekliyor)
-**Günlük iş akışı**
-- [ ] A. Yapılacaklar / görevler listesi (tarihli hatırlatma; "8-H yazılılarını oku")
-- [ ] B. Ders planı: derse girmeden "bugün ne işleyeceğim", ders sonunda planla karşılaştırma
-- [ ] C. Hızlı ekleme cümlesi: "yarın 17:00 Ayşe" yazınca ders oluşsun
-- [ ] D. Haftalık bakış (Pazar akşamı): gelecek hafta ders sayısı, boşluklar, tatiller, beklenen ödemeler
+### Seçilen iş akışı özellikleri
+- [ ] **A. Yapılacaklar / görevler:** Ders dışı işler için tarihli hatırlatmalar ("8-H yazılılarını oku")
+- [ ] **D. Haftalık bakış:** Gelecek hafta ders sayısı, boşluklar, tatiller, beklenen ödemeler
+- [ ] **E. Sınıf sayfası:** Kurum sınıfları için profil; sınıf notları, konu ilerlemesi, son işlenenler
+- [ ] **G. Sınav/yazılı takvimi:** Takvimde gösterme, öncesinde hatırlatma
+- [ ] **I. Toplu ücret güncelleme:** Belirli tarihten itibaren tüm/seçili öğrencilere yeni ücret
+- [ ] **M. Tablette çift panel:** Solda liste, sağda detay
+- [ ] **N. Simge kısayolları:** Uzun basınca "Yeni ders", "Ödeme al", "Bugün"
+- [ ] **O. Tema ve yazı boyutu ayarı**
 
-**Kurum sınıfları**
-- [ ] E. Sınıf profil sayfası (öğrenci profili gibi): sınıf notları, konu ilerlemesi, son işlenenler
-- [ ] F. Sınıf öğrenci listesi ve yoklama
-- [ ] G. Sınav/yazılı takvimi: takvimde gösterme, öncesinde hatırlatma
+### Ödeme sisteminin sadeleştirilmesi (onay bekliyor)
+Şu anki sorun: 3 ödeme düzeni, 5 ayrı alacak kartı, tarihli söz, ders ders dağıtım → karmaşık.
+Önerilen sade model — **"veresiye defteri" mantığı:**
+- [ ] Her öğrencinin tek bir **bakiyesi** var: ders yapılınca ücret borç yazılır, ödeme alınınca düşer.
+  Kartta tek satır: "2.400 ₺ borç · 3 ders" veya "Peşin 1.500 ₺ · 3 ders hakkı".
+- [ ] "Ödeme düzeni" seçimi kalkar; yerine isteğe bağlı tek etiket: **"Ne zaman öder?" → Her ders / Ay sonu / Peşin**.
+  Sadece "gecikti mi?" kararında kullanılır (ay sonu ödeyenin bu ayki borcu gecikmiş sayılmaz).
+- [ ] Ödeme sözü + tarihi belirsiz ödeme birleşir: öğrenciye tek bir **"Ödeme notu"** — "Bilinmiyor" (varsayılan)
+  ya da tarih. Ayrı alacak kategorisi yok, sadece ismin altında görünür.
+- [ ] Alacak özeti **2 sayıya** iner: **Toplam alacak** ve bunun içinden **Gecikmiş** olan.
+- [ ] Ödeme alma tek ekran: büyük tutar alanı + "Tüm borç" / "1 ders" düğmeleri, tarih bugün. Bitti.
+- [ ] Ders ders "ödendi/ödenmedi" etiketleri varsayılan olarak gizlenir (geçmişte küçük bir nokta).
+- [ ] Ders penceresindeki "Ücreti alındı" kutusu kalır (ders başı ödeyenler için en hızlı yol).
+- [ ] Mevcut veriler kaybolmaz; eski ödeme düzeni bilgisi yeni etikete çevrilir.
 
-**Özel ders**
-- [ ] H. Kardeşler / aile hesabı: aynı veliden gelen tek ödeme birden çok öğrenciye dağıtılsın
-- [ ] I. Toplu ücret güncelleme: tüm öğrencilere belirli tarihten itibaren yeni ücret (zam dönemi)
-- [ ] J. Ders sonu kısa değerlendirme (1–5 / emoji): öğrencinin dersteki performans grafiği
-- [ ] K. Bekleme listesi: yeni öğrenci talepleri, istedikleri günler, uygun boş saat önerisi
-- [ ] L. Derse fotoğraf ekleme (tahta, ödev sayfası, çözülen soru)
-
-**Kullanım kolaylığı**
-- [ ] M. Tablette çift panel (solda liste, sağda detay)
-- [ ] N. Uygulama simgesine uzun basınca kısayollar: "Yeni ders", "Ödeme al", "Bugün"
-- [ ] O. Tema (açık/koyu) ve yazı boyutu ayarı
+### Beklemede (seçilmedi)
+- [ ] B. Ders planı · C. Hızlı ekleme cümlesi · F. Sınıf listesi ve yoklama · H. Kardeş/aile hesabı
+- [ ] J. Ders sonu değerlendirme · K. Bekleme listesi · L. Derse fotoğraf ekleme
 
 ## Sıradaki fikirler
 

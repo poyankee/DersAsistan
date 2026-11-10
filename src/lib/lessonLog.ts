@@ -1,6 +1,7 @@
 import type { AppData, CalEvent } from './types'
 import { fromMinutes, toMinutes } from './date'
 import { uid } from './util'
+import { isOff } from './status'
 
 export interface LessonEntry {
   studentId?: string
@@ -20,13 +21,16 @@ export interface LessonEntry {
 export function recordLesson(d: AppData, x: LessonEntry): { event: CalEvent; before?: CalEvent } {
   const mine = (e: CalEvent) => (x.studentId ? e.studentId === x.studentId : e.groupCode === x.groupCode)
   const sameDay = d.events
-    .filter((e) => mine(e) && e.date === x.date && e.status !== 'cancelled' && e.status !== 'postponed')
+    .filter((e) => mine(e) && e.date === x.date && !isOff(e))
     .sort((a, b) => a.start.localeCompare(b.start))
   const target = sameDay.find((e) => !e.topic) ?? sameDay[0]
+  // O günkü derste zaten kayıt varsa üzerine yazılmaz, altına eklenir
+  const join = (old: string | undefined, add: string | undefined) => [old?.trim(), add?.trim()].filter(Boolean).join('\n') || undefined
+  const keep = target?.topic ? target : undefined
   const patch = {
     status: 'done' as const,
-    topic: x.topic.trim(),
-    homework: x.homework?.trim() || undefined,
+    topic: join(keep?.topic, x.topic)!,
+    homework: join(keep?.homework, x.homework),
     notes: x.notes?.trim() || undefined,
     bookId: x.bookId || undefined,
     bookProgress: x.bookId ? x.bookProgress?.trim() || undefined : undefined,

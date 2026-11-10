@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { AppData, Book, CalEvent, Category, ClassNote, Exam, Group, Holiday, Payment, PaymentPromise, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
+import type { AppData, Book, CalEvent, Category, ClassNote, Exam, Group, Holiday, Payment, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
 import { PALETTE, colorFor, uid } from './util'
 import { nativeLoad, nativeSave } from './native'
 
@@ -106,12 +106,26 @@ export function setData(updater: (d: AppData) => AppData) {
     alert('Veri kaydedilemedi! Depolama dolu olabilir. Lütfen yedek alın.')
     console.error(e)
   }
-  nativeSave(KEY, json).catch((e) => console.error('Kalıcı kayıt hatası', e))
+  // Kalıcı kopya ancak açılıştaki yükleme bittikten sonra yazılır
+  if (ready) nativeSave(KEY, json).catch((e) => console.error('Kalıcı kayıt hatası', e))
+  else dirtyBeforeReady = true
   listeners.forEach((l) => l())
 }
 
+let ready = false
+let dirtyBeforeReady = false
+
 /** Android'de: tarayıcı deposu boşsa kalıcı kopyadan geri yükle */
 export async function initStore() {
+  try {
+    await initStoreInner()
+  } finally {
+    ready = true
+    if (dirtyBeforeReady) nativeSave(KEY, JSON.stringify(state)).catch(() => undefined)
+  }
+}
+
+async function initStoreInner() {
   try {
     const saved = await nativeLoad(KEY)
     if (!saved) {
@@ -143,17 +157,6 @@ export function useData(): AppData {
 }
 
 // ---- İşlemler ----
-
-export function saveEvent(ev: CalEvent) {
-  setData((d) => {
-    const exists = d.events.some((e) => e.id === ev.id)
-    const updated = { ...ev, updatedAt: Date.now() }
-    return {
-      ...d,
-      events: exists ? d.events.map((e) => (e.id === ev.id ? updated : e)) : [...d.events, updated],
-    }
-  })
-}
 
 export function saveEvents(evs: CalEvent[]) {
   setData((d) => {
@@ -271,14 +274,6 @@ export function deleteNote(id: string, opts: { trash?: boolean } = {}) {
     const next = { ...d, notes: d.notes.filter((x) => x.id !== id) }
     return opts.trash === false ? next : toTrash(next, 'note', `Not: ${n.text.slice(0, 40)}`, { notes: [n] })
   })
-}
-
-export function savePromise(p: PaymentPromise) {
-  setData((d) => ({ ...d, promises: upsert(d.promises, p) }))
-}
-
-export function deletePromise(id: string) {
-  setData((d) => ({ ...d, promises: d.promises.filter((p) => p.id !== id) }))
 }
 
 export function saveHoliday(h: Holiday) {

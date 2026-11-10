@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { happened, isOff } from '../lib/status'
 import { BookOpenText, ChevronLeft, GraduationCap, ListTodo, NotebookPen, Pencil, School } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { ClassNote, Exam, Task } from '../lib/types'
@@ -27,7 +28,7 @@ export default function ClassesPage({ openEvent, open, setOpen, onAddExam, onAdd
           const evs = data.events.filter((e) => e.groupCode === g.code)
           const done = evs.filter((e) => e.topic).sort((a, b) => (b.date + b.start).localeCompare(a.date + a.start))
           const next = evs.filter((e) => e.date >= today && e.status === 'planned').sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))[0]
-          const month = evs.filter((e) => e.date.slice(0, 7) === ym && e.status !== 'cancelled' && e.status !== 'postponed').reduce((a, e) => a + (e.hours ?? 1), 0)
+          const month = evs.filter((e) => e.date.slice(0, 7) === ym && !isOff(e)).reduce((a, e) => a + (e.hours ?? 1), 0)
           const exam = data.exams.filter((x) => x.groupCode === g.code && x.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0]
           return { g, last: done[0], next, month, exam }
         })
@@ -85,7 +86,7 @@ function ClassProfile({ code, onBack, openEvent, onAddExam, onAddTask, onOpenExa
   const notes = data.classNotes.filter((n) => n.groupCode === code).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
   const exams = data.exams.filter((x) => x.groupCode === code).sort((a, b) => b.date.localeCompare(a.date))
   const tasks = data.tasks.filter((t) => t.groupCode === code && !t.done)
-  const doneHours = evs.filter((e) => e.status === 'done' || (e.status === 'planned' && e.date < today)).reduce((a, e) => a + (e.hours ?? 1), 0)
+  const doneHours = evs.filter((e) => happened(e)).reduce((a, e) => a + (e.hours ?? 1), 0)
 
   const addNote = () => {
     if (!note.trim()) return

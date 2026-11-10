@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
+import { happened, isOff } from '../lib/status'
 import { School, Users } from 'lucide-react'
 import { eventTitle, useData } from '../lib/store'
 import FinanceKpis from './FinanceKpis'
 import { payNoteText, studentFinance } from '../lib/finance'
 import IncomePanel from './IncomePanel'
 import PuantajPanel from './PuantajPanel'
-import { addMonths, formatDMY, isPast, monthLabel, startOfMonth, todayISO } from '../lib/date'
+import { addMonths, formatDMY, monthLabel, startOfMonth, todayISO } from '../lib/date'
 import { money } from '../lib/util'
 
 type STab = 'ozet' | 'alacak' | 'gelir' | 'puantaj'
@@ -39,19 +40,19 @@ function MonthlySummary() {
     const evs = data.events.filter((e) => e.date.slice(0, 7) === ym)
     const kurum = evs.filter((e) => e.kind === 'kurum')
     const h = (e: (typeof evs)[number]) => e.hours ?? 1
-    const kurumTotal = kurum.filter((e) => e.status !== 'cancelled' && e.status !== 'postponed').reduce((a, e) => a + h(e), 0)
-    const kurumDone = kurum.filter((e) => e.status === 'done' || (e.status === 'planned' && isPast(e.date, e.end))).reduce((a, e) => a + h(e), 0)
-    const kurumCancelled = kurum.filter((e) => e.status === 'cancelled' || e.status === 'postponed').reduce((a, e) => a + h(e), 0)
+    const kurumTotal = kurum.filter((e) => !isOff(e)).reduce((a, e) => a + h(e), 0)
+    const kurumDone = kurum.filter((e) => happened(e)).reduce((a, e) => a + h(e), 0)
+    const kurumCancelled = kurum.filter(isOff).reduce((a, e) => a + h(e), 0)
     const byGroup = new Map<string, { hours: number; done: number; title: string }>()
     for (const e of kurum) {
-      if (e.status === 'cancelled' || e.status === 'postponed') continue
+      if (isOff(e)) continue
       const g = byGroup.get(e.groupCode!) ?? { hours: 0, done: 0, title: eventTitle(data, e) }
       g.hours += h(e)
-      if (e.status === 'done' || isPast(e.date, e.end)) g.done += h(e)
+      if (happened(e)) g.done += h(e)
       byGroup.set(e.groupCode!, g)
     }
     const ozel = evs.filter((e) => e.kind === 'ozel')
-    const ozelDone = ozel.filter((e) => e.status === 'done')
+    const ozelDone = ozel.filter((e) => happened(e))
     const ozelPlanned = ozel.filter((e) => e.status === 'planned')
     const earned = ozelDone.reduce((a, e) => a + (e.fee ?? 0), 0)
     const expected = earned + ozelPlanned.reduce((a, e) => a + (e.fee ?? 0), 0)

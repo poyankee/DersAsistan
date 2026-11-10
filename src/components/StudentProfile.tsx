@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { isOff } from '../lib/status'
 import { BookOpen, CalendarClock, CalendarRange, ChevronLeft, Eye, History as HistoryIcon, MessageCircle, Pencil, Phone, User, Wallet, X } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { Payment, Student } from '../lib/types'
@@ -69,7 +70,7 @@ function PaymentsTab({ student, onPay, onPayNote, onEditPayment }: { student: St
   const note = payNoteText(f, formatDMY)
   const payments = data.payments.filter((p) => p.studentId === student.id).sort((a, b) => b.date.localeCompare(a.date))
   const unpaid = data.events
-    .filter((e) => e.studentId === student.id && e.status === 'done' && f.lessonPay.get(e.id) && f.lessonPay.get(e.id) !== 'paid')
+    .filter((e) => e.studentId === student.id && f.lessonPay.has(e.id) && f.lessonPay.get(e.id) !== 'paid')
     .sort((a, b) => a.date.localeCompare(b.date))
   return (
     <>
@@ -90,6 +91,7 @@ function PaymentsTab({ student, onPay, onPayNote, onEditPayment }: { student: St
       {unpaid.length > 0 && (
         <p className="small"><span className="muted">Ödenmemiş dersler:</span> {unpaid.map((e) => formatDMY(e.date)).join(', ')}</p>
       )}
+      <p className="muted small">İptal edilmeyen her ders, bittiğinde otomatik olarak hesaba yazılır. Yapılmayan dersi takvimden "İptal et" ile işaretleyin.</p>
       <h4>Ödemeler</h4>
       {payments.length === 0 ? <p className="muted small">Henüz ödeme yok.</p> : (
         <div className="table-wrap">
@@ -122,7 +124,7 @@ function InfoTab({ student, onEdit }: { student: Student; onEdit: () => void }) 
   const reportText = () => {
     const lines = [`Merhaba, ${student.name} için son derslerimiz:`]
     data.events
-      .filter((e) => e.studentId === student.id && e.status === 'done' && e.topic)
+      .filter((e) => e.studentId === student.id && !isOff(e) && e.topic)
       .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
       .slice(-6)
       .forEach((e) => lines.push(`• ${formatDMY(e.date)}: ${e.topic}${e.homework ? ` (Ödev: ${e.homework})` : ''}`))
@@ -156,7 +158,7 @@ function StudentView({ student, onClose }: { student: Student; onClose: () => vo
   const data = useData()
   const today = todayISO()
   const lessons = data.events
-    .filter((e) => e.studentId === student.id && e.status === 'done' && e.topic)
+    .filter((e) => e.studentId === student.id && !isOff(e) && e.topic)
     .sort((a, b) => (b.date + b.start).localeCompare(a.date + a.start))
     .slice(0, 8)
   const next = data.events

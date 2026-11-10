@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { happened } from '../lib/status'
 import DateInput from './DateInput'
 import { Percent, Search, UserPlus } from 'lucide-react'
 import type { OpenEvent } from '../App'
@@ -33,7 +34,7 @@ export default function StudentsPage({ openEvent, selected, onSelect, payPick, o
   const rows = useMemo(() => {
     const ql = q.trim().toLocaleLowerCase('tr')
     const last = new Map<string, string>()
-    for (const e of data.events) if (e.studentId && e.status === 'done' && (last.get(e.studentId) ?? '') < e.date) last.set(e.studentId, e.date)
+    for (const e of data.events) if (e.studentId && happened(e) && (last.get(e.studentId) ?? '') < e.date) last.set(e.studentId, e.date)
     return data.students
       .filter((s) => showInactive || s.active)
       .filter((s) => !ql || [s.name, s.parentName, s.notes].some((x) => x?.toLocaleLowerCase('tr').includes(ql)))

@@ -138,7 +138,7 @@ export default function SettingsPage() {
         >Tüm verileri sil</button>
       </section>
       </details>
-      <p className="muted small center">Ders Asistanı v0.7 · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
+      <p className="muted small center">Ders Asistanı v0.7.1 · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
     </div>
   )
 }

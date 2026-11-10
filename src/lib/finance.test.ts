@@ -60,6 +60,20 @@ describe('sade ödeme modeli', () => {
     expect(financeTotals(d, T)).toMatchObject({ total: 1500, overdue: 1000, debtors: 3 })
   })
 
+  it('işaretlenmese de geçmiş ders borç yazılır; iptal edilen ve henüz bitmemiş ders yazılmaz', () => {
+    const d = data({
+      students: [st('a')],
+      events: [
+        les('1', 'a', '2026-11-09', 'planned'), // geçmiş, işaretlenmemiş → yapılmış sayılır
+        les('2', 'a', '2026-11-10', 'cancelled'),
+        les('3', 'a', T, 'planned'), // bugün 17:00–18:00
+        les('4', 'a', '2026-11-23', 'planned'),
+      ],
+    })
+    expect(studentFinance(d, d.students[0], T, '16:00').debt).toBe(500)
+    expect(studentFinance(d, d.students[0], T, '18:00').debt).toBe(1000)
+  })
+
   it('eski sürüm verisi sade modele çevrilir', () => {
     const d = normalize({
       students: [st('a', { billing: 'toplu' }), st('b', { billing: 'paket' })],

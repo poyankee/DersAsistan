@@ -1,4 +1,5 @@
 import type { AppData, CalEvent, PayNote, PayWhen, Student } from './types'
+import { happened } from './status'
 
 /**
  * Sade ödeme modeli ("veresiye defteri"):
@@ -11,7 +12,6 @@ export type LessonPayState = 'paid' | 'partial' | 'unpaid'
 export interface StudentFinance {
   payWhen: PayWhen
   doneLessons: number
-  plannedPast: number
   earned: number
   paid: number
   /** earned − paid (pozitif: borç, negatif: peşin) */
@@ -43,14 +43,11 @@ export function payWhenOf(s: Student): PayWhen {
 
 const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + 'T12:00:00') - Date.parse(a + 'T12:00:00')) / 86400000)
 
-export function studentFinance(d: AppData, s: Student, today: string): StudentFinance {
+export function studentFinance(d: AppData, s: Student, today: string, now?: string): StudentFinance {
   const payWhen = payWhenOf(s)
   const lessons: CalEvent[] = []
-  let plannedPast = 0
   for (const e of d.events) {
-    if (e.studentId !== s.id) continue
-    if (e.status === 'done') lessons.push(e)
-    else if (e.status === 'planned' && e.date < today) plannedPast++
+    if (e.studentId === s.id && happened(e, today, now)) lessons.push(e)
   }
   lessons.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
   const earned = lessons.reduce((a, e) => a + (e.fee ?? 0), 0)
@@ -110,7 +107,6 @@ export function studentFinance(d: AppData, s: Student, today: string): StudentFi
   return {
     payWhen,
     doneLessons: lessons.length,
-    plannedPast,
     earned,
     paid,
     balance,
@@ -133,10 +129,10 @@ export interface FinanceTotals {
   debtors: number
 }
 
-export function financeTotals(d: AppData, today: string): FinanceTotals {
+export function financeTotals(d: AppData, today: string, now?: string): FinanceTotals {
   const t: FinanceTotals = { total: 0, overdue: 0, credit: 0, debtors: 0 }
   for (const s of d.students) {
-    const f = studentFinance(d, s, today)
+    const f = studentFinance(d, s, today, now)
     t.total += f.debt
     t.overdue += f.overdue
     t.credit += f.credit

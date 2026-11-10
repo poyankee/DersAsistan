@@ -21,4 +21,9 @@ describe('dosyadan ders kaydı', () => {
     const d = { ...emptyData(), events: [ev('a', { kind: 'kurum', groupCode: 'G', start: '09:00', status: 'cancelled' }), ev('b', { kind: 'kurum', groupCode: 'G', start: '10:00', topic: 'eski' }), ev('c', { kind: 'kurum', groupCode: 'G', start: '11:00' })] }
     expect(recordLesson(d, { groupCode: 'G', date: '2026-11-16', topic: 'yeni' }).event.id).toBe('c')
   })
+  it('o günkü derste kayıt varsa üzerine yazmaz, altına ekler', () => {
+    const d = { ...emptyData(), events: [ev('b', { kind: 'kurum', groupCode: 'G', topic: 'ilk', homework: 'Test 1' })] }
+    const r = recordLesson(d, { groupCode: 'G', date: '2026-11-16', topic: 'ikinci', homework: 'Test 2' })
+    expect(r.event).toMatchObject({ id: 'b', topic: 'ilk\nikinci', homework: 'Test 1\nTest 2' })
+  })
 })

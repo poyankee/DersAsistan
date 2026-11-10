@@ -102,3 +102,6 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
   takvim 24 saat + ⋯ menü + katman filtresi, öğrenci dosyası 3 sekme (Dersler / Ödeme işlemleri / Bilgiler),
   listede tutar yok, öğrenciye gösterilebilir ekran (R), kişisel kategoriler ve yüksek lisans takibi (P),
   gün.ay.yıl tarih girişi, Raporlar'da Alacaklar, Ayarlar'da Gelişmiş bölümü
+- v0.7.1 Kod incelemesi düzeltmeleri: iptal edilmeyen geçmiş dersler otomatik yapılmış sayılır (ücret açığı kapandı),
+  aynı güne ikinci kayıt üzerine yazmaz, açılışta veri yükleme yarışı giderildi, imza anahtarı derlemeler arasında
+  saklanır, ölü kod ve 97 kullanılmayan stil kuralı temizlendi

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { isOff } from '../lib/status'
 import { Download, Printer } from 'lucide-react'
 import { useData } from '../lib/store'
 import { TR_DAYS, addMonths, fromISO, isPast, monthLabel, startOfMonth, todayISO, weekdayIndex } from '../lib/date'
@@ -17,7 +18,7 @@ export default function PuantajPanel() {
     const map = new Map<string, Map<string, number>>()
     let cancelled = 0
     for (const e of evs) {
-      if (e.status === 'cancelled' || e.status === 'postponed') {
+      if (isOff(e)) {
         cancelled += e.hours ?? 1
         continue
       }

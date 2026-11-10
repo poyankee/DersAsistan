@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { isOff } from '../lib/status'
 import { BookOpen, NotebookPen } from 'lucide-react'
 import type { CalEvent, StudentNote } from '../lib/types'
 import { deleteEvents, deleteNote, saveEvents, saveNote, useData } from '../lib/store'
@@ -27,7 +28,7 @@ export default function LessonLog({ studentId, groupCode }: { studentId?: string
   const mine = (e: CalEvent) => (studentId ? e.studentId === studentId : e.groupCode === groupCode)
   const books = studentId ? data.books.filter((b) => b.studentId === studentId && b.status !== 'bitti') : []
   const planned = data.events
-    .filter((e) => mine(e) && e.date === date && e.status !== 'cancelled' && e.status !== 'postponed')
+    .filter((e) => mine(e) && e.date === date && !isOff(e))
     .sort((a, b) => a.start.localeCompare(b.start))
   const target = planned.find((e) => !e.topic) ?? planned[0]
 
@@ -35,7 +36,7 @@ export default function LessonLog({ studentId, groupCode }: { studentId?: string
     const out: Item[] = []
     for (const e of data.events) {
       if (!mine(e)) continue
-      if (e.topic || e.homework || e.notes || e.status === 'done' || e.status === 'cancelled' || e.status === 'postponed') {
+      if (e.topic || e.homework || e.notes || e.status === 'done' || isOff(e)) {
         if (e.status !== 'planned' || e.topic) out.push({ kind: 'lesson', key: e.id, date: e.date + e.start, e })
       }
     }
@@ -81,9 +82,10 @@ export default function LessonLog({ studentId, groupCode }: { studentId?: string
           <DateInput value={date} onChange={setDate} />
           {mode === 'ders' && (
             <span className="muted small">
-              {target ? `${target.start}–${target.end} dersine yazılacak` : 'Bu tarihte ders yok — yeni ders kaydı oluşturulacak'}
+              {!target ? 'Bu tarihte ders yok — yeni ders kaydı oluşturulacak' : target.topic ? `${target.start} dersinde kayıt var; yazdığınız altına eklenir` : `${target.start}–${target.end} dersine yazılacak`}
             </span>
           )}
+          {mode === 'ders' && target?.topic && <button className="btn small" onClick={() => setEditing(target)}>Mevcut kaydı düzenle</button>}
         </div>
         <label className="field">
           <span>{mode === 'ders' ? 'Ne yaptık?' : 'Not'}</span>
@@ -113,10 +115,10 @@ export default function LessonLog({ studentId, groupCode }: { studentId?: string
         <ol className="log-list">
           {items.map((it) =>
             it.kind === 'lesson' ? (
-              <li key={it.key} className={'log-item' + (it.e.status === 'cancelled' || it.e.status === 'postponed' ? ' off' : '')} onClick={() => setEditing(it.e)}>
+              <li key={it.key} className={'log-item' + (isOff(it.e) ? ' off' : '')} onClick={() => setEditing(it.e)}>
                 <div className="log-date"><b>{formatDMYDay(it.e.date)}</b><small>{it.e.start}–{it.e.end}</small></div>
                 <div className="log-body">
-                  {it.e.status === 'cancelled' || it.e.status === 'postponed' ? <span className="muted">Ders yapılmadı (iptal)</span> : <span className="log-topic">{it.e.topic || <span className="muted">—</span>}</span>}
+                  {isOff(it.e) ? <span className="muted">Ders yapılmadı (iptal)</span> : <span className="log-topic pre">{it.e.topic || <span className="muted">—</span>}</span>}
                   {it.e.homework && <small>Ödev: {it.e.homework}</small>}
                   {it.e.bookId && <small><BookOpen size={12} /> {bookName(it.e.bookId) ?? 'Kitap'}{it.e.bookProgress ? ` — ${it.e.bookProgress}` : ''}</small>}
                   {it.e.notes && <small className="muted">{it.e.notes}</small>}

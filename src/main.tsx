@@ -5,11 +5,14 @@ import './styles.css'
 import { initStore } from './lib/store'
 import { setupBackButton } from './lib/native'
 
-initStore()
 setupBackButton()
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+// Kalıcı veri yüklenmeden ekran çizilmez; böylece boş veriyle üzerine yazma riski olmaz.
+// (Yükleme takılırsa 3 sn sonra yine de açılır.)
+Promise.race([initStore(), new Promise((r) => setTimeout(r, 3000))]).finally(() => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  )
+})

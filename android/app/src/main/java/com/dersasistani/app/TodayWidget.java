@@ -38,7 +38,6 @@ public class TodayWidget extends AppWidgetProvider {
         String end;
         String title;
         String status;
-        boolean hasTopic;
         int startMin;
         int endMin;
     }
@@ -84,7 +83,6 @@ public class TodayWidget extends AppWidgetProvider {
         views.setTextViewText(R.id.widget_date, now.get(Calendar.DAY_OF_MONTH) + " " + MONTHS[now.get(Calendar.MONTH)] + ", " + DAYS[now.get(Calendar.DAY_OF_WEEK) - 1]);
 
         List<Item> items = new ArrayList<>();
-        int missing = 0;
         try {
             SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
             String raw = prefs.getString(KEY, null);
@@ -118,18 +116,11 @@ public class TodayWidget extends AppWidgetProvider {
                         String kind = e.optString("kind");
                         String status = e.optString("status");
                         String date = e.optString("date");
-                        boolean hasTopic = !e.optString("topic", "").trim().isEmpty();
-                        // Notu eksik geçmiş dersler
-                        if (!"diger".equals(kind) && "planned".equals(status) && !hasTopic
-                                && (date.compareTo(today) < 0 || (date.equals(today) && minutes(e.optString("end")) <= nowMin))) {
-                            missing++;
-                        }
                         if (!today.equals(date) || "cancelled".equals(status)) continue;
                         Item it = new Item();
                         it.start = e.optString("start");
                         it.end = e.optString("end");
                         it.status = status;
-                        it.hasTopic = hasTopic;
                         it.startMin = minutes(it.start);
                         it.endMin = minutes(it.end);
                         if ("kurum".equals(kind)) {

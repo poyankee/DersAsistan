@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
+import { happened } from '../lib/status'
 import { useData } from '../lib/store'
-import { TR_MONTHS, addMonths, isPast, startOfMonth, todayISO } from '../lib/date'
+import { TR_MONTHS, addMonths, startOfMonth, todayISO } from '../lib/date'
 import { money } from '../lib/util'
 
 interface MonthRow {
@@ -33,10 +34,10 @@ export default function IncomePanel() {
     for (const e of data.events) {
       const i = idx.get(e.date.slice(0, 7))
       if (i === undefined) continue
-      if (e.kind === 'ozel' && e.status === 'done') {
+      if (e.kind === 'ozel' && happened(e)) {
         out[i].ozel += e.fee ?? 0
         out[i].lessons++
-      } else if (e.kind === 'kurum' && (e.status === 'done' || (e.status === 'planned' && isPast(e.date, e.end)))) {
+      } else if (e.kind === 'kurum' && happened(e)) {
         out[i].kurumHours += e.hours ?? 1
       }
     }
@@ -52,7 +53,7 @@ export default function IncomePanel() {
     const from = rows[0].ym
     const m = new Map<string, number>()
     for (const e of data.events) {
-      if (e.kind !== 'ozel' || e.status !== 'done' || !e.studentId || e.date.slice(0, 7) < from) continue
+      if (e.kind !== 'ozel' || !happened(e) || !e.studentId || e.date.slice(0, 7) < from) continue
       m.set(e.studentId, (m.get(e.studentId) ?? 0) + (e.fee ?? 0))
     }
     return Array.from(m.entries())

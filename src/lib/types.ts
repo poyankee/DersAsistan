@@ -24,6 +24,9 @@ export interface CalEvent {
   homework?: string
   /** Özel ders ücreti (ders oluşturulduğu andaki) */
   fee?: number
+  /** Derste kullanılan kitap ve ilerleme (ör. "s. 40–55", "Test 3–5") */
+  bookId?: string
+  bookProgress?: string
   /** Kurum programından gelen her ders saatinin benzersiz anahtarı */
   importKeys?: string[]
   createdAt: number
@@ -59,6 +62,31 @@ export interface Payment {
   note?: string
 }
 
+export type BookStatus = 'devam' | 'bitti' | 'planli'
+
+export interface Book {
+  id: string
+  studentId: string
+  title: string
+  subject?: string
+  publisher?: string
+  status: BookStatus
+  note?: string
+  createdAt: number
+  finishedAt?: string
+}
+
+/** Öğrenciyle ilgili serbest not (ders dışı gözlem, veli görüşmesi, kitap ilerlemesi vb.) */
+export interface StudentNote {
+  id: string
+  studentId: string
+  date: string
+  text: string
+  bookId?: string
+  bookProgress?: string
+  createdAt: number
+}
+
 export interface Settings {
   /** Kurum ek ders saat ücreti (opsiyonel, özet hesabı için) */
   kurumHourlyRate?: number
@@ -73,6 +101,8 @@ export interface AppData {
   groups: Record<string, Group>
   students: Student[]
   payments: Payment[]
+  books: Book[]
+  notes: StudentNote[]
   /** Kullanıcının sildiği kurum ders saatleri: yeniden içe aktarılmaz */
   ignoredImportKeys: string[]
   settings: Settings

@@ -5,6 +5,7 @@ import StudentsPage from './components/StudentsPage'
 import SummaryPage from './components/SummaryPage'
 import SettingsPage from './components/SettingsPage'
 import EventModal from './components/EventModal'
+import Toasts from './components/Toasts'
 import type { CalEvent } from './lib/types'
 
 export type Tab = 'takvim' | 'defter' | 'ozel' | 'ozet' | 'ayarlar'
@@ -60,7 +61,15 @@ export default function App() {
         {tab === 'ozet' && <SummaryPage />}
         {tab === 'ayarlar' && <SettingsPage />}
       </main>
-      {editing && <EventModal initial={editing} onClose={() => setEditing(null)} />}
+      {editing && (
+        <EventModal
+          key={'id' in editing && editing.id ? editing.id : 'new-' + JSON.stringify(editing)}
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onDuplicate={(ev) => setEditing({ ...ev })}
+        />
+      )}
+      <Toasts />
     </div>
   )
 }

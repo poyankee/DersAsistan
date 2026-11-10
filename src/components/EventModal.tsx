@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { CalEvent, EventKind, LessonStatus } from '../lib/types'
 import { deleteEvents, eventTitle, saveEvents, useData } from '../lib/store'
+import { applyShiftToSeries, conflictsOf, futureSeriesEvents } from '../lib/eventOps'
+import { showToast } from '../lib/toast'
 import { addDays, formatLong, formatShort, fromMinutes, isPast, toMinutes, todayISO } from '../lib/date'
 import { money, uid } from '../lib/util'
 import Modal from './Modal'
@@ -14,7 +16,7 @@ export const STATUS_LABEL: Record<LessonStatus, string> = {
 
 const KIND_LABEL: Record<EventKind, string> = { kurum: 'Kurum dersi', ozel: 'Özel ders', diger: 'Diğer' }
 
-export default function EventModal({ initial, onClose }: { initial: CalEvent | Partial<CalEvent>; onClose: () => void }) {
+export default function EventModal({ initial, onClose, onDuplicate }: { initial: CalEvent | Partial<CalEvent>; onClose: () => void; onDuplicate?: (ev: Partial<CalEvent>) => void }) {
   const data = useData()
   const isNew = !('id' in initial && initial.id && data.events.some((e) => e.id === initial.id))
   const [ev, setEv] = useState<CalEvent>(() => ({
@@ -46,6 +48,8 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
   }, [data.events, ev.id, ev.groupCode, ev.studentId, ev.date, ev.start])
 
   const groupCodes = Object.keys(data.groups).sort()
+  const conflicts = conflictsOf(data, ev)
+  const books = ev.studentId ? data.books.filter((b) => b.studentId === ev.studentId && (b.status !== 'bitti' || b.id === ev.bookId)) : []
   const series = ev.seriesId ? data.events.filter((e) => e.seriesId === ev.seriesId) : []
 
   const save = (markDone = false) => {
@@ -71,6 +75,16 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
       }
     }
     saveEvents(out)
+    // Tekrarlayan derste saat/gün değiştiyse sonrakilere de uygulamayı teklif et
+    const before = initial as CalEvent
+    if (!isNew && before.seriesId && (before.date !== base.date || before.start !== base.start || before.end !== base.end)) {
+      const future = futureSeriesEvents(data, before)
+      if (future.length && confirm(`Bu değişiklik serideki sonraki ${future.length} derse de uygulansın mı?\n(Gün farkı ve yeni saat ${base.start}–${base.end})`)) {
+        const snapshot = future.map((e) => ({ ...e }))
+        const n = applyShiftToSeries(before, base)
+        showToast(`${n} ders daha güncellendi`, [{ label: 'Geri al', run: () => saveEvents(snapshot) }])
+      }
+    }
     onClose()
   }
 
@@ -93,6 +107,13 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
         <>
           {!isNew && <button className="btn danger" onClick={() => remove('one')}>Sil</button>}
           {!isNew && series.length > 1 && <button className="btn danger ghost" onClick={() => remove('future')}>Sonrakileri sil</button>}
+          {!isNew && onDuplicate && (
+            <button
+              className="btn ghost"
+              title="Aynı dersi başka bir güne/saate kopyala"
+              onClick={() => onDuplicate({ kind: ev.kind, groupCode: ev.groupCode, studentId: ev.studentId, fee: ev.fee, title: ev.title, date: ev.date, start: ev.start, end: ev.end, hours: ev.hours, bookId: ev.bookId })}
+            >⧉ Çoğalt</button>
+          )}
           <div className="spacer" />
           <button className="btn" onClick={onClose}>Vazgeç</button>
           {ev.kind !== 'diger' && past && ev.status !== 'done' && (
@@ -175,8 +196,12 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
         </label>
       </div>
 
+      {conflicts.length > 0 && (
+        <div className="conflict">⚠️ Çakışma: {conflicts.map((c) => `${eventTitle(data, c)} (${c.start}–${c.end})`).join(', ')}</div>
+      )}
+
       {isNew && (
-        <div className="row center">
+        <div className="row middle">
           <label className="check">
             <input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} /> Her hafta tekrarla
           </label>
@@ -210,6 +235,23 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
             <span>Ne işledim? (konu)</span>
             <textarea rows={3} value={ev.topic ?? ''} onChange={(e) => set('topic', e.target.value)} placeholder="ör. Üslü sayılar – negatif üs, 12 soru çözüldü" />
           </label>
+          {ev.kind === 'ozel' && books.length > 0 && (
+            <div className="row">
+              <label className="field grow">
+                <span>Kitap</span>
+                <select value={ev.bookId ?? ''} onChange={(e) => set('bookId', e.target.value || undefined)}>
+                  <option value="">—</option>
+                  {books.map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
+                </select>
+              </label>
+              {ev.bookId && (
+                <label className="field grow">
+                  <span>İlerleme</span>
+                  <input value={ev.bookProgress ?? ''} onChange={(e) => set('bookProgress', e.target.value)} placeholder="ör. s. 40–55, Test 3–5" />
+                </label>
+              )}
+            </div>
+          )}
           <label className="field">
             <span>Verilen ödev</span>
             <input value={ev.homework ?? ''} onChange={(e) => set('homework', e.target.value)} placeholder="ör. Test kitabı s. 34–36" />

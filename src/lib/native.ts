@@ -55,3 +55,11 @@ export async function setupBackButton() {
     }
   })
 }
+
+/** Türkiye telefon numarasından WhatsApp bağlantısı */
+export function waLink(phone: string, text?: string) {
+  let p = phone.replace(/\D/g, '')
+  if (p.startsWith('0')) p = '9' + p
+  else if (p.length === 10) p = '90' + p
+  return `https://wa.me/${p}${text ? '?text=' + encodeURIComponent(text) : ''}`
+}

@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { AppData, CalEvent, Group, Payment, Student } from './types'
+import type { AppData, Book, CalEvent, Group, Payment, Student, StudentNote } from './types'
 import { PALETTE, colorFor, uid } from './util'
 import { nativeLoad, nativeSave } from './native'
 
@@ -12,6 +12,8 @@ export function emptyData(): AppData {
     groups: {},
     students: [],
     payments: [],
+    books: [],
+    notes: [],
     ignoredImportKeys: [],
     settings: { dayStart: 8, dayEnd: 21, currency: '₺' },
   }
@@ -37,6 +39,8 @@ export function normalize(d: Partial<AppData>): AppData {
     groups: d.groups ?? {},
     students: d.students ?? [],
     payments: d.payments ?? [],
+    books: d.books ?? [],
+    notes: d.notes ?? [],
     ignoredImportKeys: d.ignoredImportKeys ?? [],
   } as AppData
 }
@@ -152,6 +156,8 @@ export function deleteStudent(id: string) {
     ...d,
     students: d.students.filter((s) => s.id !== id),
     payments: d.payments.filter((p) => p.studentId !== id),
+    books: d.books.filter((b) => b.studentId !== id),
+    notes: d.notes.filter((n) => n.studentId !== id),
     events: d.events.filter((e) => e.studentId !== id),
   }))
 }
@@ -165,6 +171,31 @@ export function savePayment(p: Payment) {
 
 export function deletePayment(id: string) {
   setData((d) => ({ ...d, payments: d.payments.filter((p) => p.id !== id) }))
+}
+
+function upsert<T extends { id: string }>(list: T[], item: T): T[] {
+  return list.some((x) => x.id === item.id) ? list.map((x) => (x.id === item.id ? item : x)) : [...list, item]
+}
+
+export function saveBook(b: Book) {
+  setData((d) => ({ ...d, books: upsert(d.books, b) }))
+}
+
+export function deleteBook(id: string) {
+  setData((d) => ({
+    ...d,
+    books: d.books.filter((b) => b.id !== id),
+    events: d.events.map((e) => (e.bookId === id ? { ...e, bookId: undefined } : e)),
+    notes: d.notes.map((n) => (n.bookId === id ? { ...n, bookId: undefined } : n)),
+  }))
+}
+
+export function saveNote(n: StudentNote) {
+  setData((d) => ({ ...d, notes: upsert(d.notes, n) }))
+}
+
+export function deleteNote(id: string) {
+  setData((d) => ({ ...d, notes: d.notes.filter((n) => n.id !== id) }))
 }
 
 export function newStudent(): Student {

@@ -2,18 +2,12 @@ import { useState } from 'react'
 import type { OpenEvent } from '../App'
 import type { Payment, Student } from '../lib/types'
 import { deletePayment, deleteStudent, newStudent, savePayment, saveStudent, studentBalance, useData } from '../lib/store'
-import { formatShort, todayISO } from '../lib/date'
+import { todayISO } from '../lib/date'
 import { PALETTE, money, uid } from '../lib/util'
 import Modal from './Modal'
-import { openExternal } from '../lib/native'
-import { STATUS_LABEL } from './EventModal'
+import { openExternal, waLink } from '../lib/native'
+import StudentProfile from './StudentProfile'
 
-function waLink(phone: string, text?: string) {
-  let p = phone.replace(/\D/g, '')
-  if (p.startsWith('0')) p = '9' + p
-  else if (p.length === 10) p = '90' + p
-  return `https://wa.me/${p}${text ? '?text=' + encodeURIComponent(text) : ''}`
-}
 
 export default function StudentsPage({ openEvent }: { openEvent: OpenEvent }) {
   const data = useData()
@@ -34,6 +28,23 @@ export default function StudentsPage({ openEvent }: { openEvent: OpenEvent }) {
     { due: 0 },
   )
   const detailStudent = data.students.find((s) => s.id === detail)
+
+  if (detailStudent) {
+    return (
+      <>
+        <StudentProfile
+          student={detailStudent}
+          onBack={() => setDetail(null)}
+          onEdit={() => setEditing(detailStudent)}
+          onPay={(amount) => setPaying({ id: uid(), studentId: detailStudent.id, date: today, amount })}
+          onEditPayment={(p) => setPaying(p)}
+          openEvent={openEvent}
+        />
+        {editing && <StudentForm initial={editing} onClose={() => setEditing(null)} onDeleted={() => setDetail(null)} />}
+        {paying && <PaymentForm initial={paying} onClose={() => setPaying(null)} />}
+      </>
+    )
+  }
 
   return (
     <div className="page">
@@ -84,126 +95,13 @@ export default function StudentsPage({ openEvent }: { openEvent: OpenEvent }) {
         </div>
       )}
 
-      {detailStudent && (
-        <StudentDetail
-          student={detailStudent}
-          onClose={() => setDetail(null)}
-          onEdit={() => setEditing(detailStudent)}
-          onPay={() => setPaying({ id: uid(), studentId: detailStudent.id, date: today, amount: detailStudent.fee })}
-          onEditPayment={(p) => setPaying(p)}
-          openEvent={openEvent}
-        />
-      )}
       {editing && <StudentForm initial={editing} onClose={() => setEditing(null)} onDeleted={() => setDetail(null)} />}
       {paying && <PaymentForm initial={paying} onClose={() => setPaying(null)} />}
     </div>
   )
 }
 
-function StudentDetail({ student, onClose, onEdit, onPay, onEditPayment, openEvent }: {
-  student: Student
-  onClose: () => void
-  onEdit: () => void
-  onPay: () => void
-  onEditPayment: (p: Payment) => void
-  openEvent: OpenEvent
-}) {
-  const data = useData()
-  const today = todayISO()
-  const cur = data.settings.currency
-  const b = studentBalance(data, student.id, today)
-  const lessons = data.events.filter((e) => e.studentId === student.id).sort((a, b) => (b.date + b.start).localeCompare(a.date + a.start))
-  const payments = data.payments.filter((p) => p.studentId === student.id).sort((a, b) => b.date.localeCompare(a.date))
-  const upcoming = lessons.filter((e) => e.date >= today && e.status === 'planned').reverse()
-  const past = lessons.filter((e) => !(e.date >= today && e.status === 'planned'))
-
-  const reportText = () => {
-    const lines = [`Merhaba, ${student.name} için ders özeti:`]
-    past.filter((e) => e.status === 'done').slice(0, 8).reverse().forEach((e) => lines.push(`• ${formatShort(e.date)}: ${e.topic ?? '-'}${e.homework ? ` (Ödev: ${e.homework})` : ''}`))
-    if (b.balance > 0) lines.push(`\nGüncel bakiye: ${money(b.balance, cur)}`)
-    return lines.join('\n')
-  }
-
-  return (
-    <Modal
-      title={student.name}
-      onClose={onClose}
-      wide
-      footer={
-        <>
-          <button className="btn" onClick={onEdit}>✎ Düzenle</button>
-          {(student.parentPhone || student.phone) && (
-            <button className="btn" onClick={() => openExternal(waLink((student.parentPhone || student.phone)!, reportText()))}>Veliye özet gönder (WhatsApp)</button>
-          )}
-          <div className="spacer" />
-          <button className="btn primary" onClick={onPay}>💰 Ödeme al</button>
-        </>
-      }
-    >
-      <div className="kpis">
-        <div className="kpi"><span>Yapılan ders</span><b>{b.doneLessons}</b></div>
-        <div className="kpi"><span>Toplam ücret</span><b>{money(b.earned, cur)}</b></div>
-        <div className="kpi"><span>Ödenen</span><b>{money(b.paid, cur)}</b></div>
-        <div className="kpi"><span>{b.balance >= 0 ? 'Kalan borç' : 'Ön ödeme'}</span><b className={b.balance > 0 ? 'warn-text' : 'ok'}>{money(Math.abs(b.balance), cur)}</b></div>
-      </div>
-      <p className="muted small">
-        {student.phone && <>Tel: {student.phone} · </>}
-        {student.parentName && <>Veli: {student.parentName} </>}
-        {student.parentPhone && <>({student.parentPhone})</>}
-      </p>
-      {student.notes && <p className="small">{student.notes}</p>}
-
-      {upcoming.length > 0 && (
-        <>
-          <h4>Yaklaşan dersler</h4>
-          <ul className="mini-list">
-            {upcoming.slice(0, 5).map((e) => <li key={e.id} className="link" onClick={() => openEvent(e)}>{formatShort(e.date)} {e.start}–{e.end}</li>)}
-          </ul>
-        </>
-      )}
-
-      <h4>Ders geçmişi</h4>
-      {past.length === 0 ? <p className="muted small">Henüz ders yok.</p> : (
-        <div className="table-wrap">
-          <table className="table">
-            <thead><tr><th>Tarih</th><th>Durum</th><th>Konu</th><th>Ücret</th></tr></thead>
-            <tbody>
-              {past.map((e) => (
-                <tr key={e.id} onClick={() => openEvent(e)}>
-                  <td className="nowrap">{formatShort(e.date)}</td>
-                  <td><span className={'pill st-' + e.status}>{STATUS_LABEL[e.status]}</span></td>
-                  <td>{e.topic || <span className="muted">—</span>}</td>
-                  <td className="nowrap">{e.status === 'done' ? money(e.fee ?? 0, cur) : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <h4>Ödemeler</h4>
-      {payments.length === 0 ? <p className="muted small">Henüz ödeme yok.</p> : (
-        <div className="table-wrap">
-          <table className="table">
-            <thead><tr><th>Tarih</th><th>Tutar</th><th>Yöntem</th><th>Not</th></tr></thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} onClick={() => onEditPayment(p)}>
-                  <td className="nowrap">{formatShort(p.date)}</td>
-                  <td className="nowrap">{money(p.amount, cur)}</td>
-                  <td>{p.method}</td>
-                  <td className="muted">{p.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </Modal>
-  )
-}
-
-function StudentForm({ initial, onClose, onDeleted }: { initial: Student; onClose: () => void; onDeleted: () => void }) {
+export function StudentForm({ initial, onClose, onDeleted }: { initial: Student; onClose: () => void; onDeleted: () => void }) {
   const data = useData()
   const [s, setS] = useState<Student>(initial)
   const isNew = !data.students.some((x) => x.id === s.id)
@@ -261,7 +159,7 @@ function StudentForm({ initial, onClose, onDeleted }: { initial: Student; onClos
   )
 }
 
-function PaymentForm({ initial, onClose }: { initial: Payment; onClose: () => void }) {
+export function PaymentForm({ initial, onClose }: { initial: Payment; onClose: () => void }) {
   const data = useData()
   const [p, setP] = useState<Payment>(initial)
   const isNew = !data.payments.some((x) => x.id === p.id)

@@ -1,0 +1,133 @@
+import { useMemo, useState } from 'react'
+import { applyImport, parseRows, planImport, rowsFromFile, type ParseResult } from '../lib/importSchedule'
+import { setData, useData } from '../lib/store'
+import { formatShort, todayISO } from '../lib/date'
+import Modal from './Modal'
+
+export default function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: (firstNewDate?: string) => void }) {
+  const data = useData()
+  const [parsed, setParsed] = useState<ParseResult | null>(null)
+  const [fileName, setFileName] = useState('')
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [removeStale, setRemoveStale] = useState(true)
+  const [merge, setMerge] = useState(true)
+  const today = todayISO()
+
+  const plan = useMemo(() => (parsed ? planImport(data, parsed, today, removeStale) : null), [data, parsed, today, removeStale])
+
+  const onFile = async (f: File | undefined) => {
+    if (!f) return
+    setError('')
+    setBusy(true)
+    setFileName(f.name)
+    try {
+      const rows = await rowsFromFile(f)
+      const r = parseRows(rows)
+      if (!r.slots.length) setError('Dosyada ders bulunamadı. İlk sütunda tarih, diğer hücrelerde "SINIF KODU + 09:20-10:00" biçiminde ders olmalı.')
+      setParsed(r)
+    } catch (e) {
+      console.error(e)
+      setError('Dosya okunamadı: ' + (e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const doImport = () => {
+    if (!parsed || !plan) return
+    setData((d) => applyImport(d, parsed, today, removeStale, merge))
+    onDone(plan.newBlocks.find((b) => b.date >= today)?.date ?? plan.newBlocks[0]?.date)
+    onClose()
+  }
+
+  const byDate = useMemo(() => {
+    const m = new Map<string, string[]>()
+    plan?.newBlocks.forEach((b) => {
+      if (!m.has(b.date)) m.set(b.date, [])
+      m.get(b.date)!.push(`${b.start}–${b.end} ${b.groupCode}`)
+    })
+    return m
+  }, [plan])
+
+  const hasChanges = !!plan && (plan.newSlotCount > 0 || (removeStale && plan.staleEvents.length > 0))
+
+  return (
+    <Modal
+      title="Kurum ders programını yükle"
+      onClose={onClose}
+      wide
+      footer={
+        <>
+          <div className="spacer" />
+          <button className="btn" onClick={onClose}>Vazgeç</button>
+          <button className="btn primary" disabled={!hasChanges} onClick={doImport}>
+            {plan ? `İçe aktar (${plan.newSlotCount} yeni ders saati)` : 'İçe aktar'}
+          </button>
+        </>
+      }
+    >
+      <p className="muted">
+        Kurumun yayınladığı program dosyasını (.xls, .xlsx) seçin. Daha önce kaydedilmiş dersler <b>tekrar eklenmez</b>; sadece yeni dersler takvime işlenir.
+      </p>
+      <label className="filepick">
+        <input type="file" accept=".xls,.xlsx,.htm,.html,.csv" onChange={(e) => onFile(e.target.files?.[0])} />
+        <span>{busy ? 'Okunuyor…' : fileName || 'Dosya seçmek için tıklayın'}</span>
+      </label>
+      {error && <div className="error">{error}</div>}
+
+      {parsed && plan && parsed.slots.length > 0 && (
+        <div className="import-summary">
+          <div className="stats">
+            <div><b>{parsed.slots.length}</b><span>dosyadaki ders saati</span></div>
+            <div className="good"><b>{plan.newSlotCount}</b><span>yeni eklenecek</span></div>
+            <div><b>{plan.existingCount}</b><span>zaten kayıtlı (atlanacak)</span></div>
+            {plan.ignoredCount > 0 && <div><b>{plan.ignoredCount}</b><span>daha önce silinmiş (atlanacak)</span></div>}
+          </div>
+          <p className="muted small">Tarih aralığı: {formatShort(parsed.minDate!)} – {formatShort(parsed.maxDate!)}</p>
+
+          {plan.staleEvents.length > 0 && (
+            <div className="stale">
+              <label className="check">
+                <input type="checkbox" checked={removeStale} onChange={(e) => setRemoveStale(e.target.checked)} />
+                <span>
+                  Yeni programda artık bulunmayan <b>{plan.staleEvents.length}</b> gelecek dersi takvimden kaldır (program değişmiş olabilir)
+                </span>
+              </label>
+              <ul className="mini-list">
+                {plan.staleEvents.slice(0, 12).map((e) => <li key={e.id}>{formatShort(e.date)} {e.start}–{e.end} {e.groupCode}</li>)}
+                {plan.staleEvents.length > 12 && <li>… ve {plan.staleEvents.length - 12} tane daha</li>}
+              </ul>
+              <p className="muted small">Notu girilmiş veya geçmiş dersler hiçbir zaman silinmez.</p>
+            </div>
+          )}
+
+          <label className="check">
+            <input type="checkbox" checked={merge} onChange={(e) => setMerge(e.target.checked)} />
+            <span>Aynı sınıfın art arda gelen saatlerini tek ders olarak birleştir (ör. 09:20–10:50, 2 saat)</span>
+          </label>
+
+          {plan.newSlotCount > 0 ? (
+            <details>
+              <summary>Eklenecek dersleri göster</summary>
+              <ul className="mini-list">
+                {Array.from(byDate.entries()).map(([d, l]) => (
+                  <li key={d}><b>{formatShort(d)}:</b> {l.join(' · ')}</li>
+                ))}
+              </ul>
+            </details>
+          ) : (
+            <p className="ok">Bu programdaki tüm dersler zaten takviminizde. 👍</p>
+          )}
+
+          {parsed.warnings.length > 0 && (
+            <details>
+              <summary>{parsed.warnings.length} hücre okunamadı</summary>
+              <ul className="mini-list">{parsed.warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+            </details>
+          )}
+        </div>
+      )}
+    </Modal>
+  )
+}

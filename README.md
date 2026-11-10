@@ -19,6 +19,30 @@ Kurum dersleri ve özel dersler için haftalık takvim, ders defteri ve ücret t
 
 Veriler tarayıcıda (localStorage) saklanır; sunucu gerekmez. Düzenli yedek almayı unutmayın.
 
+## Android uygulaması (APK)
+
+Uygulama [Capacitor](https://capacitorjs.com) ile Android'e paketlenir (`android/` klasörü).
+Her push'ta `.github/workflows/android.yml` APK'yı derler ve **Releases** sayfasına `DersAsistani.apk` olarak yükler.
+
+**Telefona/tablete kurulum:** GitHub'da depo → *Releases* → en son sürüm → `DersAsistani.apk` dosyasını indirip açın.
+İlk seferde "bilinmeyen kaynaklardan yüklemeye izin ver" onayı istenir.
+
+**Kalıcı imza anahtarı (bir kerelik):** Yeni sürümlerin verileri silmeden eskisinin üzerine kurulabilmesi için
+APK her seferinde aynı anahtarla imzalanmalıdır. Anahtar güvenlik için depoda değil, GitHub Secrets'ta durur:
+*Settings → Secrets and variables → Actions → New repository secret* ile şu iki gizli değeri ekleyin:
+
+| Ad | Değer |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | imza anahtarının base64 hali |
+| `ANDROID_KEYSTORE_PASSWORD` | anahtar şifresi |
+
+Kendi anahtarınızı üretmek için:
+```bash
+keytool -genkeypair -keystore dersasistani.keystore -alias dersasistani -keyalg RSA -keysize 2048 -validity 10000
+base64 -w0 dersasistani.keystore   # çıktıyı ANDROID_KEYSTORE_BASE64 olarak kaydedin
+```
+Anahtar dosyasını ve şifresini kaybetmeyin; kaybolursa uygulamayı silip yeniden kurmak (önce yedek alarak) gerekir.
+
 ## Geliştirme
 
 ```bash
@@ -26,6 +50,7 @@ npm install
 npm run dev      # http://localhost:5173
 npm test         # birim testleri
 npm run build    # dist/ klasörüne üretim çıktısı
+npx cap sync android   # web çıktısını Android projesine kopyalar (Android Studio ile açılabilir)
 ```
 
 ## Yayınlama (GitHub Pages)

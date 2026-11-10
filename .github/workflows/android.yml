@@ -25,29 +25,6 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npx cap sync android
-      - name: İmza anahtarını hazırla
-        env:
-          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KEYSTORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-        run: |
-          SIGNED=hayir
-          if [ -n "$KEYSTORE_B64" ]; then
-            # Kopyala-yapıştırdan gelen boşluk/satır sonu/tırnakları temizle
-            CLEAN=$(printf '%s' "$KEYSTORE_B64" | tr -cd 'A-Za-z0-9+/=')
-            KEYSTORE_PW=$(printf '%s' "$KEYSTORE_PW" | tr -d ' \r\n\t')
-            echo "Anahtar metni uzunluğu: ${#CLEAN} karakter (beklenen ~3500)"
-            if printf '%s' "$CLEAN" | base64 -d > "$RUNNER_TEMP/release.keystore" 2>/dev/null \
-               && keytool -list -keystore "$RUNNER_TEMP/release.keystore" -storepass "$KEYSTORE_PW" >/dev/null 2>&1; then
-              echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
-              echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PW" >> "$GITHUB_ENV"
-              SIGNED=evet
-            else
-              echo "::warning::İmza anahtarı okunamadı (ANDROID_KEYSTORE_BASE64 eksik/hatalı veya şifre yanlış). APK geçici anahtarla imzalanacak."
-            fi
-          else
-            echo "::warning::ANDROID_KEYSTORE_BASE64 secret'i yok. APK geçici anahtarla imzalanacak."
-          fi
-          echo "SIGNED=$SIGNED" >> "$GITHUB_ENV"
       - name: APK derle
         working-directory: android
         run: |
@@ -64,12 +41,13 @@ jobs:
           tag_name: v0.5.${{ github.run_number }}
           name: Ders Asistanı 0.5.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          make_latest: ${{ env.SIGNED == 'evet' }}
-          prerelease: ${{ env.SIGNED != 'evet' }}
+          make_latest: true
           files: DersAsistani.apk
           body: |
             Telefona/tablete kurmak için aşağıdaki **DersAsistani.apk** dosyasını indirip açın.
             İlk kurulumda "Bilinmeyen kaynaklardan yüklemeye izin ver" demeniz gerekebilir.
-            ${{ env.SIGNED == 'evet' && 'Yeni sürümler eskisinin üzerine kurulur, verileriniz silinmez.' || '⚠️ Bu sürüm geçici anahtarla imzalandı: sonraki sürümler üstüne kurulamaz. Kalıcı imza için README dosyasındaki adımlarla GitHub Secrets ekleyin.' }}
+
+            **Güncellerken (deneme sürümü):** "Uygulama yüklenmedi" uyarısı alırsanız önce uygulamada
+            Ayarlar → Yedek indir yapın, eski uygulamayı silip yenisini kurun, sonra Ayarlar → Yedekten geri yükle.
 
             Dal: `${{ github.ref_name }}` · Commit: ${{ github.sha }}

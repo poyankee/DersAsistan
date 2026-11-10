@@ -56,6 +56,7 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
 - [x] Ana ekran widget'ı
 
 ### Veri ve güvenlik (sonraya bırakıldı)
+- [ ] Gerçek kullanıma geçerken sabit APK imza anahtarı (güncellemeler veri silinmeden üstüne kurulsun)
 - [ ] ⭐ Bulut eşitleme (telefon + tablet)
 - [ ] Google Drive'a otomatik haftalık yedek
 - [ ] Parmak izi / PIN kilidi

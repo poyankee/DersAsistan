@@ -21,22 +21,10 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
-    signingConfigs {
-        release {
-            // Anahtar GitHub Secrets'tan derleme sırasında gelir (depoda tutulmaz)
-            def ks = System.getenv("ANDROID_KEYSTORE_PATH")
-            if (ks) {
-                storeFile file(ks)
-                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
-                keyAlias System.getenv("ANDROID_KEY_ALIAS") ?: "dersasistani"
-                keyPassword System.getenv("ANDROID_KEY_PASSWORD") ?: System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            }
-        }
-    }
     buildTypes {
         release {
-            // Anahtar yoksa hata ayıklama anahtarıyla imzalanır (kurulabilir ama güncellemede sorun çıkar)
-            signingConfig System.getenv("ANDROID_KEYSTORE_PATH") ? signingConfigs.release : signingConfigs.debug
+            // Deneme aşaması: hata ayıklama anahtarıyla imzalanır
+            signingConfig signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

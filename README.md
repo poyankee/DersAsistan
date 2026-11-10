@@ -27,21 +27,10 @@ Her push'ta `.github/workflows/android.yml` APK'yı derler ve **Releases** sayfa
 **Telefona/tablete kurulum:** GitHub'da depo → *Releases* → en son sürüm → `DersAsistani.apk` dosyasını indirip açın.
 İlk seferde "bilinmeyen kaynaklardan yüklemeye izin ver" onayı istenir.
 
-**Kalıcı imza anahtarı (bir kerelik):** Yeni sürümlerin verileri silmeden eskisinin üzerine kurulabilmesi için
-APK her seferinde aynı anahtarla imzalanmalıdır. Anahtar güvenlik için depoda değil, GitHub Secrets'ta durur:
-*Settings → Secrets and variables → Actions → New repository secret* ile şu iki gizli değeri ekleyin:
-
-| Ad | Değer |
-|---|---|
-| `ANDROID_KEYSTORE_BASE64` | imza anahtarının base64 hali |
-| `ANDROID_KEYSTORE_PASSWORD` | anahtar şifresi |
-
-Kendi anahtarınızı üretmek için:
-```bash
-keytool -genkeypair -keystore dersasistani.keystore -alias dersasistani -keyalg RSA -keysize 2048 -validity 10000
-base64 -w0 dersasistani.keystore   # çıktıyı ANDROID_KEYSTORE_BASE64 olarak kaydedin
-```
-Anahtar dosyasını ve şifresini kaybetmeyin; kaybolursa uygulamayı silip yeniden kurmak (önce yedek alarak) gerekir.
+**Güncelleme (deneme aşaması):** APK'lar şimdilik her derlemede farklı bir geçici anahtarla imzalanır;
+bu yüzden yeni sürüm eskisinin üzerine kurulmayabilir. Bu durumda uygulamada *Ayarlar → Yedek indir*,
+eski uygulamayı silip yenisini kurun, ardından *Ayarlar → Yedekten geri yükle*.
+Gerçek kullanıma geçerken sabit bir imza anahtarı (GitHub Secrets) eklenerek güncellemeler doğrudan üstüne kurulur hale getirilecek.
 
 **Ana ekran widget'ı:** Uygulamayı kurduktan sonra telefonun ana ekranına uzun basın → *Widget'lar* →
 *Ders Asistanı · Bugün*. Bugünün derslerini, sıradaki dersi ve notu eksik ders sayısını gösterir.

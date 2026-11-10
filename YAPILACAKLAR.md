@@ -18,19 +18,23 @@
 - [ ] Kişisel etkinlikler ders sayısına, puantaja ve gelire **karışmasın**; boş saat bulucu onları dolu saysın
 - [ ] Takvimde **katman filtresi**: Kurum / Özel ders / Kişisel göster-gizle
 
-### Önerilen ek özellikler (seçim bekliyor)
+### Seçilen ek özellikler
 - [ ] P. **Yüksek lisans takibi**: ödev/proje teslim tarihleri, sınavlar, devamsızlık sayacı (görev ve sınav altyapısıyla)
 - [ ] R. **Öğrenciye gösterilebilir ekran**: öğrenci yanındayken açılacak sade görünüm — sadece konu, ödev, kitap ilerlemesi (para yok)
-- [ ] S. **Genel arama**: tüm uygulamada konu, ödev, not, öğrenci, sınıf arama
-- [ ] T. **Haftayı kopyala**: geçen haftanın özel/kişisel düzenini bu haftaya tek dokunuşla kopyalama
-- [ ] U. **Günlük yük uyarısı**: arka arkaya çok ders, mola/yol süresi kalmayan geçişler için uyarı
-- [ ] V. **Dönem ayarları**: dönem başı/sonu, yarıyıl tatili; tekrarlayan dersler dönem sonunda otomatik bitsin
-- [ ] W. **Ders notu etiketleri**: "Anlaşıldı / Tekrar gerek / Sınav konusu" gibi hızlı etiketler, öğrencide tekrar edilecek konular listesi
-- [ ] X. **Özel derste "gelmedi"** durumu ve isteğe bağlı ücretlendirme kuralı
-- [ ] Y. **Takvimi paylaşma**: belirli günlerin boş saatlerini veliye mesaj olarak gönderme ("Salı 15:00 ve Perşembe 17:00 müsaitim")
+
+### Yeni öneriler (seçim bekliyor)
+- [ ] 1. **Ders modu**: derse girince tam ekran sayaç (kalan süre), tek dokunuşla hızlı not; süre bitince ders sonu ekranı kendiliğinden açılır
+- [ ] 2. **Mesaj şablonları**: iptal ("Bugünkü dersimiz iptal, telafi …"), ödev hatırlatma, ders özeti, ödeme — düzenlenebilir, tek dokunuşla WhatsApp
+- [ ] 3. **Materyal kütüphanesi**: çalışma kâğıdı / PDF / fotoğraf saklama, derse ekleme, öğrenciye gönderme
+- [ ] 4. **Sabah hazırlık listesi**: bugünkü derslere göre götürülecekler (kitap, fotokopi, ödev kontrolü)
+- [ ] 5. **Haftalık denge**: kurum + özel ders + yüksek lisans + kişisel toplam saat; aşırı yüklü haftalarda uyarı
+- [ ] 6. **Dönem sonu öğrenci raporu (PDF)**: işlenen konular, kitaplar, ödev düzeni, notlar — veliye gönderilebilir
+- [ ] 7. **Widget'ta hızlı düğme**: ana ekrandan doğrudan "Ne işledim?" ve "Yeni ders"
+- [ ] 8. **Akıllı öneriler**: "Ayşe 3 haftadır ödev yapmıyor", "8-H iki ders geride", "Bu ay 5 ders iptal oldu" gibi otomatik uyarılar
 
 ### Beklemede (seçilmedi)
 - [ ] B. Ders planı · C. Hızlı ekleme cümlesi · F. Sınıf listesi ve yoklama · H. Kardeş/aile hesabı
+- [ ] S. Genel arama · T. Haftayı kopyala · U. Günlük yük uyarısı · V. Dönem ayarları · W. Ders notu etiketleri · X. Özel derste "gelmedi" · Y. Boş saatleri paylaşma
 - [ ] J. Ders sonu değerlendirme · K. Bekleme listesi · L. Derse fotoğraf ekleme
 
 ## Sıradaki fikirler

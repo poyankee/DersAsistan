@@ -60,7 +60,6 @@ jobs:
           body: |
             Telefona/tablete kurmak için aşağıdaki **DersAsistani.apk** dosyasını indirip açın.
             İlk kurulumda "Bilinmeyen kaynaklardan yüklemeye izin ver" demeniz gerekebilir.
-            Yeni sürümler eskisinin üzerine kurulur, verileriniz silinmez.
+            ${{ env.SIGNED == 'evet' && 'Yeni sürümler eskisinin üzerine kurulur, verileriniz silinmez.' || '⚠️ Bu sürüm geçici anahtarla imzalandı: sonraki sürümler üstüne kurulamaz. Kalıcı imza için README dosyasındaki adımlarla GitHub Secrets ekleyin.' }}
 
-            Kalıcı imza: ${{ env.SIGNED }}
             Dal: `${{ github.ref_name }}` · Commit: ${{ github.sha }}

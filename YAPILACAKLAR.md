@@ -1,5 +1,39 @@
 # Yapılacaklar
 
+## 🔜 Sıradaki toplu geliştirme (v0.6)
+
+### Senin istediklerin
+- [ ] **Tarihi belli olmayan ödeme:** Veli "sonra ödeyeceğim" dediğinde tarih girmeden "Ödeme bekleniyor"
+  olarak işaretlenebilsin. Alacaklarda ayrı bir kalem olarak görünsün ("tarihi belirsiz"), kaç gündür
+  beklediği yazsın (ör. "12 gündür bekliyor"), belirli bir süreyi geçince nazikçe hatırlatsın.
+  Sonradan tarih belli olursa tek dokunuşla tarihli söze çevrilebilsin.
+- [ ] **Takvimin akıcı kullanımı (soft his):** Takvim baştan elden geçirilecek. Tespit edilen/olası sorunlar:
+  - Telefonda dersi taşımak için basılı tutma süresi uzun, basarken görsel geri bildirim yok
+  - Derse dokununca ağır tam form açılıyor → önce küçük bir **özet kartı** (saat, konu, hızlı
+    "Yapıldı / İptal / Taşı / Not yaz" düğmeleri), detay istenirse form
+  - Gün değiştirirken (kaydırma) animasyon yok, sayfa "zıplıyor" → parmakla sürüklenen, yumuşak geçiş
+  - Saat yüksekliği sabit ve telefonda küçük → iki parmakla yakınlaştırma / sıkıştırma
+  - Telefonda sadece Gün görünümü rahat → **3 günlük görünüm** eklenmeli
+  - Görünüm/gün değişince kaydırma konumu sıfırlanıyor
+  - Süre değiştirme tutamağı dokunmatik için çok ince
+  - Saat seçicide AM/PM görünebiliyor → her yerde 24 saat, 5 dakikalık adımlı kendi saat seçicimiz
+  - Telefonda form açılınca klavye alanları kapatıyor
+  - Ay görünümü telefonda sıkışık; güne dokununca altta o günün listesi açılmalı
+  - Genel geçiş animasyonları ve dokunma geri bildirimi (titreşim, basılma efekti)
+  > Kullanırken takıldığın somut anları buraya ekle (ör. "X'e dokununca Y oluyor") — öncelik onlara.
+
+### Önerilen ek geliştirmeler
+- [ ] **Hızlı işlem çubuğu:** Bugün ekranındaki her derste kaydırarak "Yapıldı ✓ / Ücreti alındı ₺ / İptal"
+- [ ] **Ders bitince tek ekran akışı:** "Ne işledin + ödev + ücreti alındı mı?" tek adımda
+- [ ] **Tekrar eden notlar:** Son kullanılan konu/ödev metinlerinden öneri (otomatik tamamlama)
+- [ ] **Ödeme hatırlatma mesajı:** Borcu olan veliye hazır, kibar WhatsApp metni (tutar + ders listesi)
+- [ ] **Ay sonu toplu tahsilat listesi:** Toplu ödeyenler için "bu ay kimden ne kadar alınacak" tek liste,
+  tek tek "ödendi" işaretleme
+- [ ] **Öğrenci arama ve sıralama:** Ada göre arama, borca/son derse göre sıralama
+- [ ] **Geri dönüşüm kutusu:** Silinen ders/öğrenci/ödeme 30 gün geri alınabilsin
+- [ ] **Otomatik yerel yedek:** Her gün telefona otomatik yedek (güncelleme sırasında veri kaybı riskine karşı)
+- [ ] **Bildirimler:** Ders öncesi hatırlatma, ders sonrası "ne işledin", vadesi gelen ödeme sözleri
+
 ## Sıradaki fikirler
 
 ### 📈 Sınav ve deneme sonuçları (iş yükü az olacak şekilde)

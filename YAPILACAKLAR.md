@@ -3,6 +3,29 @@
 ## Sıradaki adımlar
 - [ ] Gerçek telefonda deneme geri bildirimi (takvim hissi, widget, bildirimler, kısayollar)
 
+## 🧹 v0.7 — Sadeleştirme (onay bekliyor)
+İlke: **Takvim = ne zaman, Öğrenci/Sınıf dosyası = ne yaptık + para.** Her bilgi tek yerden girilir.
+
+1. **Yeni etkinlik formu sade**: Tür (Özel ders / Kişisel), öğrenci veya başlık, tarih, saat + süre düğmeleri (40/60/90 dk),
+   "Her hafta" anahtarı. Bitti. Konu, ödev, kitap, ücret, durum, notlar, zil saatleri formdan kalkar.
+2. **"Ne işlendi" sadece dosyada**: Öğrenci dosyasında tarihli liste ("12 Kas — Üslü sayılar, ödev Test 7") ve
+   "Yeni kayıt" alanı. Takvimden, Bugün'den, özet kartından, ders bitiş ekranından ve Ders Defteri'nden kalkar.
+   (Kurum sınıfları için aynı şey Sınıf dosyasında.)
+3. **Ders Defteri sekmesi kalkar** (öğrenci/sınıf dosyaları onun yerini alır) → menü 4 sekme:
+   Bugün · Takvim · Öğrenciler · Raporlar (Ayarlar Bugün ekranındaki çark simgesinde).
+4. **Derse dokununca** küçük kart: saat, öğrenci, son yapılan konu + 3 düğme: *Dosyayı aç · Düzenle · İptal et*.
+5. **Bugün ekranı**: Sıradaki ders + bugünün programı + (varsa) görevler. İstatistik kutuları, haftalık bakış,
+   ödeme listesi, "not eksik" uyarıları ve kaydırma hareketleri kalkar.
+6. **Takvim çubuğu**: Bugün · ‹ › · Gün / 3 gün (Hafta) / Ay. "Program yükle" ve "Boş saat" ⋯ menüsüne;
+   üstteki uyarı şeritleri kalkar. Takvim 00:00–24:00 olur.
+7. **Öğrenci dosyası 3 sekme**: *Dersler* (tarihli kayıtlar) · *Ödeme işlemleri* (borç, ödemeler, ödeme notu — para sadece
+   burada) · *Bilgiler* (veli, ders düzeni, kitaplar). Öğrenci listesinde tutar görünmez, sadece "ödeme bekliyor" noktası.
+8. **Kişisel etkinlikler** (yüksek lisans vb.): kategori + renk, haftalık tekrar; gelire/puantaja karışmaz.
+9. **Ayarlar** sadeleşir: sık kullanılanlar üstte, gerisi "Gelişmiş" altında katlanır.
+10. Kaldırılan özelliklerin verisi silinmez (eski kayıtlardaki konu/ödevler öğrenci dosyasında görünmeye devam eder).
+
+Seçilenler (sadeleştirmeden sonra): P. Yüksek lisans takibi (kişisel kategori + teslim tarihleri), R. Öğrenciye gösterilebilir ekran
+
 ## 🔜 v0.7 — senin istediklerin
 ### Ücretler öğrencinin yanında görünmesin
 - [ ] Ders eklerken / ders bitiş ekranında **ücret alanı olmasın**; ücret otomatik olarak öğrencinin kayıtlı ücretinden gelsin

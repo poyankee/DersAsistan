@@ -78,3 +78,14 @@ export function isPast(date: string, end: string): boolean {
   const t = todayISO()
   return date < t || (date === t && end <= nowHM())
 }
+
+/** 16.11.2026 */
+export function formatDMY(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${d}.${m}.${y}`
+}
+
+/** 16.11.2026 Pzt */
+export function formatDMYDay(iso: string): string {
+  return `${formatDMY(iso)} ${TR_DAYS_SHORT[weekdayIndex(iso)]}`
+}

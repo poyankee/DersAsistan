@@ -3,49 +3,7 @@
 ## Sıradaki adımlar
 - [ ] Gerçek telefonda deneme geri bildirimi (takvim hissi, widget, bildirimler, kısayollar)
 
-## 🧹 v0.7 — Sadeleştirme (onay bekliyor)
-İlke: **Takvim = ne zaman, Öğrenci/Sınıf dosyası = ne yaptık + para.** Her bilgi tek yerden girilir.
-
-1. **Yeni etkinlik formu sade**: Tür (Özel ders / Kişisel), öğrenci veya başlık, tarih, saat + süre düğmeleri (40/60/90 dk),
-   "Her hafta" anahtarı. Bitti. Konu, ödev, kitap, ücret, durum, notlar, zil saatleri formdan kalkar.
-2. **"Ne işlendi" sadece dosyada**: Öğrenci dosyasında tarihli liste ("12 Kas — Üslü sayılar, ödev Test 7") ve
-   "Yeni kayıt" alanı. Takvimden, Bugün'den, özet kartından, ders bitiş ekranından ve Ders Defteri'nden kalkar.
-   (Kurum sınıfları için aynı şey Sınıf dosyasında.)
-3. **Ders Defteri sekmesi kalkar** (öğrenci/sınıf dosyaları onun yerini alır) → menü 4 sekme:
-   Bugün · Takvim · Öğrenciler · Raporlar (Ayarlar Bugün ekranındaki çark simgesinde).
-4. **Derse dokununca** küçük kart: saat, öğrenci, son yapılan konu + 3 düğme: *Dosyayı aç · Düzenle · İptal et*.
-5. **Bugün ekranı**: Sıradaki ders + bugünün programı + (varsa) görevler. İstatistik kutuları, haftalık bakış,
-   ödeme listesi, "not eksik" uyarıları ve kaydırma hareketleri kalkar.
-6. **Takvim çubuğu**: Bugün · ‹ › · Gün / 3 gün (Hafta) / Ay. "Program yükle" ve "Boş saat" ⋯ menüsüne;
-   üstteki uyarı şeritleri kalkar. Takvim 00:00–24:00 olur.
-7. **Öğrenci dosyası 3 sekme**: *Dersler* (tarihli kayıtlar) · *Ödeme işlemleri* (borç, ödemeler, ödeme notu — para sadece
-   burada) · *Bilgiler* (veli, ders düzeni, kitaplar). Öğrenci listesinde tutar görünmez, sadece "ödeme bekliyor" noktası.
-8. **Kişisel etkinlikler** (yüksek lisans vb.): kategori + renk, haftalık tekrar; gelire/puantaja karışmaz.
-9. **Ayarlar** sadeleşir: sık kullanılanlar üstte, gerisi "Gelişmiş" altında katlanır.
-10. Kaldırılan özelliklerin verisi silinmez (eski kayıtlardaki konu/ödevler öğrenci dosyasında görünmeye devam eder).
-
-Seçilenler (sadeleştirmeden sonra): P. Yüksek lisans takibi (kişisel kategori + teslim tarihleri), R. Öğrenciye gösterilebilir ekran
-
-## 🔜 v0.7 — senin istediklerin
-### Ücretler öğrencinin yanında görünmesin
-- [ ] Ders eklerken / ders bitiş ekranında **ücret alanı olmasın**; ücret otomatik olarak öğrencinin kayıtlı ücretinden gelsin
-- [ ] Öğrenci profilinde para bilgileri tek bir **"Ödeme işlemleri"** sekmesine taşınsın
-  (borç, ödemeler, ödeme notu, ödeme al); profilin üst kısmında, ders kartında ve özet kartında tutar görünmesin
-- [ ] Öğrenci kartlarında ve takvimde tutar yerine sadece küçük, renkli bir işaret (ör. ödeme bekliyor noktası)
-- [ ] (Öneri) Ayarlarda **"Tutarları gizle"** anahtarı / başlıkta göz simgesi: açıkken tüm ekranlarda tutarlar ••• olur
-
-### 24 saatlik takvim ve kişisel işler
-- [ ] Takvim **günün tamamını (00:00–24:00)** göstersin; açılışta şu anki saate / ilk derse kaydırsın
-- [ ] **Kişisel etkinlikler**: "Diğer" yerine kendi kategorilerin (ör. Yüksek lisans, Spor, Doktor, Toplantı) — her biri kendi rengiyle
-- [ ] Kişisel etkinlikler de **haftalık tekrarlansın** (ör. yüksek lisans dersleri dönem boyunca), tatilleri atlayabilsin
-- [ ] Kişisel etkinlikler ders sayısına, puantaja ve gelire **karışmasın**; boş saat bulucu onları dolu saysın
-- [ ] Takvimde **katman filtresi**: Kurum / Özel ders / Kişisel göster-gizle
-
-### Seçilen ek özellikler
-- [ ] P. **Yüksek lisans takibi**: ödev/proje teslim tarihleri, sınavlar, devamsızlık sayacı (görev ve sınav altyapısıyla)
-- [ ] R. **Öğrenciye gösterilebilir ekran**: öğrenci yanındayken açılacak sade görünüm — sadece konu, ödev, kitap ilerlemesi (para yok)
-
-### Yeni öneriler (seçim bekliyor)
+### Seçilmedi (v0.6 sonrası öneriler: ders modu, mesaj şablonları vb.)
 - [ ] 1. **Ders modu**: derse girince tam ekran sayaç (kalan süre), tek dokunuşla hızlı not; süre bitince ders sonu ekranı kendiliğinden açılır
 - [ ] 2. **Mesaj şablonları**: iptal ("Bugünkü dersimiz iptal, telafi …"), ödev hatırlatma, ders özeti, ödeme — düzenlenebilir, tek dokunuşla WhatsApp
 - [ ] 3. **Materyal kütüphanesi**: çalışma kâğıdı / PDF / fotoğraf saklama, derse ekleme, öğrenciye gönderme
@@ -55,7 +13,7 @@ Seçilenler (sadeleştirmeden sonra): P. Yüksek lisans takibi (kişisel kategor
 - [ ] 7. **Widget'ta hızlı düğme**: ana ekrandan doğrudan "Ne işledim?" ve "Yeni ders"
 - [ ] 8. **Akıllı öneriler**: "Ayşe 3 haftadır ödev yapmıyor", "8-H iki ders geride", "Bu ay 5 ders iptal oldu" gibi otomatik uyarılar
 
-### Beklemede (seçilmedi)
+### Beklemede (daha önce seçilmedi)
 - [ ] B. Ders planı · C. Hızlı ekleme cümlesi · F. Sınıf listesi ve yoklama · H. Kardeş/aile hesabı
 - [ ] S. Genel arama · T. Haftayı kopyala · U. Günlük yük uyarısı · V. Dönem ayarları · W. Ders notu etiketleri · X. Özel derste "gelmedi" · Y. Boş saatleri paylaşma
 - [ ] J. Ders sonu değerlendirme · K. Bekleme listesi · L. Derse fotoğraf ekleme
@@ -139,3 +97,8 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
   gün paneli); ders bitiş ekranı; Bugün'de kaydırarak Yapıldı/İptal; görevler; sınav/yazılı takvimi; haftalık bakış;
   kurum sınıf sayfası; öğrenci arama/sıralama; toplu ücret güncelleme; tablette çift panel; çöp kutusu (30 gün);
   tema ve yazı boyutu; Android bildirimleri ve simge kısayolları
+- v0.7 Sadeleştirme: sade etkinlik formu (konu/ücret yok), "ne yaptık" sadece öğrenci ve sınıf dosyasında (tarihli günlük),
+  not uyarıları kaldırıldı, Ders Defteri sekmesi kaldırıldı (4 sekme), küçük özet kartı, sade Bugün ekranı,
+  takvim 24 saat + ⋯ menü + katman filtresi, öğrenci dosyası 3 sekme (Dersler / Ödeme işlemleri / Bilgiler),
+  listede tutar yok, öğrenciye gösterilebilir ekran (R), kişisel kategoriler ve yüksek lisans takibi (P),
+  gün.ay.yıl tarih girişi, Raporlar'da Alacaklar, Ayarlar'da Gelişmiş bölümü

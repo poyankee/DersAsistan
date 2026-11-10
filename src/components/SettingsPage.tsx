@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react'
+import DateInput from './DateInput'
 import { Bell, CalendarDays, Download, Palette, RotateCcw, Trash2, Upload } from 'lucide-react'
-import { deleteHoliday, emptyData, emptyTrash, normalize, restoreTrash, saveGroup, saveHoliday, setData, useData } from '../lib/store'
+import { deleteCategory, deleteHoliday, emptyData, emptyTrash, normalize, restoreTrash, saveCategory, saveGroup, saveHoliday, setData, useData } from '../lib/store'
 import { notifySettings, requestNotifyPermission, testNotification } from '../lib/notify'
 import { isNative } from '../lib/native'
 import type { NotifySettings, Settings } from '../lib/types'
 import { showToast } from '../lib/toast'
 import { holidaysBetween } from '../lib/holidays'
-import { TR_DAYS, addDays, formatShort, todayISO } from '../lib/date'
+import { TR_DAYS, addDays, formatDMY, todayISO } from '../lib/date'
 import { uid } from '../lib/util'
 import { buildICS } from '../lib/ics'
 import { PALETTE, downloadFile } from '../lib/util'
@@ -38,6 +39,23 @@ export default function SettingsPage() {
     <div className="page">
       <div className="page-head"><h2>Ayarlar</h2></div>
 
+      <AppearancePanel />
+      <NotifyPanel />
+      <CategoriesPanel />
+      <section className="panel">
+        <h3>Yedekleme</h3>
+        <p className="muted small">
+          Verileriniz sadece bu cihazda saklanır. Cihaz değiştirmeden, uygulamayı silmeden veya güncellemeden önce mutlaka yedek alın (yedeği Google Drive veya WhatsApp'a kaydedebilirsiniz).
+        </p>
+        <div className="row wrap">
+          <button className="btn primary" onClick={backup}><Download size={16} /> Yedek indir (.json)</button>
+          <button className="btn" onClick={() => fileRef.current?.click()}><Upload size={16} /> Yedekten geri yükle</button>
+          <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={(e) => restore(e.target.files?.[0])} />
+        </div>
+      </section>
+
+      <details className="advanced">
+        <summary>Gelişmiş ayarlar</summary>
       <section className="panel">
         <h3>Kurum sınıfları</h3>
         <p className="muted small">Kurum programındaki kodlara anlaşılır bir ad ve renk verin (ör. 478-H0811 → "8-H Matematik").</p>
@@ -57,11 +75,25 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
-
-      <AppearancePanel />
-      <NotifyPanel />
+      <section className="panel">
+        <h3>Ücret ve çalışma saatleri</h3>
+        <p className="muted small">Çalışma saatleri sadece "Boş saat bul" önerilerinde kullanılır; takvim her zaman 24 saati gösterir.</p>
+        <div className="row">
+          <label className="field">
+            <span>Kurum ek ders saat ücreti ({data.settings.currency})</span>
+            <input type="number" min={0} value={data.settings.kurumHourlyRate ?? ''} onChange={(e) => setSetting('kurumHourlyRate', e.target.value === '' ? undefined : Number(e.target.value))} />
+          </label>
+          <label className="field">
+            <span>Çalışma başlangıcı</span>
+            <input type="number" min={0} max={23} value={data.settings.dayStart} onChange={(e) => setSetting('dayStart', Math.min(23, Math.max(0, Number(e.target.value))))} />
+          </label>
+          <label className="field">
+            <span>Çalışma bitişi</span>
+            <input type="number" min={1} max={24} value={data.settings.dayEnd} onChange={(e) => setSetting('dayEnd', Math.min(24, Math.max(data.settings.dayStart + 1, Number(e.target.value))))} />
+          </label>
+        </div>
+      </section>
       <HolidaysPanel />
-
       {data.settings.bellTimes && Object.keys(data.settings.bellTimes).length > 0 && (
         <section className="panel">
           <h3>Kurum zil saatleri</h3>
@@ -85,37 +117,6 @@ export default function SettingsPage() {
           <button className="btn small ghost" style={{ marginTop: 8 }} onClick={() => confirm('Öğrenilen zil saatleri silinsin mi? Bir sonraki program yüklemesinde yeniden öğrenilir.') && setSetting('bellTimes', undefined)}>Sıfırla</button>
         </section>
       )}
-
-      <section className="panel">
-        <h3>Genel</h3>
-        <div className="row">
-          <label className="field">
-            <span>Kurum ek ders saat ücreti ({data.settings.currency})</span>
-            <input type="number" min={0} value={data.settings.kurumHourlyRate ?? ''} onChange={(e) => setSetting('kurumHourlyRate', e.target.value === '' ? undefined : Number(e.target.value))} />
-          </label>
-          <label className="field">
-            <span>Takvim başlangıç saati</span>
-            <input type="number" min={0} max={23} value={data.settings.dayStart} onChange={(e) => setSetting('dayStart', Math.min(23, Math.max(0, Number(e.target.value))))} />
-          </label>
-          <label className="field">
-            <span>Takvim bitiş saati</span>
-            <input type="number" min={1} max={24} value={data.settings.dayEnd} onChange={(e) => setSetting('dayEnd', Math.min(24, Math.max(data.settings.dayStart + 1, Number(e.target.value))))} />
-          </label>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h3>Yedekleme</h3>
-        <p className="muted small">
-          Verileriniz sadece bu cihazda saklanır. Cihaz değiştirmeden, uygulamayı silmeden veya güncellemeden önce mutlaka yedek alın (yedeği Google Drive veya WhatsApp'a kaydedebilirsiniz).
-        </p>
-        <div className="row wrap">
-          <button className="btn primary" onClick={backup}><Download size={16} /> Yedek indir (.json)</button>
-          <button className="btn" onClick={() => fileRef.current?.click()}><Upload size={16} /> Yedekten geri yükle</button>
-          <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={(e) => restore(e.target.files?.[0])} />
-        </div>
-      </section>
-
       <section className="panel">
         <h3>Google Takvim'e aktar</h3>
         <p className="muted small">
@@ -126,9 +127,7 @@ export default function SettingsPage() {
           <button className="btn" onClick={() => downloadFile(`ders-takvimi-tumu.ics`, buildICS(data), 'text/calendar')}><CalendarDays size={16} /> Tümü (.ics)</button>
         </div>
       </section>
-
       <TrashPanel />
-
       <section className="panel danger-zone">
         <h3>Tehlikeli bölge</h3>
         <button
@@ -138,7 +137,8 @@ export default function SettingsPage() {
           }}
         >Tüm verileri sil</button>
       </section>
-      <p className="muted small center">Ders Asistanı v0.6 · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
+      </details>
+      <p className="muted small center">Ders Asistanı v0.7 · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
     </div>
   )
 }
@@ -160,14 +160,14 @@ function HolidaysPanel() {
         Resmi tatilleri göster (bayramlar dahil)
       </label>
       {official && upcoming.length > 0 && (
-        <p className="small muted">Yaklaşan: {upcoming.slice(0, 6).map((x) => `${formatShort(x.date)} ${x.h.name}`).join(' · ')}</p>
+        <p className="small muted">Yaklaşan: {upcoming.slice(0, 6).map((x) => `${formatDMY(x.date)} ${x.h.name}`).join(' · ')}</p>
       )}
       <h4>Okul / kişisel tatiller</h4>
       {data.holidays.length > 0 && (
         <ul className="promise-list">
           {[...data.holidays].sort((a, b) => a.start.localeCompare(b.start)).map((h) => (
             <li key={h.id}>
-              <span className="grow"><b>{h.name}</b> <span className="muted">{formatShort(h.start)}{h.end !== h.start ? ` – ${formatShort(h.end)}` : ''}</span></span>
+              <span className="grow"><b>{h.name}</b> <span className="muted">{formatDMY(h.start)}{h.end !== h.start ? ` – ${formatDMY(h.end)}` : ''}</span></span>
               <button className="btn small ghost" onClick={() => deleteHoliday(h.id)}>Sil</button>
             </li>
           ))}
@@ -175,8 +175,8 @@ function HolidaysPanel() {
       )}
       <div className="row wrap">
         <label className="field grow"><span>Ad</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="ör. Ara tatil, Yarıyıl tatili" /></label>
-        <label className="field"><span>Başlangıç</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); if (e.target.value > end) setEnd(e.target.value) }} /></label>
-        <label className="field"><span>Bitiş</span><input type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} /></label>
+        <label className="field"><span>Başlangıç</span><DateInput value={start} onChange={(v) => { setStart(v); if (v > end) setEnd(v) }} /></label>
+        <label className="field"><span>Bitiş</span><DateInput value={end} min={start} onChange={(v) => setEnd(v)} /></label>
         <button className="btn primary" style={{ marginBottom: 10 }} disabled={!name.trim() || !start || !end} onClick={() => { saveHoliday({ id: uid(), name: name.trim(), start, end }); setName('') }}>Ekle</button>
       </div>
     </section>
@@ -243,7 +243,6 @@ function NotifyPanel() {
               {[0, 5, 10, 15, 30, 60].map((m) => <button key={m} className={'chip' + (n.before === m ? ' sel' : '')} onClick={() => set({ before: m })}>{m ? `${m} dk` : 'Kapalı'}</button>)}
             </div>
           </div>
-          <label className="check"><input type="checkbox" checked={n.after} onChange={(e) => set({ after: e.target.checked })} /> Ders bitince "ne işlediniz?" hatırlatması (dokununca ders sonu ekranı açılır)</label>
           <label className="check"><input type="checkbox" checked={n.payments} onChange={(e) => set({ payments: e.target.checked })} /> Ödeme günü gelen öğrenciler (saat 09:00)</label>
           <label className="check"><input type="checkbox" checked={n.tasks} onChange={(e) => set({ tasks: e.target.checked })} /> Görevler (son gün, 08:30)</label>
           <label className="check"><input type="checkbox" checked={n.exams} onChange={(e) => set({ exams: e.target.checked })} /> Sınavlar (bir gün önce, 19:00)</label>
@@ -274,6 +273,38 @@ function TrashPanel() {
         ))}
       </ul>
       <button className="btn small ghost" style={{ marginTop: 8 }} onClick={() => confirm('Çöp kutusu boşaltılsın mı? Bu işlem geri alınamaz.') && emptyTrash()}>Çöp kutusunu boşalt</button>
+    </section>
+  )
+}
+
+function CategoriesPanel() {
+  const data = useData()
+  const [name, setName] = useState('')
+  const add = () => {
+    if (!name.trim()) return
+    const used = new Set(data.categories.map((c) => c.color))
+    saveCategory({ id: uid(), name: name.trim(), color: PALETTE.find((x) => !used.has(x)) ?? PALETTE[0] })
+    setName('')
+  }
+  return (
+    <section className="panel">
+      <h3>Kişisel etkinlik kategorileri</h3>
+      <p className="muted small">Yüksek lisans, spor gibi kendi işleriniz için. Kişisel etkinlikler gelire ve puantaja karışmaz.</p>
+      <div className="group-list">
+        {data.categories.map((c) => (
+          <div key={c.id} className="group-row">
+            <input defaultValue={c.name} onBlur={(e) => e.target.value.trim() && saveCategory({ ...c, name: e.target.value.trim() })} />
+            <div className="swatches">
+              {PALETTE.map((p) => <button key={p} className={'swatch sm' + (c.color === p ? ' sel' : '')} style={{ background: p }} onClick={() => saveCategory({ ...c, color: p })} aria-label={p} />)}
+            </div>
+            <button className="btn small ghost" onClick={() => confirm(`"${c.name}" kategorisi silinsin mi? Etkinlikler silinmez.`) && deleteCategory(c.id)}>Sil</button>
+          </div>
+        ))}
+      </div>
+      <div className="task-add" style={{ marginTop: 10 }}>
+        <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Yeni kategori (ör. Spor)" />
+        <button className="btn small primary" disabled={!name.trim()} onClick={add}>Ekle</button>
+      </div>
     </section>
   )
 }

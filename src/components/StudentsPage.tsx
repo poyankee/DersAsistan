@@ -1,14 +1,13 @@
 import { useMemo, useState } from 'react'
-import { CalendarClock, CalendarPlus, MessageCircle, Percent, Search, UserPlus, Wallet } from 'lucide-react'
+import DateInput from './DateInput'
+import { Percent, Search, UserPlus } from 'lucide-react'
 import type { OpenEvent } from '../App'
-import type { Payment, PayWhen, Student } from '../lib/types'
+import type { CalEvent, Payment, PayWhen, Student } from '../lib/types'
 import { deletePayment, deleteStudent, getData, newStudent, saveEvents, savePayment, saveStudent, useData } from '../lib/store'
-import { PAY_WHEN_LABEL, financeLine, payNoteText, payWhenOf, studentFinance, type StudentFinance } from '../lib/finance'
-import FinanceKpis from './FinanceKpis'
-import { addDays, formatShort, todayISO } from '../lib/date'
+import { PAY_WHEN_LABEL, financeLine, payWhenOf, studentFinance, type StudentFinance } from '../lib/finance'
+import { addDays, formatDMY, formatDMYDay, todayISO } from '../lib/date'
 import { PALETTE, money, uid } from '../lib/util'
 import Modal from './Modal'
-import { openExternal, waLink } from '../lib/native'
 import StudentProfile from './StudentProfile'
 
 type Sort = 'ad' | 'borc' | 'son'
@@ -46,6 +45,24 @@ export default function StudentsPage({ openEvent, selected, onSelect, payPick, o
       )
   }, [data, showInactive, q, sort, today])
 
+  const nextLesson = useMemo(() => {
+    const m = new Map<string, CalEvent>()
+    for (const e of data.events) {
+      if (!e.studentId || e.status !== 'planned' || e.date < today) continue
+      const cur = m.get(e.studentId)
+      if (!cur || e.date + e.start < cur.date + cur.start) m.set(e.studentId, e)
+    }
+    return m
+  }, [data.events, today])
+  const lastTopic = useMemo(() => {
+    const m = new Map<string, CalEvent>()
+    for (const e of data.events) {
+      if (!e.studentId || !e.topic) continue
+      const cur = m.get(e.studentId)
+      if (!cur || e.date + e.start > cur.date + cur.start) m.set(e.studentId, e)
+    }
+    return m
+  }, [data.events])
   const detailStudent = data.students.find((s) => s.id === selected)
   const pay = (s: Student) => setPaying({ id: uid(), studentId: s.id, date: today, amount: suggestedAmount(s, studentFinance(data, s, today)) })
 
@@ -99,31 +116,18 @@ export default function StudentsPage({ openEvent, selected, onSelect, payPick, o
       ) : (
         <div className="cards">
           {rows.map(({ s, f }) => {
-            const line = financeLine(f, (n) => money(Math.round(n), cur))
-            const note = payNoteText(f, formatShort)
+            const next = nextLesson.get(s.id)
+            const last = lastTopic.get(s.id)
             return (
               <div key={s.id} className={'card student' + (s.active ? '' : ' inactive') + (s.id === selected ? ' selected' : '')} onClick={() => onSelect(s.id)}>
                 <div className="card-top">
                   <i className="avatar" style={{ background: s.color }}>{s.name.slice(0, 1).toLocaleUpperCase('tr')}</i>
                   <div className="grow">
-                    <b>{s.name}</b>
-                    <div className="muted small">{money(s.fee, cur)} / ders · {PAY_WHEN_LABEL[f.payWhen].toLocaleLowerCase('tr')} öder</div>
+                    <b>{s.name}{f.debt > 0 && <i className={'pay-flag' + (f.overdue > 0 ? ' late' : '')} title="Ödeme bekliyor" />}</b>
+                    <div className="muted small">{next ? `Sıradaki: ${formatDMYDay(next.date)} ${next.start}` : 'Planlı ders yok'}</div>
                   </div>
                 </div>
-                <div className={'balance ' + line.tone}>
-                  {line.text}
-                  {f.overdue > 0 && f.overdue < f.debt && <small> · {money(Math.round(f.overdue), cur)} gecikmiş</small>}
-                </div>
-                {note && <div className={'small ' + (f.noteLate ? 'warn-text' : 'muted')}>{note}</div>}
-                {f.plannedPast > 0 && <div className="warn-text small">{f.plannedPast} geçmiş ders onay bekliyor</div>}
-                <div className="card-actions" onClick={(e) => e.stopPropagation()}>
-                  <button className="btn small" onClick={() => pay(s)}><Wallet size={14} /> Ödeme al</button>
-                  {f.debt > 0 && <button className="btn small" onClick={() => setNoteFor(s)}><CalendarClock size={14} /> Ne zaman?</button>}
-                  <button className="btn small" onClick={() => openEvent({ kind: 'ozel', studentId: s.id, fee: s.fee, date: today, start: '17:00', end: '18:00' })}><CalendarPlus size={14} /> Ders</button>
-                  {(s.parentPhone || s.phone) && (
-                    <button className="btn small" onClick={() => openExternal(waLink((s.parentPhone || s.phone)!))}><MessageCircle size={14} /> WhatsApp</button>
-                  )}
-                </div>
+                {last && <div className="small card-last"><span className="muted">{formatDMY(last.date)}:</span> {last.topic}</div>}
               </div>
             )
           })}
@@ -161,12 +165,11 @@ export default function StudentsPage({ openEvent, selected, onSelect, payPick, o
   return (
     <div className="page">
       <div className="page-head">
-        <h2>Özel Ders</h2>
+        <h2>Özel ders öğrencileri</h2>
         <div className="spacer" />
         {data.students.length > 0 && <button className="btn" onClick={() => setBulkFee(true)}><Percent size={16} /> Ücret güncelle</button>}
         <button className="btn primary" onClick={() => setEditing(newStudent())}><UserPlus size={16} /> Öğrenci ekle</button>
       </div>
-      {data.students.length > 0 && <FinanceKpis />}
       {list}
       {modals}
     </div>
@@ -313,7 +316,7 @@ export function PaymentForm({ initial, onClose }: { initial: Payment; onClose: (
         </div>
       )}
       <div className="row">
-        <label className="field grow"><span>Tarih</span><input type="date" value={p.date} onChange={(e) => e.target.value && setP({ ...p, date: e.target.value })} /></label>
+        <label className="field grow"><span>Tarih</span><DateInput value={p.date} onChange={(v) => setP({ ...p, date: v })} /></label>
       </div>
       {more ? (
         <div className="row">
@@ -367,7 +370,7 @@ export function PayNoteForm({ student, onClose }: { student: Student; onClose: (
         <p className="muted small">"Ödeyecek ama ne zaman belli değil" olarak işaretlenir; kaç gündür beklediği görünür. Tarih belli olunca buradan güncellersiniz.</p>
       ) : (
         <>
-          <label className="field"><span>Ödeme tarihi</span><input type="date" value={due} min={today} onChange={(e) => e.target.value && setDue(e.target.value)} /></label>
+          <label className="field"><span>Ödeme tarihi</span><DateInput value={due} min={today} onChange={(v) => setDue(v)} /></label>
           <div className="chips">
             {[['1 hafta', addDays(today, 7)], ['2 hafta', addDays(today, 14)], ['Ay sonu', monthEnd]].map(([l, d]) => (
               <button key={l} className={'chip' + (due === d ? ' sel' : '')} onClick={() => setDue(d)}>{l}</button>
@@ -420,7 +423,7 @@ function BulkFeeModal({ onClose }: { onClose: () => void }) {
       }
     >
       <div className="row wrap">
-        <label className="field"><span>Geçerlilik tarihi</span><input type="date" value={from} onChange={(e) => e.target.value && setFrom(e.target.value)} /></label>
+        <label className="field"><span>Geçerlilik tarihi</span><DateInput value={from} onChange={(v) => setFrom(v)} /></label>
         <div className="field">
           <span>Yüzde artış</span>
           <span className="row middle" style={{ minHeight: 0, gap: 6 }}><input type="number" className="mini-input" value={pct} onChange={(e) => setPct(Number(e.target.value))} /> % <button className="btn small" onClick={applyPct}>Uygula</button></span>

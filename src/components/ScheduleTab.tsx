@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import DateInput from './DateInput'
 import TimePicker from './TimePicker'
 import { CalendarRange, Pencil, Plus, Square } from 'lucide-react'
 import type { CalEvent, Student } from '../lib/types'
@@ -100,7 +101,7 @@ function ChangeForm({ p, onDone }: { p: Pattern; onDone: () => void }) {
   return (
     <div className="pattern-form">
       <div className="row wrap">
-        <label className="field"><span>Şu tarihten itibaren</span><input type="date" value={from} onChange={(e) => e.target.value && setFrom(e.target.value)} /></label>
+        <label className="field"><span>Şu tarihten itibaren</span><DateInput value={from} onChange={(v) => setFrom(v)} /></label>
         <label className="field"><span>Yeni gün</span>
           <select value={wd} onChange={(e) => setWd(Number(e.target.value))}>{TR_DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}</select>
         </label>
@@ -154,8 +155,8 @@ function NewPattern({ student, onDone }: { student: Student; onDone: () => void 
         </label>
         <div className="field"><span>Başlangıç</span><TimePicker label="Başlangıç" value={start} onChange={(v) => { setStart(v); setEnd(fromMinutes(toMinutes(v) + toMinutes(end) - toMinutes(start))) }} /></div>
         <div className="field"><span>Bitiş</span><TimePicker label="Bitiş" value={end} onChange={setEnd} /></div>
-        <label className="field"><span>İlk hafta</span><input type="date" value={from} onChange={(e) => e.target.value && setFrom(e.target.value)} /></label>
-        <label className="field"><span>Bitiş tarihi</span><input type="date" value={until} onChange={(e) => e.target.value && setUntil(e.target.value)} /></label>
+        <label className="field"><span>İlk hafta</span><DateInput value={from} onChange={(v) => setFrom(v)} /></label>
+        <label className="field"><span>Bitiş tarihi</span><DateInput value={until} onChange={(v) => setUntil(v)} /></label>
       </div>
       <label className="check"><input type="checkbox" checked={skip} onChange={(e) => setSkip(e.target.checked)} /> Tatilleri atla</label>
       <div className="row middle">

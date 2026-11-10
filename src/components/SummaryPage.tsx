@@ -2,24 +2,27 @@ import { useMemo, useState } from 'react'
 import { School, Users } from 'lucide-react'
 import { eventTitle, useData } from '../lib/store'
 import FinanceKpis from './FinanceKpis'
+import { payNoteText, studentFinance } from '../lib/finance'
 import IncomePanel from './IncomePanel'
 import PuantajPanel from './PuantajPanel'
-import { addMonths, isPast, monthLabel, startOfMonth, todayISO } from '../lib/date'
+import { addMonths, formatDMY, isPast, monthLabel, startOfMonth, todayISO } from '../lib/date'
 import { money } from '../lib/util'
 
-type STab = 'ozet' | 'gelir' | 'puantaj'
+type STab = 'ozet' | 'alacak' | 'gelir' | 'puantaj'
 
-export default function SummaryPage() {
+export default function SummaryPage({ openStudent }: { openStudent: (id: string) => void }) {
   const [tab, setTab] = useState<STab>('ozet')
   return (
     <div className="page">
       <div className="page-head"><h2>Raporlar</h2></div>
       <div className="seg tabs-seg">
         <button className={tab === 'ozet' ? 'active' : ''} onClick={() => setTab('ozet')}>Aylık özet</button>
-        <button className={tab === 'gelir' ? 'active' : ''} onClick={() => setTab('gelir')}>Gelir paneli</button>
-        <button className={tab === 'puantaj' ? 'active' : ''} onClick={() => setTab('puantaj')}>Ek ders puantajı</button>
+        <button className={tab === 'alacak' ? 'active' : ''} onClick={() => setTab('alacak')}>Alacaklar</button>
+        <button className={tab === 'gelir' ? 'active' : ''} onClick={() => setTab('gelir')}>Gelir</button>
+        <button className={tab === 'puantaj' ? 'active' : ''} onClick={() => setTab('puantaj')}>Puantaj</button>
       </div>
       {tab === 'ozet' && <MonthlySummary />}
+      {tab === 'alacak' && <Receivables openStudent={openStudent} />}
       {tab === 'gelir' && <IncomePanel />}
       {tab === 'puantaj' && <PuantajPanel />}
     </div>
@@ -103,8 +106,6 @@ function MonthlySummary() {
         <div className="kpi"><span>Bu ay tahsil edilen</span><b>{money(s.received, cur)}</b></div>
         <div className="kpi"><span>Ay sonu beklenen</span><b>{money(s.expected, cur)}</b><small className="muted">{s.ozelPlanned} planlı ders dahil</small></div>
       </div>
-      <h4>Alacak durumu (bugün itibarıyla)</h4>
-      <FinanceKpis compact />
       {s.byStudent.length > 0 && (
         <div className="table-wrap">
           <table className="table">
@@ -118,5 +119,39 @@ function MonthlySummary() {
         </div>
       )}
     </div>
+  )
+}
+
+/** Alacaklar: toplam/gecikmiş + öğrenci bazında liste */
+function Receivables({ openStudent }: { openStudent: (id: string) => void }) {
+  const data = useData()
+  const today = todayISO()
+  const cur = data.settings.currency
+  const rows = data.students
+    .map((s) => ({ s, f: studentFinance(data, s, today) }))
+    .filter(({ f }) => f.debt > 0 || f.credit > 0)
+    .sort((a, b) => b.f.overdue - a.f.overdue || b.f.debt - a.f.debt)
+  return (
+    <>
+      <FinanceKpis />
+      {rows.length === 0 ? <p className="muted">Alacak yok.</p> : (
+        <ul className="debtors surface">
+          {rows.map(({ s, f }) => (
+            <li key={s.id}>
+              <button onClick={() => openStudent(s.id)}>
+                <i className="avatar sm" style={{ background: s.color }}>{s.name.slice(0, 1).toLocaleUpperCase('tr')}</i>
+                <span className="grow">
+                  {s.name}
+                  <small className={'debtor-sub ' + (f.noteLate ? 'warn-text' : 'muted')}>
+                    {f.debt <= 0 ? `Peşin · ${f.creditLessons} ders hakkı` : payNoteText(f, formatDMY) ?? (f.overdue > 0 ? `${money(Math.round(f.overdue), cur)} gecikmiş` : 'Gecikme yok')}
+                  </small>
+                </span>
+                <b className={f.debt <= 0 ? 'ok' : f.overdue > 0 ? 'warn-text' : 'muted'}>{money(Math.round(f.debt || f.credit), cur)}</b>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
   )
 }

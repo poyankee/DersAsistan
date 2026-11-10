@@ -1,15 +1,13 @@
 import { useEffect, useState } from 'react'
-import { BarChart3, BookOpenText, CalendarDays, CalendarPlus, GraduationCap, Home, ListTodo, Plus, Settings, Users, Wallet } from 'lucide-react'
+import { BarChart3, CalendarDays, CalendarPlus, GraduationCap, Home, ListTodo, Plus, Settings, Users, Wallet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import CalendarPage from './components/CalendarPage'
-import NotebookPage, { needsNote } from './components/NotebookPage'
-import PeoplePage from './components/PeoplePage'
+import PeoplePage, { type PeopleView } from './components/PeoplePage'
 import SummaryPage from './components/SummaryPage'
 import SettingsPage from './components/SettingsPage'
 import TodayPage from './components/TodayPage'
 import EventModal from './components/EventModal'
 import EventPeek from './components/EventPeek'
-import WrapUpModal from './components/WrapUpModal'
 import Toasts from './components/Toasts'
 import Modal from './components/Modal'
 import { ExamForm, TaskForm, newExam, newTask } from './components/TaskExamForms'
@@ -19,18 +17,16 @@ import { fromMinutes, nowHM, toMinutes, todayISO } from './lib/date'
 import { onAppAction } from './lib/native'
 import { syncNotifications } from './lib/notify'
 
-export type Tab = 'bugun' | 'takvim' | 'defter' | 'ozel' | 'ozet' | 'ayarlar'
+export type Tab = 'bugun' | 'takvim' | 'ozel' | 'ozet' | 'ayarlar'
 
 const TABS: { id: Tab; label: string; short: string; icon: LucideIcon }[] = [
   { id: 'bugun', label: 'Bugün', short: 'Bugün', icon: Home },
   { id: 'takvim', label: 'Takvim', short: 'Takvim', icon: CalendarDays },
-  { id: 'defter', label: 'Ders Defteri', short: 'Defter', icon: BookOpenText },
-  { id: 'ozel', label: 'Öğrenciler ve Sınıflar', short: 'Öğrenciler', icon: Users },
+  { id: 'ozel', label: 'Öğrenciler', short: 'Öğrenciler', icon: Users },
   { id: 'ozet', label: 'Raporlar', short: 'Raporlar', icon: BarChart3 },
-  { id: 'ayarlar', label: 'Ayarlar', short: 'Ayarlar', icon: Settings },
 ]
 
-/** Kayıtlı bir derse dokunulunca özet kartı, yeni ders için form açılır */
+/** Kayıtlı bir etkinliğe dokununca küçük kart, yeni etkinlik için form açılır */
 export type OpenEvent = (ev: CalEvent | Partial<CalEvent>) => void
 
 export default function App() {
@@ -38,13 +34,13 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('bugun')
   const [editing, setEditing] = useState<CalEvent | Partial<CalEvent> | null>(null)
   const [peek, setPeek] = useState<CalEvent | null>(null)
-  const [wrap, setWrap] = useState<CalEvent | null>(null)
   const [task, setTask] = useState<Task | null>(null)
   const [exam, setExam] = useState<Exam | null>(null)
   const [fabOpen, setFabOpen] = useState(false)
-  const [notebookFilter, setNotebookFilter] = useState<'missing' | null>(null)
+  const [peopleView, setPeopleView] = useState<PeopleView>('ogrenci')
   const [studentId, setStudentId] = useState<string | null>(null)
-  const [payFor, setPayFor] = useState<string | null>(null)
+  const [classCode, setClassCode] = useState<string | null>(null)
+  const [payPick, setPayPick] = useState(false)
   const [calDate, setCalDate] = useState<{ date: string; n: number } | null>(null)
 
   const openEvent: OpenEvent = (ev) => {
@@ -52,7 +48,6 @@ export default function App() {
     if (existing) setPeek(existing)
     else setEditing(ev)
   }
-  const missing = data.events.filter(needsNote).length
 
   // Tema ve yazı boyutu
   useEffect(() => {
@@ -73,17 +68,23 @@ export default function App() {
     setTab(t)
     document.querySelector('.content')?.scrollTo({ top: 0 })
   }
-  const goMissing = () => {
-    setNotebookFilter('missing')
-    go('defter')
-  }
   const newEvent = () => {
     const s = Math.ceil(toMinutes(nowHM()) / 30) * 30
-    setEditing({ date: todayISO(), start: fromMinutes(s), end: fromMinutes(s + 60), kind: data.students.length ? 'ozel' : 'diger' })
+    setEditing({ date: todayISO(), start: fromMinutes(Math.min(s, 22 * 60)), end: fromMinutes(Math.min(s + 60, 23 * 60)) })
   }
   const goCalendar = (date?: string) => {
     if (date) setCalDate({ date, n: Date.now() })
     go('takvim')
+  }
+  const openStudent = (id: string) => {
+    setPeopleView('ogrenci')
+    setStudentId(id)
+    go('ozel')
+  }
+  const openClass = (code: string) => {
+    setPeopleView('sinif')
+    setClassCode(code)
+    go('ozel')
   }
 
   // Simge kısayolları ve bildirime dokunma
@@ -93,15 +94,15 @@ export default function App() {
         if (a.type === 'new-lesson') newEvent()
         else if (a.type === 'payment') {
           go('ozel')
-          setPayFor('pick')
+          setPeopleView('ogrenci')
+          setStudentId(null)
+          setPayPick(true)
         } else if (a.type === 'today') go('bugun')
         else if (a.type === 'task') setTask(newTask())
-        else if (a.type === 'wrap' && a.id) {
+        else if (a.type === 'student' && a.id) openStudent(a.id)
+        else if ((a.type === 'wrap' || a.type === 'event') && a.id) {
           const ev = data.events.find((e) => e.id === a.id)
-          if (ev) setWrap(ev)
-        } else if (a.type === 'student' && a.id) {
-          setStudentId(a.id)
-          go('ozel')
+          if (ev) setPeek(ev)
         }
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,63 +125,54 @@ export default function App() {
             <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => go(t.id)} title={t.label}>
               <t.icon size={19} strokeWidth={2} />
               <span>{t.label}</span>
-              {t.id === 'defter' && missing > 0 && <em className="badge">{missing}</em>}
             </button>
           ))}
+        </nav>
+        <div className="spacer" />
+        <nav className="side-nav">
+          <button className={tab === 'ayarlar' ? 'active' : ''} onClick={() => go('ayarlar')} title="Ayarlar">
+            <Settings size={19} strokeWidth={2} />
+            <span>Ayarlar</span>
+          </button>
         </nav>
       </aside>
 
       <main className="content">
-        {tab === 'bugun' && (
-          <TodayPage
-            openEvent={openEvent}
-            wrapUp={setWrap}
-            goMissing={goMissing}
-            goCalendar={goCalendar}
-            goSettings={() => go('ayarlar')}
-            openTask={setTask}
-            openExam={setExam}
-            openStudent={(id) => {
-              setStudentId(id)
-              go('ozel')
-            }}
-          />
-        )}
+        {tab === 'bugun' && <TodayPage openEvent={openEvent} goCalendar={goCalendar} goSettings={() => go('ayarlar')} openTask={setTask} />}
         {tab === 'takvim' && (
           <CalendarPage
             key={calDate?.n ?? 0}
             initialDate={calDate?.date}
             openEvent={openEvent}
-            goMissing={goMissing}
             onAddExam={(date) => setExam(newExam({ date }))}
             onOpenTask={setTask}
           />
         )}
-        {tab === 'defter' && (
-          <NotebookPage openEvent={openEvent} initialMissing={notebookFilter === 'missing'} onFilterUsed={() => setNotebookFilter(null)} />
-        )}
         {tab === 'ozel' && (
           <PeoplePage
+            view={peopleView}
+            setView={setPeopleView}
             openEvent={openEvent}
             selected={studentId}
             onSelect={setStudentId}
-            payPick={payFor === 'pick'}
-            onPayPickDone={() => setPayFor(null)}
+            classCode={classCode}
+            onClass={setClassCode}
+            payPick={payPick}
+            onPayPickDone={() => setPayPick(false)}
             onAddExam={(x) => setExam(newExam(x))}
             onAddTask={(t) => setTask(newTask(t))}
+            onOpenTask={setTask}
+            onOpenExam={setExam}
           />
         )}
-        {tab === 'ozet' && <SummaryPage />}
+        {tab === 'ozet' && <SummaryPage openStudent={openStudent} />}
         {tab === 'ayarlar' && <SettingsPage />}
       </main>
 
       <nav className="bottom-nav">
-        {TABS.filter((t) => t.id !== 'ayarlar').map((t) => (
+        {TABS.map((t) => (
           <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => go(t.id)}>
-            <span className="pill">
-              <t.icon size={21} strokeWidth={tab === t.id ? 2.4 : 2} />
-              {t.id === 'defter' && missing > 0 && <em className="dot-badge" />}
-            </span>
+            <span className="pill"><t.icon size={21} strokeWidth={tab === t.id ? 2.4 : 2} /></span>
             <span className="lbl">{t.short}</span>
           </button>
         ))}
@@ -192,10 +184,10 @@ export default function App() {
       {fabOpen && (
         <Modal title="Yeni ekle" onClose={() => setFabOpen(false)}>
           <div className="action-grid">
-            <button onClick={() => { setFabOpen(false); newEvent() }}><CalendarPlus size={22} /><span>Ders / etkinlik</span></button>
+            <button onClick={() => { setFabOpen(false); newEvent() }}><CalendarPlus size={22} /><span>Etkinlik</span></button>
             <button onClick={() => { setFabOpen(false); setTask(newTask()) }}><ListTodo size={22} /><span>Görev</span></button>
-            <button onClick={() => { setFabOpen(false); setExam(newExam()) }}><GraduationCap size={22} /><span>Sınav / yazılı</span></button>
-            <button onClick={() => { setFabOpen(false); go('ozel'); setStudentId(null); setPayFor('pick') }} disabled={!data.students.length}><Wallet size={22} /><span>Ödeme al</span></button>
+            <button onClick={() => { setFabOpen(false); setExam(newExam()) }}><GraduationCap size={22} /><span>Sınav / teslim</span></button>
+            <button onClick={() => { setFabOpen(false); go('ozel'); setPeopleView('ogrenci'); setStudentId(null); setPayPick(true) }} disabled={!data.students.length}><Wallet size={22} /><span>Ödeme al</span></button>
           </div>
         </Modal>
       )}
@@ -207,20 +199,15 @@ export default function App() {
             setPeek(null)
             setEditing(e)
           }}
-          onWrapUp={(e) => {
+          onOpenFile={(e) => {
             setPeek(null)
-            setWrap(e)
+            if (e.studentId) openStudent(e.studentId)
+            else if (e.groupCode) openClass(e.groupCode)
           }}
         />
       )}
-      {wrap && <WrapUpModal ev={wrap} onClose={() => setWrap(null)} />}
       {editing && (
-        <EventModal
-          key={'id' in editing && editing.id ? editing.id : 'new-' + JSON.stringify(editing)}
-          initial={editing}
-          onClose={() => setEditing(null)}
-          onDuplicate={(ev) => setEditing({ ...ev })}
-        />
+        <EventModal key={'id' in editing && editing.id ? editing.id : 'new-' + JSON.stringify(editing)} initial={editing} onClose={() => setEditing(null)} />
       )}
       {task && <TaskForm initial={task} onClose={() => setTask(null)} />}
       {exam && <ExamForm initial={exam} onClose={() => setExam(null)} />}

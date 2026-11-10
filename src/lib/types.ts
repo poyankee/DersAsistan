@@ -24,6 +24,8 @@ export interface CalEvent {
   homework?: string
   /** Özel ders ücreti (ders oluşturulduğu andaki) */
   fee?: number
+  /** Kişisel etkinlik kategorisi (ör. Yüksek lisans) */
+  categoryId?: string
   /** Telafi dersi ise, telafisi yapılan dersin kimliği */
   makeupOf?: string
   /** Derste kullanılan kitap ve ilerleme (ör. "s. 40–55", "Test 3–5") */
@@ -140,6 +142,13 @@ export interface StudentNote {
   createdAt: number
 }
 
+/** Kişisel etkinlik kategorisi */
+export interface Category {
+  id: string
+  name: string
+  color: string
+}
+
 /** Ders dışı görev / hatırlatma */
 export interface Task {
   id: string
@@ -150,6 +159,7 @@ export interface Task {
   doneAt?: string
   groupCode?: string
   studentId?: string
+  categoryId?: string
   createdAt: number
 }
 
@@ -161,6 +171,7 @@ export interface Exam {
   start?: string
   groupCode?: string
   studentId?: string
+  categoryId?: string
   note?: string
   createdAt: number
 }
@@ -226,6 +237,7 @@ export interface AppData {
   holidays: Holiday[]
   tasks: Task[]
   exams: Exam[]
+  categories: Category[]
   classNotes: ClassNote[]
   trash: TrashItem[]
   /** Kullanıcının sildiği kurum ders saatleri: yeniden içe aktarılmaz */

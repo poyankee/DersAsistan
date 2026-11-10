@@ -1,9 +1,14 @@
 import { useSyncExternalStore } from 'react'
-import type { AppData, Book, CalEvent, ClassNote, Exam, Group, Holiday, Payment, PaymentPromise, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
+import type { AppData, Book, CalEvent, Category, ClassNote, Exam, Group, Holiday, Payment, PaymentPromise, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
 import { PALETTE, colorFor, uid } from './util'
 import { nativeLoad, nativeSave } from './native'
 
 const KEY = 'ders-asistan-v1'
+
+export const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'yl', name: 'Yüksek lisans', color: '#8e24aa' },
+  { id: 'kisisel', name: 'Kişisel', color: '#616161' },
+]
 
 export function emptyData(): AppData {
   return {
@@ -18,6 +23,7 @@ export function emptyData(): AppData {
     holidays: [],
     tasks: [],
     exams: [],
+    categories: DEFAULT_CATEGORIES,
     classNotes: [],
     trash: [],
     ignoredImportKeys: [],
@@ -67,6 +73,7 @@ export function normalize(d: Partial<AppData>): AppData {
     holidays: d.holidays ?? [],
     tasks: d.tasks ?? [],
     exams: d.exams ?? [],
+    categories: d.categories?.length ? d.categories : DEFAULT_CATEGORIES,
     classNotes: d.classNotes ?? [],
     // 30 günden eski silinenler kalıcı olarak temizlenir
     trash: (d.trash ?? []).filter((t) => Date.now() - t.deletedAt < 30 * 86400000),
@@ -284,6 +291,14 @@ export function deleteHoliday(id: string) {
 
 // ---- Görevler, sınavlar, sınıf notları ----
 
+export function saveCategory(c: Category) {
+  setData((d) => ({ ...d, categories: upsert(d.categories, c) }))
+}
+
+export function deleteCategory(id: string) {
+  setData((d) => ({ ...d, categories: d.categories.filter((c) => c.id !== id), events: d.events.map((e) => (e.categoryId === id ? { ...e, categoryId: undefined } : e)) }))
+}
+
 export function saveTask(t: Task) {
   setData((d) => ({ ...d, tasks: upsert(d.tasks, t) }))
 }
@@ -362,6 +377,7 @@ export function newStudent(): Student {
 export function eventColor(d: AppData, e: CalEvent): string {
   if (e.kind === 'kurum' && e.groupCode) return d.groups[e.groupCode]?.color ?? colorFor(e.groupCode)
   if (e.kind === 'ozel' && e.studentId) return d.students.find((s) => s.id === e.studentId)?.color ?? '#33b679'
+  if (e.categoryId) return d.categories.find((c) => c.id === e.categoryId)?.color ?? '#616161'
   return '#616161'
 }
 

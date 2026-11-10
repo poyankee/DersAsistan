@@ -22,12 +22,11 @@ describe('bildirim planı', () => {
     const list = planNotifications(on, new Date(Date.parse(t + 'T06:00:00')))
     const titles = list.map((p) => p.title)
     expect(titles).toContain('15 dk sonra: Özel: Ayşe')
-    expect(titles).toContain('Ders bitti: Özel: Ayşe')
+    expect(titles.some((t) => t.startsWith('Ders bitti'))).toBe(false)
     expect(titles).toContain('Ödeme günü: Ayşe')
     expect(titles).toContain('Bugünkü görev')
     expect(titles).toContain('Yarın sınav: 8-H yazılı')
-    const after = list.find((p) => p.title.startsWith('Ders bitti'))!
-    expect(after.extra).toEqual({ type: 'wrap', id: 'e1' })
-    expect(after.at.getHours() * 60 + after.at.getMinutes()).toBe(18 * 60 + 2)
+    const before = list.find((p) => p.title.startsWith('15 dk'))!
+    expect(before.at.getHours() * 60 + before.at.getMinutes()).toBe(16 * 60 + 45)
   })
 })

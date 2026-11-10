@@ -45,9 +45,6 @@ export function planNotifications(d: AppData, now = new Date()): Planned[] {
     if (o.before > 0) {
       out.push({ id: hashId('b' + e.id + e.date + e.start), at: at(e.date, e.start, -o.before), title: `${o.before} dk sonra: ${title}`, body: `${e.start}–${e.end}`, extra: { type: 'event', id: e.id } })
     }
-    if (o.after && e.kind !== 'diger' && !e.topic) {
-      out.push({ id: hashId('a' + e.id + e.date + e.end), at: at(e.date, e.end, 2), title: `Ders bitti: ${title}`, body: 'Bu derste ne işlediniz? Yazmak için dokunun.', extra: { type: 'wrap', id: e.id } })
-    }
   }
   if (o.payments) {
     for (const s of d.students) {

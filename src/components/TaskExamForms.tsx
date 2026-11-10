@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import DateInput from './DateInput'
 import type { Exam, Task } from '../lib/types'
 import { deleteExam, deleteTask, saveExam, saveTask, useData } from '../lib/store'
 import { addDays, startOfWeek, todayISO } from '../lib/date'
@@ -7,18 +8,23 @@ import Modal from './Modal'
 import TimePicker from './TimePicker'
 
 /** Görev bağlantısı: sınıf ya da öğrenci (opsiyonel) */
-function LinkSelect({ groupCode, studentId, onChange }: { groupCode?: string; studentId?: string; onChange: (g?: string, s?: string) => void }) {
+function LinkSelect({ groupCode, studentId, categoryId, onChange }: { groupCode?: string; studentId?: string; categoryId?: string; onChange: (g?: string, s?: string, c?: string) => void }) {
   const data = useData()
-  const value = groupCode ? 'g:' + groupCode : studentId ? 's:' + studentId : ''
+  const value = groupCode ? 'g:' + groupCode : studentId ? 's:' + studentId : categoryId ? 'c:' + categoryId : ''
   return (
     <select
       value={value}
       onChange={(e) => {
         const v = e.target.value
-        onChange(v.startsWith('g:') ? v.slice(2) : undefined, v.startsWith('s:') ? v.slice(2) : undefined)
+        onChange(v.startsWith('g:') ? v.slice(2) : undefined, v.startsWith('s:') ? v.slice(2) : undefined, v.startsWith('c:') ? v.slice(2) : undefined)
       }}
     >
       <option value="">— (genel)</option>
+      {data.categories.length > 0 && (
+        <optgroup label="Kişisel">
+          {data.categories.map((c) => <option key={c.id} value={'c:' + c.id}>{c.name}</option>)}
+        </optgroup>
+      )}
       {Object.keys(data.groups).length > 0 && (
         <optgroup label="Kurum sınıfları">
           {Object.values(data.groups).sort((a, b) => a.code.localeCompare(b.code)).map((g) => <option key={g.code} value={'g:' + g.code}>{g.name ? `${g.name} (${g.code})` : g.code}</option>)}
@@ -62,10 +68,10 @@ export function TaskForm({ initial, onClose }: { initial: Task; onClose: () => v
         <div className="chips">
           <button className={'chip' + (!t.due ? ' sel' : '')} onClick={() => setT({ ...t, due: undefined })}>Yok</button>
           {quick.map(([l, d]) => <button key={l} className={'chip' + (t.due === d ? ' sel' : '')} onClick={() => setT({ ...t, due: d })}>{l}</button>)}
-          <input type="date" className="mini-date" value={t.due ?? ''} onChange={(e) => setT({ ...t, due: e.target.value || undefined })} />
+          <DateInput className="mini-date" allowEmpty value={t.due ?? ''} onChange={(v) => setT({ ...t, due: v || undefined })} />
         </div>
       </div>
-      <label className="field"><span>İlgili sınıf / öğrenci</span><LinkSelect groupCode={t.groupCode} studentId={t.studentId} onChange={(g, s) => setT({ ...t, groupCode: g, studentId: s })} /></label>
+      <label className="field"><span>İlgili</span><LinkSelect groupCode={t.groupCode} studentId={t.studentId} categoryId={t.categoryId} onChange={(g, s, c) => setT({ ...t, groupCode: g, studentId: s, categoryId: c })} /></label>
       {!isNew && <label className="check"><input type="checkbox" checked={t.done} onChange={(e) => setT({ ...t, done: e.target.checked, doneAt: e.target.checked ? today : undefined })} /> Tamamlandı</label>}
     </Modal>
   )
@@ -79,10 +85,10 @@ export function ExamForm({ initial, onClose }: { initial: Exam; onClose: () => v
   const data = useData()
   const [x, setX] = useState<Exam>(initial)
   const isNew = !data.exams.some((e) => e.id === x.id)
-  const presets = ['1. Yazılı', '2. Yazılı', 'Deneme sınavı', 'Quiz', 'Proje teslimi']
+  const presets = ['1. Yazılı', '2. Yazılı', 'Deneme sınavı', 'Ödev teslimi', 'Proje teslimi']
   return (
     <Modal
-      title={isNew ? 'Sınav / yazılı ekle' : 'Sınav'}
+      title={isNew ? 'Sınav / teslim ekle' : 'Sınav / teslim'}
       onClose={onClose}
       footer={
         <>
@@ -95,10 +101,10 @@ export function ExamForm({ initial, onClose }: { initial: Exam; onClose: () => v
     >
       <label className="field"><span>Sınav</span><input autoFocus value={x.title} onChange={(e) => setX({ ...x, title: e.target.value })} placeholder="ör. 8-H Matematik 1. yazılı" /></label>
       <div className="chips" style={{ marginTop: -4 }}>
-        {presets.map((p) => <button key={p} className="chip" onClick={() => setX({ ...x, title: x.title ? `${x.title.replace(/ ?(1\. Yazılı|2\. Yazılı|Deneme sınavı|Quiz|Proje teslimi)$/, '')} ${p}`.trim() : p })}>{p}</button>)}
+        {presets.map((p) => <button key={p} className="chip" onClick={() => setX({ ...x, title: x.title ? `${x.title.replace(/ ?(1\. Yazılı|2\. Yazılı|Deneme sınavı|Ödev teslimi|Proje teslimi)$/, '')} ${p}`.trim() : p })}>{p}</button>)}
       </div>
       <div className="row wrap">
-        <label className="field grow"><span>Tarih</span><input type="date" value={x.date} onChange={(e) => e.target.value && setX({ ...x, date: e.target.value })} /></label>
+        <label className="field grow"><span>Tarih</span><DateInput value={x.date} onChange={(v) => setX({ ...x, date: v })} /></label>
         <div className="field">
           <span>Saat (opsiyonel)</span>
           {x.start ? (
@@ -108,7 +114,7 @@ export function ExamForm({ initial, onClose }: { initial: Exam; onClose: () => v
           )}
         </div>
       </div>
-      <label className="field"><span>Sınıf / öğrenci</span><LinkSelect groupCode={x.groupCode} studentId={x.studentId} onChange={(g, s) => setX({ ...x, groupCode: g, studentId: s })} /></label>
+      <label className="field"><span>İlgili</span><LinkSelect groupCode={x.groupCode} studentId={x.studentId} categoryId={x.categoryId} onChange={(g, s, c) => setX({ ...x, groupCode: g, studentId: s, categoryId: c })} /></label>
       <label className="field"><span>Konular / not</span><textarea rows={2} value={x.note ?? ''} onChange={(e) => setX({ ...x, note: e.target.value || undefined })} placeholder="ör. Üslü ifadeler, kareköklü sayılar" /></label>
     </Modal>
   )

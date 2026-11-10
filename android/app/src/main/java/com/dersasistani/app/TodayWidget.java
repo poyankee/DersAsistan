@@ -189,7 +189,8 @@ public class TodayWidget extends AppWidgetProvider {
         }
         if (items.size() > shown) sb.append("\n+").append(String.valueOf(items.size() - shown)).append(" ders daha");
         views.setTextViewText(R.id.widget_list, sb);
-        views.setTextViewText(R.id.widget_missing, missing > 0 ? missing + " dersin notu eksik" : "");
+        // Not hatırlatması kaldırıldı (v0.7): bu satır boş kalır
+        views.setTextViewText(R.id.widget_missing, "");
         return views;
     }
 }

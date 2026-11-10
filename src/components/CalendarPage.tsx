@@ -1,10 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
-import { AlertCircle, CalendarSearch, ChevronLeft, ChevronRight, GraduationCap, ListTodo, PenLine, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
+import { CalendarSearch, ChevronLeft, ChevronRight, GraduationCap, ListTodo, MoreHorizontal, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import FreeSlotsModal from './FreeSlotsModal'
 import { holidayMap } from '../lib/holidays'
 import type { OpenEvent } from '../App'
-import type { AppData, CalEvent, Exam, Task } from '../lib/types'
+import type { AppData, CalEvent, Task } from '../lib/types'
 import { eventColor, eventTitle, useData } from '../lib/store'
 import {
   TR_DAYS_SHORT, addDays, addMonths, formatLong, formatShort, fromISO, fromMinutes, isPast,
@@ -13,11 +13,11 @@ import {
 import ImportModal from './ImportModal'
 import { gestureActive, startGesture } from '../lib/gesture'
 import { moveEvent } from '../lib/eventOps'
-import { needsNote } from './NotebookPage'
+import Modal from './Modal'
 
 type View = 'day' | '3day' | 'week' | 'month' | 'agenda'
+type Layers = Record<'kurum' | 'ozel' | 'diger', boolean>
 const VIEW_LABEL: Record<View, string> = { day: 'Gün', '3day': '3 Gün', week: 'Hafta', month: 'Ay', agenda: 'Liste' }
-const VIEW_SHORT: Record<View, string> = { day: '1', '3day': '3', week: '7', month: 'Ay', agenda: 'Liste' }
 const MIN_PX = 32
 const MAX_PX = 130
 
@@ -49,16 +49,18 @@ function store(key: string, v: string | number) {
   }
 }
 
-export default function CalendarPage({ openEvent, goMissing, onAddExam, onOpenTask, initialDate }: {
+export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initialDate }: {
   initialDate?: string
   openEvent: OpenEvent
-  goMissing: () => void
   onAddExam?: (date: string) => void
   onOpenTask?: (t: Task) => void
 }) {
   const data = useData()
   const mobile = useIsMobile()
-  const [view, setViewRaw] = useState<View>(() => stored<View>('cal-view', window.matchMedia('(max-width: 720px)').matches ? '3day' : 'week'))
+  const [view, setViewRaw] = useState<View>(() => {
+    const v = stored<View>('cal-view', window.matchMedia('(max-width: 720px)').matches ? '3day' : 'week')
+    return v === 'agenda' ? 'month' : v
+  })
   const setView = (v: View) => {
     setViewRaw(v)
     store('cal-view', v)
@@ -70,7 +72,19 @@ export default function CalendarPage({ openEvent, goMissing, onAddExam, onOpenTa
     setHourPxRaw(c)
     store('cal-hour-px', c)
   }
+  const [layers, setLayersRaw] = useState<Layers>(() => {
+    try {
+      return { kurum: true, ozel: true, diger: true, ...JSON.parse(localStorage.getItem('cal-layers') ?? '{}') }
+    } catch {
+      return { kurum: true, ozel: true, diger: true }
+    }
+  })
+  const setLayers = (l: Layers) => {
+    setLayersRaw(l)
+    store('cal-layers', JSON.stringify(l))
+  }
   const [monthSel, setMonthSel] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [freeOpen, setFreeOpen] = useState(false)
   const [, tick] = useState(0)
@@ -81,16 +95,11 @@ export default function CalendarPage({ openEvent, goMissing, onAddExam, onOpenTa
   }, [])
 
   const today = todayISO()
-  const missing = useMemo(() => data.events.filter((e) => needsNote(e)).length, [data.events])
-  const current = useMemo(() => {
-    const now = toMinutes(nowHM())
-    return data.events
-      .filter((e) => e.date === today && e.kind !== 'diger' && e.status !== 'cancelled' && !e.topic)
-      .filter((e) => toMinutes(e.start) <= now && toMinutes(e.end) + 90 >= now)
-      .sort((a, b) => b.start.localeCompare(a.start))[0]
-  }, [data.events, today])
+  // Katman filtresi: gizlenen türler takvimde görünmez
+  const shown = useMemo<AppData>(() => ({ ...data, events: data.events.filter((e) => layers[e.kind]) }), [data, layers])
+  const hidden = (['kurum', 'ozel', 'diger'] as const).filter((k) => !layers[k]).length
 
-  const stepSize = view === 'day' ? 1 : view === '3day' ? 3 : view === 'week' ? 7 : view === 'agenda' ? 14 : 0
+  const stepSize = view === 'day' ? 1 : view === '3day' ? 3 : 7
   const step = (dir: number) => {
     if (view === 'month') setCursor(addMonths(cursor, dir))
     else setCursor(addDays(cursor, stepSize * dir))
@@ -107,13 +116,14 @@ export default function CalendarPage({ openEvent, goMissing, onAddExam, onOpenTa
     const s = days[0]
     const e = days[days.length - 1]
     label = s.slice(0, 7) === e.slice(0, 7) ? monthLabel(s) : `${formatShort(s).split(' ').slice(0, 2).join(' ')} – ${formatShort(e).split(' ').slice(0, 2).join(' ')} ${e.slice(0, 4)}`
-  } else if (view === 'month') label = monthLabel(cursor)
-  else label = `${formatShort(cursor)} itibarıyla`
+  } else label = monthLabel(cursor)
 
   const newAt = (date: string, start?: string, end?: string) => {
-    const s = start ?? '10:00'
-    openEvent({ date, start: s, end: end ?? fromMinutes(toMinutes(s) + 60), kind: data.students.length ? 'ozel' : 'diger' })
+    const s = start ?? '17:00'
+    openEvent({ date, start: s, end: end ?? fromMinutes(Math.min(24 * 60 - 1, toMinutes(s) + 60)) })
   }
+
+  const views: View[] = mobile ? ['day', '3day', 'month'] : ['day', 'week', 'month']
 
   return (
     <div className="calendar-page">
@@ -124,45 +134,23 @@ export default function CalendarPage({ openEvent, goMissing, onAddExam, onOpenTa
         <h2 className="period">{label}</h2>
         <div className="spacer" />
         <div className="seg small view-seg">
-          {(Object.keys(VIEW_LABEL) as View[]).filter((v) => !(mobile && v === 'week') && !(!mobile && v === '3day')).map((v) => (
-            <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>{mobile ? VIEW_SHORT[v] : VIEW_LABEL[v]}</button>
+          {views.map((v) => (
+            <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>{VIEW_LABEL[v]}</button>
           ))}
         </div>
-        {(view === 'day' || view === '3day' || view === 'week') && !mobile && (
-          <>
-            <button className="icon-btn" onClick={() => setHourPx(hourPx - 10)} aria-label="Uzaklaştır" title="Uzaklaştır"><ZoomOut size={18} /></button>
-            <button className="icon-btn" onClick={() => setHourPx(hourPx + 10)} aria-label="Yakınlaştır" title="Yakınlaştır"><ZoomIn size={18} /></button>
-          </>
-        )}
-        <button className="btn" onClick={() => setFreeOpen(true)} title="Boş saat bul" aria-label="Boş saat bul"><CalendarSearch size={16} /><span className="hide-mobile">Boş saat</span></button>
-        <button className="btn" onClick={() => setImportOpen(true)} title="Kurum programını yükle" aria-label="Program yükle"><Upload size={16} /><span className="hide-mobile">Program yükle</span></button>
+        <button className={'icon-btn' + (hidden ? ' has-dot' : '')} onClick={() => setMenuOpen(true)} aria-label="Diğer seçenekler" title="Diğer seçenekler"><MoreHorizontal size={20} /></button>
       </div>
-
-      {(current || missing > 0) && (
-        <div className="banners">
-          {current && (
-            <button className="banner live" onClick={() => openEvent(current)}>
-              <PenLine size={17} /><span><b>{eventTitle(data, current)}</b> ({current.start}–{current.end}) — Bu derste ne işlediniz? Yazmak için dokunun.</span>
-            </button>
-          )}
-          {missing > 0 && (
-            <button className="banner warn" onClick={goMissing}>
-              <AlertCircle size={17} /><span>Notu girilmemiş <b>{missing}</b> geçmiş ders var — Ders defterinde doldur →</span>
-            </button>
-          )}
-        </div>
-      )}
 
       {data.events.length === 0 && (
         <div className="empty-hint">
-          <p>Takviminiz boş. Başlamak için kurumun verdiği <b>ders programı dosyasını</b> yükleyin ya da takvimde bir saate dokunarak ders ekleyin.</p>
+          <p>Takviminiz boş. Kurumun verdiği <b>ders programı dosyasını</b> yükleyin ya da takvimde bir saate dokunarak etkinlik ekleyin.</p>
           <button className="btn primary" onClick={() => setImportOpen(true)}><Upload size={16} /> Ders programını yükle</button>
         </div>
       )}
 
-      {(view === 'day' || view === '3day' || view === 'week') && (
+      {view !== 'month' && (
         <TimeGrid
-          data={data}
+          data={shown}
           days={days}
           scrollKey={view}
           hourPx={hourPx}
@@ -179,17 +167,10 @@ export default function CalendarPage({ openEvent, goMissing, onAddExam, onOpenTa
       )}
       {view === 'month' && (
         <>
-          <MonthGrid
-            data={data}
-            cursor={cursor}
-            selected={monthSel}
-            openEvent={openEvent}
-            onSelect={setMonthSel}
-            onSwipe={step}
-          />
+          <MonthGrid data={shown} cursor={cursor} selected={monthSel} openEvent={openEvent} onSelect={setMonthSel} onSwipe={step} />
           {monthSel && (
             <DayPanel
-              data={data}
+              data={shown}
               date={monthSel}
               openEvent={openEvent}
               onAdd={() => newAt(monthSel)}
@@ -202,8 +183,31 @@ export default function CalendarPage({ openEvent, goMissing, onAddExam, onOpenTa
           )}
         </>
       )}
-      {view === 'agenda' && <Agenda data={data} from={cursor} openEvent={openEvent} />}
 
+      {menuOpen && (
+        <Modal title="Takvim" onClose={() => setMenuOpen(false)}>
+          <div className="menu-list">
+            <button onClick={() => { setMenuOpen(false); setImportOpen(true) }}><Upload size={18} /> Kurum programını yükle</button>
+            <button onClick={() => { setMenuOpen(false); setFreeOpen(true) }}><CalendarSearch size={18} /> Boş saat bul</button>
+          </div>
+          <h4>Göster</h4>
+          <div className="layer-list">
+            {([['kurum', 'Kurum dersleri'], ['ozel', 'Özel dersler'], ['diger', 'Kişisel etkinlikler']] as const).map(([k, l]) => (
+              <label key={k} className="check"><input type="checkbox" checked={layers[k]} onChange={(e) => setLayers({ ...layers, [k]: e.target.checked })} /> {l}</label>
+            ))}
+          </div>
+          {!mobile && view !== 'month' && (
+            <>
+              <h4>Saat yüksekliği</h4>
+              <div className="row middle" style={{ minHeight: 0 }}>
+                <button className="btn small" onClick={() => setHourPx(hourPx - 10)}><ZoomOut size={15} /> Küçült</button>
+                <button className="btn small" onClick={() => setHourPx(hourPx + 10)}><ZoomIn size={15} /> Büyüt</button>
+                <span className="muted small">(Ctrl + fare tekerleği de olur)</span>
+              </div>
+            </>
+          )}
+        </Modal>
+      )}
       {freeOpen && (
         <FreeSlotsModal
           from={days[0] > today ? days[0] : today}
@@ -223,7 +227,6 @@ function StatusMark({ e }: { e: CalEvent }) {
   if (e.status === 'done') return <span title="Yapıldı">✓ </span>
   if (e.status === 'cancelled') return <span title="İptal">✕ </span>
   if (e.status === 'postponed') return <span title="Ertelendi">↷ </span>
-  if (needsNote(e)) return <span title="Not girilmedi">❗ </span>
   return null
 }
 
@@ -326,19 +329,16 @@ function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, openEvent, onEmpty
     return m
   }, [data.events, days, drag])
 
-  let startH = data.settings.dayStart
-  let endH = data.settings.dayEnd
-  for (const list of byDay.values())
-    for (const e of list) {
-      startH = Math.min(startH, Math.floor(toMinutes(e.start) / 60))
-      endH = Math.max(endH, Math.ceil(toMinutes(e.end) / 60))
-    }
+  // Takvim günün tamamını gösterir
+  const startH = 0
+  const endH = 24
   const hours = Array.from({ length: endH - startH }, (_, i) => startH + i)
   const nowMin = toMinutes(nowHM())
 
   // Sadece görünüm değişince (veya ilk açılışta) ilk derse kaydır; gün değişince konum korunur
   useLayoutEffect(() => {
-    const first = Math.min(...days.flatMap((d) => (byDay.get(d) ?? []).map((e) => toMinutes(e.start))), nowMin)
+    const firstEv = Math.min(...days.flatMap((d) => (byDay.get(d) ?? []).map((e) => toMinutes(e.start))))
+    const first = days.includes(todayISO()) ? Math.min(Number.isFinite(firstEv) ? firstEv : 24 * 60, Math.max(0, nowMin - 60)) : Number.isFinite(firstEv) ? firstEv : 8 * 60
     if (scrollRef.current) scrollRef.current.scrollTop = Math.max(0, ((first - startH * 60) / 60) * HOUR_PX - 24)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollKey])
@@ -707,35 +707,6 @@ function DayPanel({ data, date, openEvent, onAdd, onDayView, onAddExam }: {
           <span className="ag-title"><StatusMark e={e} />{eventTitle(data, e)}</span>
           {e.topic && <span className="ag-topic">{e.topic}</span>}
         </button>
-      ))}
-    </div>
-  )
-}
-
-function Agenda({ data, from, openEvent }: { data: AppData; from: string; openEvent: OpenEvent }) {
-  const to = addDays(from, 30)
-  const list = data.events.filter((e) => e.date >= from && e.date <= to).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
-  const examsByDay = new Map<string, Exam[]>()
-  for (const x of data.exams) if (x.date >= from && x.date <= to) examsByDay.set(x.date, [...(examsByDay.get(x.date) ?? []), x])
-  const days = Array.from(new Set([...list.map((e) => e.date), ...examsByDay.keys()])).sort()
-  if (!days.length) return <p className="muted pad">Önümüzdeki 30 günde etkinlik yok.</p>
-  return (
-    <div className="agenda">
-      {days.map((d) => (
-        <div key={d} className="ag-day">
-          <div className={'ag-date' + (d === todayISO() ? ' today' : '')}>{formatShort(d)}{holidayMap(data).get(d) && <span className="hol-tag">{holidayMap(data).get(d)!.name}</span>}</div>
-          <div className="ag-list">
-            {(examsByDay.get(d) ?? []).map((x) => <div key={x.id} className="dp-item exam"><GraduationCap size={14} /> {x.title}{x.start ? ` · ${x.start}` : ''}</div>)}
-            {list.filter((e) => e.date === d).map((e) => (
-              <button key={e.id} className={`ag-ev ev-${e.status}`} onClick={() => openEvent(e)}>
-                <i style={{ background: eventColor(data, e) }} />
-                <span className="ag-time">{e.start}–{e.end}</span>
-                <span className="ag-title"><StatusMark e={e} />{eventTitle(data, e)}</span>
-                {e.topic && <span className="ag-topic">{e.topic}</span>}
-              </button>
-            ))}
-          </div>
-        </div>
       ))}
     </div>
   )

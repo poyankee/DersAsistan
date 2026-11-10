@@ -5,6 +5,7 @@ import { deletePayment, deleteStudent, newStudent, savePayment, saveStudent, stu
 import { formatShort, todayISO } from '../lib/date'
 import { PALETTE, money, uid } from '../lib/util'
 import Modal from './Modal'
+import { openExternal } from '../lib/native'
 import { STATUS_LABEL } from './EventModal'
 
 function waLink(phone: string, text?: string) {
@@ -74,7 +75,7 @@ export default function StudentsPage({ openEvent }: { openEvent: OpenEvent }) {
                   <button className="btn small" onClick={() => setPaying({ id: uid(), studentId: s.id, date: today, amount: Math.max(0, b.balance) || s.fee })}>💰 Ödeme al</button>
                   <button className="btn small" onClick={() => openEvent({ kind: 'ozel', studentId: s.id, fee: s.fee, date: today, start: '17:00', end: '18:00' })}>+ Ders</button>
                   {(s.parentPhone || s.phone) && (
-                    <a className="btn small" target="_blank" rel="noreferrer" href={waLink((s.parentPhone || s.phone)!)}>WhatsApp</a>
+                    <button className="btn small" onClick={() => openExternal(waLink((s.parentPhone || s.phone)!))}>WhatsApp</button>
                   )}
                 </div>
               </div>
@@ -132,7 +133,7 @@ function StudentDetail({ student, onClose, onEdit, onPay, onEditPayment, openEve
         <>
           <button className="btn" onClick={onEdit}>✎ Düzenle</button>
           {(student.parentPhone || student.phone) && (
-            <a className="btn" target="_blank" rel="noreferrer" href={waLink((student.parentPhone || student.phone)!, reportText())}>Veliye özet gönder (WhatsApp)</a>
+            <button className="btn" onClick={() => openExternal(waLink((student.parentPhone || student.phone)!, reportText()))}>Veliye özet gönder (WhatsApp)</button>
           )}
           <div className="spacer" />
           <button className="btn primary" onClick={onPay}>💰 Ödeme al</button>

@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react'
 import type { AppData, CalEvent, Group, Payment, Student } from './types'
 import { PALETTE, colorFor, uid } from './util'
+import { nativeLoad, nativeSave } from './native'
 
 const KEY = 'ders-asistan-v1'
 
@@ -58,13 +59,33 @@ function ensureGroups(d: AppData): AppData {
 
 export function setData(updater: (d: AppData) => AppData) {
   state = ensureGroups(updater(state))
+  const json = JSON.stringify(state)
   try {
-    localStorage.setItem(KEY, JSON.stringify(state))
+    localStorage.setItem(KEY, json)
   } catch (e) {
-    alert('Veri kaydedilemedi! Tarayıcı depolaması dolu olabilir. Lütfen yedek alın.')
+    alert('Veri kaydedilemedi! Depolama dolu olabilir. Lütfen yedek alın.')
     console.error(e)
   }
+  nativeSave(KEY, json).catch((e) => console.error('Kalıcı kayıt hatası', e))
   listeners.forEach((l) => l())
+}
+
+/** Android'de: tarayıcı deposu boşsa kalıcı kopyadan geri yükle */
+export async function initStore() {
+  try {
+    const saved = await nativeLoad(KEY)
+    if (!saved) {
+      if (state.events.length || state.students.length) await nativeSave(KEY, JSON.stringify(state))
+      return
+    }
+    if (!localStorage.getItem(KEY)) {
+      state = normalize(JSON.parse(saved))
+      localStorage.setItem(KEY, saved)
+      listeners.forEach((l) => l())
+    }
+  } catch (e) {
+    console.error('Kalıcı veri okunamadı', e)
+  }
 }
 
 export function getData(): AppData {

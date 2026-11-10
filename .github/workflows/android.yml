@@ -1,0 +1,67 @@
+name: Android APK
+on:
+  push:
+    branches: [main, 'ccr-*']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx cap sync android
+      - name: İmza anahtarını hazırla
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+            echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PW" >> "$GITHUB_ENV"
+            echo "SIGNED=evet" >> "$GITHUB_ENV"
+          else
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret'i yok. APK geçici anahtarla imzalanacak; sonraki sürümler üstüne kurulamaz."
+            echo "SIGNED=hayir" >> "$GITHUB_ENV"
+          fi
+      - name: APK derle
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk ../DersAsistani.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DersAsistani-apk
+          path: DersAsistani.apk
+      - name: Releases sayfasında yayınla
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.2.${{ github.run_number }}
+          name: Ders Asistanı 0.2.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: DersAsistani.apk
+          body: |
+            Telefona/tablete kurmak için aşağıdaki **DersAsistani.apk** dosyasını indirip açın.
+            İlk kurulumda "Bilinmeyen kaynaklardan yüklemeye izin ver" demeniz gerekebilir.
+            Yeni sürümler eskisinin üzerine kurulur, verileriniz silinmez.
+
+            Kalıcı imza: ${{ env.SIGNED }}
+            Dal: `${{ github.ref_name }}` · Commit: ${{ github.sha }}

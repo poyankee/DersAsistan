@@ -17,11 +17,4 @@ export function money(n: number, currency = '₺'): string {
   return `${n.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} ${currency}`
 }
 
-export function downloadFile(name: string, content: string, type: string) {
-  const blob = new Blob([content], { type })
-  const a = document.createElement('a')
-  a.href = URL.createObjectURL(blob)
-  a.download = name
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000)
-}
+export { downloadFile } from './native'

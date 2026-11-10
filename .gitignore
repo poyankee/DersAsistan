@@ -2,3 +2,7 @@ node_modules
 dist
 *.log
 *.tsbuildinfo
+
+# İmza anahtarları depoya eklenmez (GitHub Secrets kullanılır)
+*.keystore
+*.jks

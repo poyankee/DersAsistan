@@ -72,7 +72,7 @@ export default function SettingsPage() {
       <section className="panel">
         <h3>Yedekleme</h3>
         <p className="muted small">
-          Verileriniz bu cihazın tarayıcısında saklanır. Telefon/bilgisayar değiştirirken veya tarayıcı verilerini silmeden önce mutlaka yedek alın.
+          Verileriniz sadece bu cihazda saklanır. Cihaz değiştirmeden, uygulamayı silmeden veya güncellemeden önce mutlaka yedek alın (yedeği Google Drive veya WhatsApp'a kaydedebilirsiniz).
         </p>
         <div className="row wrap">
           <button className="btn primary" onClick={backup}>⬇ Yedek indir (.json)</button>

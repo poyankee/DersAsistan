@@ -71,7 +71,7 @@ export default function ImportModal({ onClose, onDone }: { onClose: () => void; 
         Kurumun yayınladığı program dosyasını (.xls, .xlsx) seçin. Daha önce kaydedilmiş dersler <b>tekrar eklenmez</b>; sadece yeni dersler takvime işlenir.
       </p>
       <label className="filepick">
-        <input type="file" accept=".xls,.xlsx,.htm,.html,.csv" onChange={(e) => onFile(e.target.files?.[0])} />
+        <input type="file" accept=".xls,.xlsx,.htm,.html,.csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/html,text/csv,application/octet-stream" onChange={(e) => onFile(e.target.files?.[0])} />
         <span>{busy ? 'Okunuyor…' : fileName || 'Dosya seçmek için tıklayın'}</span>
       </label>
       {error && <div className="error">{error}</div>}

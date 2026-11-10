@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { ChevronLeft, Pencil, CalendarPlus, MessageCircle, Wallet, History as HistoryIcon, BookOpen, PlusCircle } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { Book, BookStatus, CalEvent, Payment, Student, StudentNote } from '../lib/types'
 import { deleteBook, deleteEvents, deleteNote, saveBook, saveEvents, saveNote, studentBalance, useData } from '../lib/store'
@@ -44,7 +45,7 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onEditP
   return (
     <div className="page profile">
       <div className="profile-head">
-        <button className="icon-btn" onClick={onBack} aria-label="Geri">‹</button>
+        <button className="icon-btn" onClick={onBack} aria-label="Geri"><ChevronLeft size={22} /></button>
         <i className="avatar lg" style={{ background: student.color }}>{student.name.slice(0, 1).toLocaleUpperCase('tr')}</i>
         <div className="grow">
           <h2>{student.name}</h2>
@@ -58,10 +59,10 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onEditP
         </div>
       </div>
       <div className="row wrap profile-actions">
-        <button className="btn" onClick={onEdit}>✎ Bilgileri düzenle</button>
-        <button className="btn" onClick={() => openEvent({ kind: 'ozel', studentId: student.id, fee: student.fee, date: today, start: '17:00', end: '18:00' })}>📅 Takvime ders ekle</button>
-        {phone && <button className="btn" onClick={() => openExternal(waLink(phone, reportText()))}>💬 Veliye özet gönder</button>}
-        <button className="btn primary" onClick={() => onPay(Math.max(0, b.balance) || student.fee)}>💰 Ödeme al</button>
+        <button className="btn" onClick={onEdit}><Pencil size={15} /> Bilgileri düzenle</button>
+        <button className="btn" onClick={() => openEvent({ kind: 'ozel', studentId: student.id, fee: student.fee, date: today, start: '17:00', end: '18:00' })}><CalendarPlus size={15} /> Takvime ders ekle</button>
+        {phone && <button className="btn" onClick={() => openExternal(waLink(phone, reportText()))}><MessageCircle size={15} /> Veliye özet gönder</button>}
+        <button className="btn primary" onClick={() => onPay(Math.max(0, b.balance) || student.fee)}><Wallet size={15} /> Ödeme al</button>
       </div>
 
       <div className="kpis">
@@ -82,9 +83,9 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onEditP
       )}
 
       <div className="seg tabs-seg">
-        <button className={tab === 'gecmis' ? 'active' : ''} onClick={() => setTab('gecmis')}>📖 Geçmiş</button>
-        <button className={tab === 'kitaplar' ? 'active' : ''} onClick={() => setTab('kitaplar')}>📚 Kitaplar ({books.length})</button>
-        <button className={tab === 'odemeler' ? 'active' : ''} onClick={() => setTab('odemeler')}>💰 Ödemeler</button>
+        <button className={tab === 'gecmis' ? 'active' : ''} onClick={() => setTab('gecmis')}><HistoryIcon size={15} /> Geçmiş</button>
+        <button className={tab === 'kitaplar' ? 'active' : ''} onClick={() => setTab('kitaplar')}><BookOpen size={15} /> Kitaplar ({books.length})</button>
+        <button className={tab === 'odemeler' ? 'active' : ''} onClick={() => setTab('odemeler')}><Wallet size={15} /> Ödemeler</button>
       </div>
 
       {tab === 'gecmis' && <History student={student} openEvent={openEvent} />}
@@ -249,7 +250,7 @@ function QuickEntry({ student }: { student: Student }) {
   return (
     <div className="quick-entry">
       <div className="row middle wrap">
-        <b className="grow">➕ Yeni kayıt</b>
+        <b className="grow row-title"><PlusCircle size={17} /> Yeni kayıt</b>
         <div className="seg small inline-seg">
           <button className={type === 'ders' ? 'active' : ''} onClick={() => setType('ders')}>Ders işlendi</button>
           <button className={type === 'not' ? 'active' : ''} onClick={() => setType('not')}>Not</button>
@@ -372,7 +373,7 @@ function Books({ student }: { student: Student }) {
   return (
     <>
       <div className="quick-entry">
-        <b>➕ Kitap ekle</b>
+        <b className="row-title"><PlusCircle size={17} /> Kitap ekle</b>
         <div className="row wrap">
           <label className="field grow"><span>Kitap adı</span><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ör. 8. Sınıf Matematik Soru Bankası" onKeyDown={(e) => e.key === 'Enter' && add()} /></label>
           <label className="field"><span>Ders</span><input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Matematik" /></label>
@@ -395,7 +396,7 @@ function Books({ student }: { student: Student }) {
                   <div key={b.id} className={'book-card st-' + b.status}>
                     <div className="row middle" onClick={() => setOpen(open === b.id ? null : b.id)} style={{ cursor: 'pointer' }}>
                       <div className="grow">
-                        <b>📘 {b.title}</b>
+                        <b className="row-title"><BookOpen size={16} /> {b.title}</b>
                         <div className="muted small">
                           {[b.subject, b.publisher].filter(Boolean).join(' · ')}
                           {last ? ` · Son: ${last.progress} (${formatShort(last.date)})` : ''}
@@ -446,7 +447,7 @@ function Payments({ student, onEditPayment, onPay }: { student: Student; onEditP
   const payments = data.payments.filter((p) => p.studentId === student.id).sort((a, b) => b.date.localeCompare(a.date))
   return (
     <>
-      <div className="row"><div className="spacer" /><button className="btn primary" onClick={onPay}>💰 Ödeme al</button></div>
+      <div className="row"><div className="spacer" /><button className="btn primary" onClick={onPay}><Wallet size={15} /> Ödeme al</button></div>
       {payments.length === 0 ? <p className="muted">Henüz ödeme yok.</p> : (
         <div className="table-wrap" style={{ marginTop: 10 }}>
           <table className="table">

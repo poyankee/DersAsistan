@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { School, Users } from 'lucide-react'
 import { eventTitle, studentBalance, useData } from '../lib/store'
 import { addMonths, isPast, monthLabel, startOfMonth, todayISO } from '../lib/date'
 import { money } from '../lib/util'
@@ -54,7 +55,7 @@ export default function SummaryPage() {
         </span>
       </div>
 
-      <h3 className="section">🏫 Kurum</h3>
+      <h3 className="section row-title"><School size={19} /> Kurum</h3>
       <div className="kpis">
         <div className="kpi"><span>Toplam ders saati</span><b>{s.kurumTotal}</b></div>
         <div className="kpi"><span>Girilen (geçmiş)</span><b>{s.kurumDone}</b></div>
@@ -75,7 +76,7 @@ export default function SummaryPage() {
         </div>
       )}
 
-      <h3 className="section">👤 Özel ders</h3>
+      <h3 className="section row-title"><Users size={19} /> Özel ders</h3>
       <div className="kpis">
         <div className="kpi"><span>Yapılan ders</span><b>{s.ozelDone}</b></div>
         <div className="kpi"><span>Kazanılan</span><b>{money(s.earned, cur)}</b></div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Download, Printer } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { CalEvent } from '../lib/types'
 import { eventColor, eventTitle, saveEvents, useData } from '../lib/store'
@@ -57,8 +58,8 @@ export default function NotebookPage({ openEvent, initialMissing, onFilterUsed }
       <div className="page-head">
         <h2>Ders Defteri</h2>
         <div className="spacer" />
-        <button className="btn" onClick={exportCSV}>⬇ Excel (CSV)</button>
-        <button className="btn" onClick={() => window.print()}>🖨 Yazdır</button>
+        <button className="btn" onClick={exportCSV}><Download size={16} /> Excel (CSV)</button>
+        <button className="btn" onClick={() => window.print()}><Printer size={16} /> Yazdır</button>
       </div>
       <div className="filters">
         <select value={who} onChange={(e) => setWho(e.target.value)}>

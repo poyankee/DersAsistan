@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { Download, Upload, CalendarDays } from 'lucide-react'
 import { emptyData, normalize, saveGroup, setData, useData } from '../lib/store'
 import { buildICS } from '../lib/ics'
 import { todayISO } from '../lib/date'
@@ -75,8 +76,8 @@ export default function SettingsPage() {
           Verileriniz sadece bu cihazda saklanır. Cihaz değiştirmeden, uygulamayı silmeden veya güncellemeden önce mutlaka yedek alın (yedeği Google Drive veya WhatsApp'a kaydedebilirsiniz).
         </p>
         <div className="row wrap">
-          <button className="btn primary" onClick={backup}>⬇ Yedek indir (.json)</button>
-          <button className="btn" onClick={() => fileRef.current?.click()}>⬆ Yedekten geri yükle</button>
+          <button className="btn primary" onClick={backup}><Download size={16} /> Yedek indir (.json)</button>
+          <button className="btn" onClick={() => fileRef.current?.click()}><Upload size={16} /> Yedekten geri yükle</button>
           <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={(e) => restore(e.target.files?.[0])} />
         </div>
       </section>
@@ -87,8 +88,8 @@ export default function SettingsPage() {
           .ics dosyasını indirip Google Takvim → Ayarlar → İçe aktar bölümünden yükleyebilirsiniz. (Tek seferlik aktarımdır; otomatik eşitleme ileride eklenebilir.)
         </p>
         <div className="row wrap">
-          <button className="btn" onClick={() => downloadFile(`ders-takvimi-${todayISO()}.ics`, buildICS(data, todayISO()), 'text/calendar')}>⬇ Bugünden itibaren (.ics)</button>
-          <button className="btn" onClick={() => downloadFile(`ders-takvimi-tumu.ics`, buildICS(data), 'text/calendar')}>⬇ Tümü (.ics)</button>
+          <button className="btn" onClick={() => downloadFile(`ders-takvimi-${todayISO()}.ics`, buildICS(data, todayISO()), 'text/calendar')}><CalendarDays size={16} /> Bugünden itibaren (.ics)</button>
+          <button className="btn" onClick={() => downloadFile(`ders-takvimi-tumu.ics`, buildICS(data), 'text/calendar')}><CalendarDays size={16} /> Tümü (.ics)</button>
         </div>
       </section>
 
@@ -101,7 +102,7 @@ export default function SettingsPage() {
           }}
         >Tüm verileri sil</button>
       </section>
-      <p className="muted small center">Ders Asistanı v0.3 · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
+      <p className="muted small center">Ders Asistanı v0.4 · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
     </div>
   )
 }

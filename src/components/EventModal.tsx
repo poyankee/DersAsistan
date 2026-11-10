@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { CheckCircle2, Copy } from 'lucide-react'
 import type { CalEvent, EventKind, LessonStatus } from '../lib/types'
 import { deleteEvents, eventTitle, saveEvents, useData } from '../lib/store'
 import { applyShiftToSeries, conflictsOf, futureSeriesEvents } from '../lib/eventOps'
@@ -112,12 +113,12 @@ export default function EventModal({ initial, onClose, onDuplicate }: { initial:
               className="btn ghost"
               title="Aynı dersi başka bir güne/saate kopyala"
               onClick={() => onDuplicate({ kind: ev.kind, groupCode: ev.groupCode, studentId: ev.studentId, fee: ev.fee, title: ev.title, date: ev.date, start: ev.start, end: ev.end, hours: ev.hours, bookId: ev.bookId })}
-            >⧉ Çoğalt</button>
+            ><Copy size={15} /> Çoğalt</button>
           )}
           <div className="spacer" />
           <button className="btn" onClick={onClose}>Vazgeç</button>
           {ev.kind !== 'diger' && past && ev.status !== 'done' && (
-            <button className="btn success" onClick={() => save(true)}>✓ Yapıldı olarak kaydet</button>
+            <button className="btn success" onClick={() => save(true)}><CheckCircle2 size={16} /> Yapıldı olarak kaydet</button>
           )}
           <button className="btn primary" onClick={() => save()}>Kaydet</button>
         </>

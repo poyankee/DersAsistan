@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
+import { AlertCircle, ChevronLeft, ChevronRight, PenLine, Upload } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { AppData, CalEvent } from '../lib/types'
 import { eventColor, eventTitle, useData } from '../lib/store'
@@ -13,6 +14,7 @@ import { moveEvent } from '../lib/eventOps'
 import { needsNote } from './NotebookPage'
 
 type View = 'day' | 'week' | 'month' | 'agenda'
+const VIEW_LABEL: Record<View, string> = { day: 'Gün', week: 'Hafta', month: 'Ay', agenda: 'Liste' }
 const HOUR_PX = 52
 
 function useIsMobile() {
@@ -75,30 +77,28 @@ export default function CalendarPage({ openEvent, goMissing }: { openEvent: Open
     <div className="calendar-page">
       <div className="toolbar">
         <button className="btn" onClick={() => setCursor(today)}>Bugün</button>
-        <button className="icon-btn" onClick={() => step(-1)} aria-label="Önceki">‹</button>
-        <button className="icon-btn" onClick={() => step(1)} aria-label="Sonraki">›</button>
+        <button className="icon-btn" onClick={() => step(-1)} aria-label="Önceki"><ChevronLeft size={20} /></button>
+        <button className="icon-btn" onClick={() => step(1)} aria-label="Sonraki"><ChevronRight size={20} /></button>
         <h2 className="period">{label}</h2>
         <div className="spacer" />
-        <select value={view} onChange={(e) => setView(e.target.value as View)} className="view-select">
-          <option value="day">Gün</option>
-          <option value="week">Hafta</option>
-          <option value="month">Ay</option>
-          <option value="agenda">Liste</option>
-        </select>
-        <button className="btn" onClick={() => setImportOpen(true)}>⬆ Program Yükle</button>
-        <button className="btn primary" onClick={() => newAt(cursor)}>+ {mobile ? '' : 'Yeni'}</button>
+        <div className="seg small view-seg">
+          {(Object.keys(VIEW_LABEL) as View[]).map((v) => (
+            <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>{mobile ? VIEW_LABEL[v][0] : VIEW_LABEL[v]}</button>
+          ))}
+        </div>
+        <button className="btn" onClick={() => setImportOpen(true)} title="Kurum programını yükle" aria-label="Program yükle"><Upload size={16} /><span className="hide-mobile">Program yükle</span></button>
       </div>
 
       {(current || missing > 0) && (
         <div className="banners">
           {current && (
             <button className="banner live" onClick={() => openEvent(current)}>
-              <b>{eventTitle(data, current)}</b> ({current.start}–{current.end}) — Bu derste ne işlediniz? Yazmak için dokunun.
+              <PenLine size={17} /><span><b>{eventTitle(data, current)}</b> ({current.start}–{current.end}) — Bu derste ne işlediniz? Yazmak için dokunun.</span>
             </button>
           )}
           {missing > 0 && (
             <button className="banner warn" onClick={goMissing}>
-              Notu girilmemiş <b>{missing}</b> geçmiş ders var — Ders defterinde doldur →
+              <AlertCircle size={17} /><span>Notu girilmemiş <b>{missing}</b> geçmiş ders var — Ders defterinde doldur →</span>
             </button>
           )}
         </div>
@@ -107,7 +107,7 @@ export default function CalendarPage({ openEvent, goMissing }: { openEvent: Open
       {data.events.length === 0 && (
         <div className="empty-hint">
           <p>Takviminiz boş. Başlamak için kurumun verdiği <b>ders programı dosyasını</b> yükleyin ya da takvimde bir saate tıklayarak ders ekleyin.</p>
-          <button className="btn primary" onClick={() => setImportOpen(true)}>⬆ Ders programını yükle</button>
+          <button className="btn primary" onClick={() => setImportOpen(true)}><Upload size={16} /> Ders programını yükle</button>
         </div>
       )}
 
@@ -379,7 +379,7 @@ function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
                     role="button"
                     tabIndex={0}
                     className={`ev ev-${e.status}` + (isPast(e.date, e.end) ? ' past' : '') + (isDragging ? ' dragging' : '')}
-                    style={{ top, height: h, left: isDragging ? 1 : `calc(${(col / cols) * 100}% + 1px)`, width: isDragging ? 'calc(100% - 3px)' : `calc(${100 / cols}% - 3px)`, background: color }}
+                    style={{ top, height: h, left: isDragging ? 1 : `calc(${(col / cols) * 100}% + 1px)`, width: isDragging ? 'calc(100% - 3px)' : `calc(${100 / cols}% - 3px)`, ['--ev' as string]: color }}
                     onPointerDown={(ev) => onEventDown(ev, e, 'move')}
                     onKeyDown={(ev) => ev.key === 'Enter' && openEvent(e)}
                     onContextMenu={(ev) => ev.preventDefault()}

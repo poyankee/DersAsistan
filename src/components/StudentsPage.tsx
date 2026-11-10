@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { UserPlus, Wallet, CalendarPlus, MessageCircle } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { Payment, Student } from '../lib/types'
 import { deletePayment, deleteStudent, newStudent, savePayment, saveStudent, studentBalance, useData } from '../lib/store'
@@ -9,11 +10,12 @@ import { openExternal, waLink } from '../lib/native'
 import StudentProfile from './StudentProfile'
 
 
-export default function StudentsPage({ openEvent }: { openEvent: OpenEvent }) {
+export default function StudentsPage({ openEvent, selected, onSelect }: { openEvent: OpenEvent; selected: string | null; onSelect: (id: string | null) => void }) {
   const data = useData()
   const today = todayISO()
   const [editing, setEditing] = useState<Student | null>(null)
-  const [detail, setDetail] = useState<string | null>(null)
+  const detail = selected
+  const setDetail = onSelect
   const [paying, setPaying] = useState<Payment | null>(null)
   const [showInactive, setShowInactive] = useState(false)
   const cur = data.settings.currency
@@ -52,7 +54,7 @@ export default function StudentsPage({ openEvent }: { openEvent: OpenEvent }) {
         <h2>Özel Ders</h2>
         <div className="spacer" />
         <label className="check"><input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} /> Pasifleri göster</label>
-        <button className="btn primary" onClick={() => setEditing(newStudent())}>+ Öğrenci ekle</button>
+        <button className="btn primary" onClick={() => setEditing(newStudent())}><UserPlus size={16} /> Öğrenci ekle</button>
       </div>
       {data.students.length > 0 && (
         <div className="kpis">
@@ -83,10 +85,10 @@ export default function StudentsPage({ openEvent }: { openEvent: OpenEvent }) {
                 </div>
                 {b.plannedPast > 0 && <div className="warn-text small">{b.plannedPast} geçmiş ders onay bekliyor</div>}
                 <div className="card-actions" onClick={(e) => e.stopPropagation()}>
-                  <button className="btn small" onClick={() => setPaying({ id: uid(), studentId: s.id, date: today, amount: Math.max(0, b.balance) || s.fee })}>💰 Ödeme al</button>
-                  <button className="btn small" onClick={() => openEvent({ kind: 'ozel', studentId: s.id, fee: s.fee, date: today, start: '17:00', end: '18:00' })}>+ Ders</button>
+                  <button className="btn small" onClick={() => setPaying({ id: uid(), studentId: s.id, date: today, amount: Math.max(0, b.balance) || s.fee })}><Wallet size={14} /> Ödeme al</button>
+                  <button className="btn small" onClick={() => openEvent({ kind: 'ozel', studentId: s.id, fee: s.fee, date: today, start: '17:00', end: '18:00' })}><CalendarPlus size={14} /> Ders</button>
                   {(s.parentPhone || s.phone) && (
-                    <button className="btn small" onClick={() => openExternal(waLink((s.parentPhone || s.phone)!))}>WhatsApp</button>
+                    <button className="btn small" onClick={() => openExternal(waLink((s.parentPhone || s.phone)!))}><MessageCircle size={14} /> WhatsApp</button>
                   )}
                 </div>
               </div>

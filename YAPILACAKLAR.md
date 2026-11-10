@@ -22,17 +22,42 @@
   - Genel geçiş animasyonları ve dokunma geri bildirimi (titreşim, basılma efekti)
   > Kullanırken takıldığın somut anları buraya ekle (ör. "X'e dokununca Y oluyor") — öncelik onlara.
 
-### Önerilen ek geliştirmeler
-- [ ] **Hızlı işlem çubuğu:** Bugün ekranındaki her derste kaydırarak "Yapıldı ✓ / Ücreti alındı ₺ / İptal"
+### Seçilen ek geliştirmeler
+- [ ] **Hızlı işlem:** Bugün ekranındaki derslerde kaydırarak "Yapıldı ✓ / Ücreti alındı ₺ / İptal"
 - [ ] **Ders bitince tek ekran akışı:** "Ne işledin + ödev + ücreti alındı mı?" tek adımda
-- [ ] **Tekrar eden notlar:** Son kullanılan konu/ödev metinlerinden öneri (otomatik tamamlama)
-- [ ] **Ödeme hatırlatma mesajı:** Borcu olan veliye hazır, kibar WhatsApp metni (tutar + ders listesi)
-- [ ] **Ay sonu toplu tahsilat listesi:** Toplu ödeyenler için "bu ay kimden ne kadar alınacak" tek liste,
-  tek tek "ödendi" işaretleme
 - [ ] **Öğrenci arama ve sıralama:** Ada göre arama, borca/son derse göre sıralama
 - [ ] **Geri dönüşüm kutusu:** Silinen ders/öğrenci/ödeme 30 gün geri alınabilsin
-- [ ] **Otomatik yerel yedek:** Her gün telefona otomatik yedek (güncelleme sırasında veri kaybı riskine karşı)
 - [ ] **Bildirimler:** Ders öncesi hatırlatma, ders sonrası "ne işledin", vadesi gelen ödeme sözleri
+
+### Beklemede (şimdilik seçilmedi)
+- [ ] Son kullanılan konu/ödev metinlerinden otomatik tamamlama
+- [ ] Borcu olan veliye hazır WhatsApp ödeme hatırlatma metni
+- [ ] Ay sonu toplu tahsilat listesi (toplu ödeyenler)
+- [ ] Her gün otomatik yerel yedek
+
+### Yeni öneriler (seçim bekliyor)
+**Günlük iş akışı**
+- [ ] A. Yapılacaklar / görevler listesi (tarihli hatırlatma; "8-H yazılılarını oku")
+- [ ] B. Ders planı: derse girmeden "bugün ne işleyeceğim", ders sonunda planla karşılaştırma
+- [ ] C. Hızlı ekleme cümlesi: "yarın 17:00 Ayşe" yazınca ders oluşsun
+- [ ] D. Haftalık bakış (Pazar akşamı): gelecek hafta ders sayısı, boşluklar, tatiller, beklenen ödemeler
+
+**Kurum sınıfları**
+- [ ] E. Sınıf profil sayfası (öğrenci profili gibi): sınıf notları, konu ilerlemesi, son işlenenler
+- [ ] F. Sınıf öğrenci listesi ve yoklama
+- [ ] G. Sınav/yazılı takvimi: takvimde gösterme, öncesinde hatırlatma
+
+**Özel ders**
+- [ ] H. Kardeşler / aile hesabı: aynı veliden gelen tek ödeme birden çok öğrenciye dağıtılsın
+- [ ] I. Toplu ücret güncelleme: tüm öğrencilere belirli tarihten itibaren yeni ücret (zam dönemi)
+- [ ] J. Ders sonu kısa değerlendirme (1–5 / emoji): öğrencinin dersteki performans grafiği
+- [ ] K. Bekleme listesi: yeni öğrenci talepleri, istedikleri günler, uygun boş saat önerisi
+- [ ] L. Derse fotoğraf ekleme (tahta, ödev sayfası, çözülen soru)
+
+**Kullanım kolaylığı**
+- [ ] M. Tablette çift panel (solda liste, sağda detay)
+- [ ] N. Uygulama simgesine uzun basınca kısayollar: "Yeni ders", "Ödeme al", "Bugün"
+- [ ] O. Tema (açık/koyu) ve yazı boyutu ayarı
 
 ## Sıradaki fikirler
 

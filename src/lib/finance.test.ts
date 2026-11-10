@@ -1,5 +1,5 @@
-import { financeTotals, studentFinance } from './finance'
-import { emptyData } from './store'
+import { financeLine, financeTotals, studentFinance } from './finance'
+import { emptyData, normalize } from './store'
 import type { AppData, CalEvent, Payment, Student } from './types'
 
 const T = '2026-11-16'
@@ -7,81 +7,66 @@ const st = (id: string, extra: Partial<Student> = {}): Student => ({ id, name: i
 const les = (id: string, sid: string, date: string, status: CalEvent['status'] = 'done', fee = 500): CalEvent => ({ id, kind: 'ozel', studentId: sid, date, start: '17:00', end: '18:00', title: '', status, fee, createdAt: 0 })
 const pay = (sid: string, amount: number, date = T, eventId?: string): Payment => ({ id: Math.random().toString(), studentId: sid, amount, date, eventId })
 const data = (p: Partial<AppData>): AppData => ({ ...emptyData(), ...p })
+const m = (n: number) => `${n}`
 
-describe('ödeme hesapları', () => {
-  it('ders başı: ödenmemiş dersler hemen tahsil edilecek; ödemeler eskiden yeniye dağıtılır', () => {
+describe('sade ödeme modeli', () => {
+  it('her ders ödeyen: bakiye tek sayı, önceki günlerin dersleri gecikmiş', () => {
     const d = data({
       students: [st('a')],
-      events: [les('1', 'a', '2026-11-02'), les('2', 'a', '2026-11-09'), les('3', 'a', '2026-11-16'), les('4', 'a', '2026-11-23', 'planned')],
+      events: [les('1', 'a', '2026-11-02'), les('2', 'a', '2026-11-09'), les('3', 'a', T), les('4', 'a', '2026-11-23', 'planned')],
       payments: [pay('a', 750)],
     })
     const f = studentFinance(d, d.students[0], T)
-    expect(f.earned).toBe(1500)
-    expect(f.dueNow).toBe(750)
+    expect(f.debt).toBe(750)
+    expect(f.overdue).toBe(250) // 9 Kasım'ın kalan 250'si; bugünkü ders henüz gecikmiş değil
     expect(f.lessonPay.get('1')).toBe('paid')
     expect(f.lessonPay.get('2')).toBe('partial')
-    expect(f.lessonPay.get('3')).toBe('unpaid')
-    expect(f.unpaidLessons).toBe(2)
+    expect(financeLine(f, m)).toEqual({ text: '750 borç · 2 ders', tone: 'due' })
   })
 
-  it('derse bağlı ödeme önce o dersi kapatır', () => {
-    const d = data({ students: [st('a')], events: [les('1', 'a', '2026-11-02'), les('2', 'a', '2026-11-09')], payments: [pay('a', 500, T, '2')] })
-    const f = studentFinance(d, d.students[0], T)
-    expect(f.lessonPay.get('2')).toBe('paid')
-    expect(f.lessonPay.get('1')).toBe('unpaid')
-  })
-
-  it('toplu (aylık): bu ayın dersleri birikiyor, geçen ayınki hemen tahsil edilecek', () => {
+  it('ay sonu ödeyen: bu ayın borcu gecikmiş sayılmaz', () => {
     const d = data({
-      students: [st('a', { billing: 'toplu', bulkPeriod: 'ay' })],
-      events: [les('1', 'a', '2026-10-20'), les('2', 'a', '2026-10-27'), les('3', 'a', '2026-11-03'), les('4', 'a', '2026-11-10')],
+      students: [st('a', { payWhen: 'aysonu' })],
+      events: [les('1', 'a', '2026-10-20'), les('2', 'a', '2026-11-03'), les('3', 'a', '2026-11-10')],
     })
     const f = studentFinance(d, d.students[0], T)
-    expect(f.accruing).toBe(1000)
-    expect(f.dueNow).toBe(1000)
-    expect(f.periodLabel).toBe('Kasım dönemi')
+    expect(f.debt).toBe(1500)
+    expect(f.overdue).toBe(500)
   })
 
-  it('toplu (her 4 ders): tamamlanmamış dönem birikiyor', () => {
-    const d = data({
-      students: [st('a', { billing: 'toplu', bulkPeriod: 'ders', bulkEvery: 4 })],
-      events: ['01', '02', '03', '04', '05', '06'].map((x, i) => les(x, 'a', `2026-10-${10 + i}`)),
-    })
+  it('peşin ödeyen: kalan ders hakkı hesaplanır', () => {
+    const d = data({ students: [st('a', { payWhen: 'pesin' })], events: [les('1', 'a', '2026-11-02')], payments: [pay('a', 2000, '2026-11-01')] })
     const f = studentFinance(d, d.students[0], T)
-    expect(f.dueNow).toBe(2000) // ilk 4 ders dönemi doldu
-    expect(f.accruing).toBe(1000) // 2/4
-    expect(f.periodLabel).toBe('2/4 ders')
+    expect(f.credit).toBe(1500)
+    expect(f.creditLessons).toBe(3)
+    expect(financeLine(f, m).text).toBe('Peşin 1500 · 3 ders hakkı')
   })
 
-  it('paket: peşin ödeme alacak sayılmaz, kalan ders hakkı hesaplanır', () => {
+  it('ödeme notu: ileri tarihli not gecikmiş saymayı durdurur, tarihsiz not süreyi gösterir', () => {
     const d = data({
-      students: [st('a', { billing: 'paket', packageSize: 8, packagePrice: 4000, fee: 500 })],
-      events: [les('1', 'a', '2026-11-02'), les('2', 'a', '2026-11-09'), les('3', 'a', '2026-11-16')],
-      payments: [pay('a', 4000, '2026-11-01')],
-    })
-    const f = studentFinance(d, d.students[0], T)
-    expect(f.balance).toBe(-2500)
-    expect(f.credit).toBe(2500)
-    expect(f.packageRemaining).toBe(5)
-    expect(f.dueNow + f.promised + f.accruing).toBe(0)
-  })
-
-  it('ileri tarihli söz: vadesi gelmemiş kısım ayrı, vadesi geçmiş kısım hemen tahsilde', () => {
-    const d = data({
-      students: [st('a'), st('b')],
-      events: [les('1', 'a', '2026-11-02'), les('2', 'a', '2026-11-09'), les('3', 'b', '2026-11-02')],
-      promises: [
-        { id: 'p1', studentId: 'a', dueDate: '2026-12-01', amount: 600, createdAt: 0 },
-        { id: 'p2', studentId: 'b', dueDate: '2026-11-10', amount: 500, createdAt: 0 },
+      students: [
+        st('a', { payNote: { due: '2026-12-01', since: '2026-11-10' } }),
+        st('b', { payNote: { since: '2026-11-04' } }),
+        st('c', { payNote: { due: '2026-11-10', since: '2026-11-01' } }),
       ],
+      events: [les('1', 'a', '2026-11-02'), les('2', 'b', '2026-11-02'), les('3', 'c', '2026-11-02')],
     })
-    const fa = studentFinance(d, d.students[0], T)
-    expect(fa.promised).toBe(600)
-    expect(fa.dueNow).toBe(400)
-    const fb = studentFinance(d, d.students[1], T)
-    expect(fb.dueNow).toBe(500)
-    expect(fb.overduePromised).toBe(500)
-    const t = financeTotals(d, T)
-    expect(t).toMatchObject({ dueNow: 900, promised: 600, accruing: 0, total: 1500 })
+    const [fa, fb, fc] = d.students.map((s) => studentFinance(d, s, T))
+    expect(fa.overdue).toBe(0)
+    expect(fb.overdue).toBe(500)
+    expect(fb.noteDays).toBe(12)
+    expect(fc.noteLate).toBe(true)
+    expect(fc.overdue).toBe(500)
+    expect(financeTotals(d, T)).toMatchObject({ total: 1500, overdue: 1000, debtors: 3 })
+  })
+
+  it('eski sürüm verisi sade modele çevrilir', () => {
+    const d = normalize({
+      students: [st('a', { billing: 'toplu' }), st('b', { billing: 'paket' })],
+      promises: [{ id: 'p', studentId: 'a', dueDate: '2026-12-01', amount: 100, createdAt: Date.parse('2026-11-05T10:00:00Z') }],
+    })
+    expect(d.students[0]).toMatchObject({ payWhen: 'aysonu', payNote: { due: '2026-12-01', since: '2026-11-05' } })
+    expect(d.students[1].payWhen).toBe('pesin')
+    expect(d.promises).toHaveLength(0)
   })
 })

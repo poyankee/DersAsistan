@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
+import TimePicker from './TimePicker'
 import { CalendarClock, CalendarRange, ChevronLeft, Pencil, CalendarPlus, MessageCircle, Wallet, History as HistoryIcon, BookOpen, PlusCircle } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { Book, BookStatus, CalEvent, Payment, Student, StudentNote } from '../lib/types'
 import { deleteBook, deleteEvents, deleteNote, saveBook, saveEvents, saveNote, useData } from '../lib/store'
-import { BILLING_LABEL, financeLine, studentFinance, type LessonPayState } from '../lib/finance'
-import { suggestedAmount } from './StudentsPage'
+import { PAY_WHEN_LABEL, financeLine, payNoteText, studentFinance, type LessonPayState } from '../lib/finance'
 import ScheduleTab from './ScheduleTab'
 import { formatLong, formatShort, fromMinutes, toMinutes, todayISO } from '../lib/date'
 import { money, uid } from '../lib/util'
@@ -16,11 +16,12 @@ type Tab = 'gecmis' | 'duzen' | 'kitaplar' | 'odemeler'
 
 const BOOK_STATUS: Record<BookStatus, string> = { devam: 'Devam ediyor', planli: 'Sırada', bitti: 'Bitti' }
 
-export default function StudentProfile({ student, onBack, onEdit, onPay, onEditPayment, openEvent }: {
+export default function StudentProfile({ student, onBack, onEdit, onPay, onPayNote, onEditPayment, openEvent }: {
   student: Student
   onBack: () => void
   onEdit: () => void
-  onPay: (amount: number, mode?: 'odeme' | 'soz') => void
+  onPay: () => void
+  onPayNote: () => void
   onEditPayment: (p: Payment) => void
   openEvent: OpenEvent
 }) {
@@ -30,7 +31,8 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onEditP
   const [tab, setTab] = useState<Tab>('gecmis')
   const b = studentFinance(data, student, today)
   const line = financeLine(b, (n) => money(Math.round(n), cur))
-  const payNow = () => onPay(suggestedAmount(student, b))
+  const payNow = onPay
+  const note = payNoteText(b, formatShort)
   const books = data.books.filter((x) => x.studentId === student.id)
   const lessons = data.events.filter((e) => e.studentId === student.id)
   const upcoming = lessons.filter((e) => e.date >= today && e.status === 'planned').sort((x, y) => (x.date + x.start).localeCompare(y.date + y.start))
@@ -67,22 +69,19 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onEditP
         <button className="btn" onClick={onEdit}><Pencil size={15} /> Bilgileri düzenle</button>
         <button className="btn" onClick={() => openEvent({ kind: 'ozel', studentId: student.id, fee: student.fee, date: today, start: '17:00', end: '18:00' })}><CalendarPlus size={15} /> Takvime ders ekle</button>
         {phone && <button className="btn" onClick={() => openExternal(waLink(phone, reportText()))}><MessageCircle size={15} /> Veliye özet gönder</button>}
-        <button className="btn" onClick={() => onPay(0, 'soz')}><CalendarClock size={15} /> Ödeme sözü</button>
         <button className="btn primary" onClick={payNow}><Wallet size={15} /> Ödeme al</button>
       </div>
 
       <div className={'fin-banner ' + line.tone}>
-        <span className={'bill-tag ' + b.billing}>{BILLING_LABEL[b.billing]}{b.billing === 'toplu' ? ` · ${(student.bulkPeriod ?? 'ay') === 'ay' ? 'ay sonu' : `her ${student.bulkEvery ?? 4} ders`}` : ''}{b.billing === 'paket' && student.packageSize ? ` · ${student.packageSize} ders` : ''}</span>
-        <b>{line.text}</b>
-        {b.openPromises.map((p) => (
-          <span key={p.id} className={'small' + (p.dueDate < today ? ' warn-text' : ' muted')}>Söz: {formatShort(p.dueDate)} → {money(p.amount, cur)}{p.dueDate < today ? ' (tarihi geçti)' : ''}</span>
-        ))}
-      </div>
-      <div className="kpis">
-        <div className="kpi"><span>Yapılan ders</span><b>{b.doneLessons}</b>{b.unpaidLessons > 0 && <small className="warn-text">{b.unpaidLessons} ders ödenmedi</small>}</div>
-        <div className="kpi"><span>Toplam ücret</span><b>{money(b.earned, cur)}</b></div>
-        <div className="kpi"><span>Ödenen</span><b>{money(b.paid, cur)}</b></div>
-        <div className="kpi"><span>{b.balance >= 0 ? 'Kalan borç' : 'Peşin ödeme'}</span><b className={b.balance > 0 ? 'warn-text' : 'ok'}>{money(Math.abs(Math.round(b.balance)), cur)}</b></div>
+        <div className="grow">
+          <b>{line.text}</b>
+          <div className="small muted">
+            {PAY_WHEN_LABEL[b.payWhen]} öder · {b.doneLessons} ders yapıldı · toplam {money(b.earned, cur)}, ödenen {money(b.paid, cur)}
+            {b.overdue > 0 && b.overdue < b.debt ? ` · ${money(Math.round(b.overdue), cur)} gecikmiş` : ''}
+          </div>
+          {note && <div className={'small' + (b.noteLate ? ' warn-text' : '')}>{note}</div>}
+        </div>
+        {b.debt > 0 && <button className="btn small" onClick={onPayNote}><CalendarClock size={14} /> Ne zaman ödeyecek?</button>}
       </div>
 
       {upcoming.length > 0 && (
@@ -168,7 +167,7 @@ function History({ student, openEvent }: { student: Student; openEvent: OpenEven
                     <div className="tl-top">
                       <span className={'pill st-' + e.status}>{STATUS_LABEL[e.status]}</span>
                       {e.status === 'done' && e.fee ? <span className="muted small">{money(e.fee, cur)}</span> : null}
-                      {e.status === 'done' && e.fee ? <span className={'pay-state ' + (fin.lessonPay.get(e.id) ?? 'unpaid')}>{PAY_LABEL[fin.lessonPay.get(e.id) ?? 'unpaid']}</span> : null}
+                      {e.status === 'done' && e.fee ? <i className={'pay-dot ' + (fin.lessonPay.get(e.id) ?? 'unpaid')} title={PAY_LABEL[fin.lessonPay.get(e.id) ?? 'unpaid']} /> : null}
                     </div>
                     {e.topic ? <div className="tl-topic">{e.topic}</div> : <div className="warn-text small">Konu yazılmadı — eklemek için dokunun</div>}
                     {e.bookId && <div className="small">📚 {bookName(e.bookId) ?? 'Kitap'}{e.bookProgress ? ` — ${e.bookProgress}` : ''}</div>}
@@ -241,7 +240,7 @@ function QuickEntry({ student }: { student: Student }) {
       const n: StudentNote = { id: uid(), studentId: student.id, date, text: notes.trim(), bookId: bookId || undefined, bookProgress: bookProgress.trim() || undefined, createdAt: Date.now() }
       saveNote(n)
       reset()
-      showToast('Not eklendi', [{ label: 'Geri al', run: () => deleteNote(n.id) }])
+      showToast('Not eklendi', [{ label: 'Geri al', run: () => deleteNote(n.id, { trash: false }) }])
       return
     }
     if (!topic.trim()) return alert('Lütfen derste ne işlediğinizi yazın.')
@@ -261,7 +260,7 @@ function QuickEntry({ student }: { student: Student }) {
     } else {
       const ev: CalEvent = { id: uid(), kind: 'ozel', studentId: student.id, title: student.name, date, start, end, fee, createdAt: Date.now(), ...patch }
       saveEvents([ev])
-      showToast('Ders kaydedildi', [{ label: 'Geri al', run: () => deleteEvents([ev.id]) }])
+      showToast('Ders kaydedildi', [{ label: 'Geri al', run: () => deleteEvents([ev.id], { trash: false }) }])
     }
     reset()
   }
@@ -284,11 +283,11 @@ function QuickEntry({ student }: { student: Student }) {
           <>
             <label className="field">
               <span>Başlangıç</span>
-              <input type="time" value={start} onChange={(e) => e.target.value && setTimes([e.target.value, fromMinutes(toMinutes(e.target.value) + Math.max(15, toMinutes(end) - toMinutes(start)))])} />
+              <TimePicker label="Başlangıç" value={start} onChange={(v) => setTimes([v, fromMinutes(toMinutes(v) + Math.max(15, toMinutes(end) - toMinutes(start)))])} />
             </label>
             <label className="field">
               <span>Bitiş</span>
-              <input type="time" value={end} onChange={(e) => e.target.value && setTimes([start, e.target.value])} />
+              <TimePicker label="Bitiş" value={end} onChange={(v) => setTimes([start, v])} />
             </label>
             <label className="field" style={{ width: 110 }}>
               <span>Ücret ({data.settings.currency})</span>
@@ -344,7 +343,7 @@ function QuickEntry({ student }: { student: Student }) {
 function NoteEditor({ note, onClose }: { note: StudentNote; onClose: () => void }) {
   const [n, setN] = useState(note)
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-head"><h3>Notu düzenle</h3><button className="icon-btn" onClick={onClose}>✕</button></div>
         <div className="modal-body">

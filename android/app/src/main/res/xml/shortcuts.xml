@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add"
+        android:shortcutId="yeni_ders"
+        android:shortcutLongLabel="@string/sc_new_lesson_long"
+        android:shortcutShortLabel="@string/sc_new_lesson">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="dersasistani://yeni-ders"
+            android:targetClass="com.dersasistani.app.MainActivity"
+            android:targetPackage="com.dersasistani.app" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_wallet"
+        android:shortcutId="odeme"
+        android:shortcutLongLabel="@string/sc_payment"
+        android:shortcutShortLabel="@string/sc_payment">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="dersasistani://odeme"
+            android:targetClass="com.dersasistani.app.MainActivity"
+            android:targetPackage="com.dersasistani.app" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_task"
+        android:shortcutId="gorev"
+        android:shortcutLongLabel="@string/sc_task"
+        android:shortcutShortLabel="@string/sc_task">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="dersasistani://gorev"
+            android:targetClass="com.dersasistani.app.MainActivity"
+            android:targetPackage="com.dersasistani.app" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_today"
+        android:shortcutId="bugun"
+        android:shortcutLongLabel="@string/sc_today"
+        android:shortcutShortLabel="@string/sc_today">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="dersasistani://bugun"
+            android:targetClass="com.dersasistani.app.MainActivity"
+            android:targetPackage="com.dersasistani.app" />
+    </shortcut>
+</shortcuts>

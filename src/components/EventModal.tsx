@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import TimePicker from './TimePicker'
 import { CheckCircle2, Copy } from 'lucide-react'
 import type { CalEvent, EventKind, LessonStatus } from '../lib/types'
 import { deleteEvents, eventTitle, saveEvents, savePayment, useData } from '../lib/store'
@@ -87,7 +88,7 @@ export default function EventModal({ initial, onClose, onDuplicate }: { initial:
       importKeys: undefined, seriesId: undefined, createdAt: Date.now(),
     }
     saveEvents([orig, copy])
-    showToast(`Telafi dersi eklendi: ${formatShort(date)} ${start}–${end}`, [{ label: 'Geri al', run: () => { deleteEvents([copy.id]); saveEvents([initial as CalEvent]) } }])
+    showToast(`Telafi dersi eklendi: ${formatShort(date)} ${start}–${end}`, [{ label: 'Geri al', run: () => { deleteEvents([copy.id], { trash: false }); saveEvents([initial as CalEvent]) } }])
     onClose()
   }
   const payState = student && !isNew ? studentFinance(data, student, todayISO()).lessonPay.get(ev.id) : undefined
@@ -225,23 +226,21 @@ export default function EventModal({ initial, onClose, onDuplicate }: { initial:
           <span>Tarih</span>
           <input type="date" value={ev.date} onChange={(e) => e.target.value && set('date', e.target.value)} />
         </label>
-        <label className="field">
+        <div className="field">
           <span>Başlangıç</span>
-          <input
-            type="time"
+          <TimePicker
+            label="Başlangıç"
             value={ev.start}
-            onChange={(e) => {
-              const v = e.target.value
-              if (!v) return
+            onChange={(v) => {
               const dur = toMinutes(ev.end) - toMinutes(ev.start)
               setEv((p) => ({ ...p, start: v, end: fromMinutes(toMinutes(v) + Math.max(dur, 15)) }))
             }}
           />
-        </label>
-        <label className="field">
+        </div>
+        <div className="field">
           <span>Bitiş</span>
-          <input type="time" value={ev.end} onChange={(e) => e.target.value && set('end', e.target.value)} />
-        </label>
+          <TimePicker label="Bitiş" value={ev.end} onChange={(v) => set('end', v)} />
+        </div>
       </div>
 
       {holiday && <div className="row-title" style={{ margin: '4px 0' }}><span className="hol-tag">{holiday.name}</span></div>}

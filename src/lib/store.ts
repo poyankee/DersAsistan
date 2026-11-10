@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { AppData, Book, CalEvent, Group, Holiday, Payment, PaymentPromise, Student, StudentNote } from './types'
+import type { AppData, Book, CalEvent, ClassNote, Exam, Group, Holiday, Payment, PaymentPromise, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
 import { PALETTE, colorFor, uid } from './util'
 import { nativeLoad, nativeSave } from './native'
 
@@ -16,6 +16,10 @@ export function emptyData(): AppData {
     notes: [],
     promises: [],
     holidays: [],
+    tasks: [],
+    exams: [],
+    classNotes: [],
+    trash: [],
     ignoredImportKeys: [],
     settings: { dayStart: 8, dayEnd: 21, currency: '₺' },
   }
@@ -31,6 +35,22 @@ function load(): AppData {
   return emptyData()
 }
 
+/** Eski ödeme düzeni ve ödeme sözlerini sade modele çevirir */
+function migrateStudents(d: Partial<AppData>): Student[] {
+  const promises = d.promises ?? []
+  return (d.students ?? []).map((s) => {
+    let out = s
+    if (!s.payWhen && s.billing) {
+      out = { ...out, payWhen: s.billing === 'toplu' ? 'aysonu' : s.billing === 'paket' ? 'pesin' : 'ders' }
+    }
+    if (!s.payNote) {
+      const pr = promises.filter((p) => p.studentId === s.id).sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0]
+      if (pr) out = { ...out, payNote: { due: pr.dueDate, note: pr.note, since: new Date(pr.createdAt || Date.now()).toISOString().slice(0, 10) } }
+    }
+    return out
+  })
+}
+
 export function normalize(d: Partial<AppData>): AppData {
   const base = emptyData()
   return {
@@ -39,12 +59,17 @@ export function normalize(d: Partial<AppData>): AppData {
     settings: { ...base.settings, ...(d.settings ?? {}) },
     events: d.events ?? [],
     groups: d.groups ?? {},
-    students: d.students ?? [],
+    students: migrateStudents(d),
     payments: d.payments ?? [],
     books: d.books ?? [],
     notes: d.notes ?? [],
-    promises: d.promises ?? [],
+    promises: [],
     holidays: d.holidays ?? [],
+    tasks: d.tasks ?? [],
+    exams: d.exams ?? [],
+    classNotes: d.classNotes ?? [],
+    // 30 günden eski silinenler kalıcı olarak temizlenir
+    trash: (d.trash ?? []).filter((t) => Date.now() - t.deletedAt < 30 * 86400000),
     ignoredImportKeys: d.ignoredImportKeys ?? [],
   } as AppData
 }
@@ -131,16 +156,20 @@ export function saveEvents(evs: CalEvent[]) {
   })
 }
 
-export function deleteEvents(ids: string[]) {
+export function deleteEvents(ids: string[], opts: { trash?: boolean } = {}) {
   const set = new Set(ids)
   setData((d) => {
     const removed = d.events.filter((e) => set.has(e.id))
+    if (!removed.length) return d
     const keys = removed.flatMap((e) => e.importKeys ?? [])
-    return {
+    const next = {
       ...d,
       events: d.events.filter((e) => !set.has(e.id)),
       ignoredImportKeys: keys.length ? Array.from(new Set([...d.ignoredImportKeys, ...keys])) : d.ignoredImportKeys,
     }
+    if (opts.trash === false) return next
+    const label = removed.length === 1 ? `${eventTitle(d, removed[0])} · ${removed[0].date.split('-').reverse().join('.')} ${removed[0].start}` : `${removed.length} ders (${eventTitle(d, removed[0])})`
+    return toTrash(next, 'event', label, { events: removed })
   })
 }
 
@@ -156,15 +185,30 @@ export function saveStudent(s: Student) {
 }
 
 export function deleteStudent(id: string) {
-  setData((d) => ({
-    ...d,
-    students: d.students.filter((s) => s.id !== id),
-    payments: d.payments.filter((p) => p.studentId !== id),
-    books: d.books.filter((b) => b.studentId !== id),
-    notes: d.notes.filter((n) => n.studentId !== id),
-    promises: d.promises.filter((n) => n.studentId !== id),
-    events: d.events.filter((e) => e.studentId !== id),
-  }))
+  setData((d) => {
+    const st = d.students.find((s) => s.id === id)
+    if (!st) return d
+    const payload = {
+      students: [st],
+      events: d.events.filter((e) => e.studentId === id),
+      payments: d.payments.filter((p) => p.studentId === id),
+      notes: d.notes.filter((n) => n.studentId === id),
+      books: d.books.filter((b) => b.studentId === id),
+    }
+    return toTrash(
+      {
+        ...d,
+        students: d.students.filter((s) => s.id !== id),
+        payments: d.payments.filter((p) => p.studentId !== id),
+        books: d.books.filter((b) => b.studentId !== id),
+        notes: d.notes.filter((n) => n.studentId !== id),
+        events: d.events.filter((e) => e.studentId !== id),
+      },
+      'student',
+      `${st.name} (öğrenci, ${payload.events.length} ders, ${payload.payments.length} ödeme)`,
+      payload,
+    )
+  })
 }
 
 export function savePayment(p: Payment) {
@@ -175,7 +219,12 @@ export function savePayment(p: Payment) {
 }
 
 export function deletePayment(id: string) {
-  setData((d) => ({ ...d, payments: d.payments.filter((p) => p.id !== id) }))
+  setData((d) => {
+    const p = d.payments.find((x) => x.id === id)
+    if (!p) return d
+    const st = d.students.find((x) => x.id === p.studentId)
+    return toTrash({ ...d, payments: d.payments.filter((x) => x.id !== id) }, 'payment', `${p.amount} ${d.settings.currency} ödeme · ${st?.name ?? ''} · ${p.date.split('-').reverse().join('.')}`, { payments: [p] })
+  })
 }
 
 function upsert<T extends { id: string }>(list: T[], item: T): T[] {
@@ -187,20 +236,34 @@ export function saveBook(b: Book) {
 }
 
 export function deleteBook(id: string) {
-  setData((d) => ({
-    ...d,
-    books: d.books.filter((b) => b.id !== id),
-    events: d.events.map((e) => (e.bookId === id ? { ...e, bookId: undefined } : e)),
-    notes: d.notes.map((n) => (n.bookId === id ? { ...n, bookId: undefined } : n)),
-  }))
+  setData((d) => {
+    const b = d.books.find((x) => x.id === id)
+    if (!b) return d
+    return toTrash(
+      {
+        ...d,
+        books: d.books.filter((x) => x.id !== id),
+        events: d.events.map((e) => (e.bookId === id ? { ...e, bookId: undefined } : e)),
+        notes: d.notes.map((n) => (n.bookId === id ? { ...n, bookId: undefined } : n)),
+      },
+      'book',
+      `Kitap: ${b.title}`,
+      { books: [b] },
+    )
+  })
 }
 
 export function saveNote(n: StudentNote) {
   setData((d) => ({ ...d, notes: upsert(d.notes, n) }))
 }
 
-export function deleteNote(id: string) {
-  setData((d) => ({ ...d, notes: d.notes.filter((n) => n.id !== id) }))
+export function deleteNote(id: string, opts: { trash?: boolean } = {}) {
+  setData((d) => {
+    const n = d.notes.find((x) => x.id === id)
+    if (!n) return d
+    const next = { ...d, notes: d.notes.filter((x) => x.id !== id) }
+    return opts.trash === false ? next : toTrash(next, 'note', `Not: ${n.text.slice(0, 40)}`, { notes: [n] })
+  })
 }
 
 export function savePromise(p: PaymentPromise) {
@@ -219,8 +282,79 @@ export function deleteHoliday(id: string) {
   setData((d) => ({ ...d, holidays: d.holidays.filter((h) => h.id !== id) }))
 }
 
+// ---- Görevler, sınavlar, sınıf notları ----
+
+export function saveTask(t: Task) {
+  setData((d) => ({ ...d, tasks: upsert(d.tasks, t) }))
+}
+
+export function deleteTask(id: string) {
+  setData((d) => {
+    const t = d.tasks.find((x) => x.id === id)
+    if (!t) return d
+    return toTrash({ ...d, tasks: d.tasks.filter((x) => x.id !== id) }, 'task', `Görev: ${t.title}`, { tasks: [t] })
+  })
+}
+
+export function saveExam(x: Exam) {
+  setData((d) => ({ ...d, exams: upsert(d.exams, x) }))
+}
+
+export function deleteExam(id: string) {
+  setData((d) => {
+    const x = d.exams.find((e) => e.id === id)
+    if (!x) return d
+    return toTrash({ ...d, exams: d.exams.filter((e) => e.id !== id) }, 'exam', `Sınav: ${x.title} · ${x.date.split('-').reverse().join('.')}`, { exams: [x] })
+  })
+}
+
+export function saveClassNote(n: ClassNote) {
+  setData((d) => ({ ...d, classNotes: upsert(d.classNotes, n) }))
+}
+
+export function deleteClassNote(id: string) {
+  setData((d) => {
+    const n = d.classNotes.find((x) => x.id === id)
+    if (!n) return d
+    return toTrash({ ...d, classNotes: d.classNotes.filter((x) => x.id !== id) }, 'classNote', `Sınıf notu: ${n.text.slice(0, 40)}`, { classNotes: [n] })
+  })
+}
+
+// ---- Çöp kutusu ----
+
+function toTrash(d: AppData, kind: TrashKind, label: string, payload: TrashItem['payload']): AppData {
+  const item: TrashItem = { id: uid(), kind, label, deletedAt: Date.now(), payload }
+  return { ...d, trash: [item, ...d.trash].slice(0, 300) }
+}
+
+type Restorable = 'events' | 'students' | 'payments' | 'notes' | 'books' | 'tasks' | 'exams' | 'classNotes'
+
+/** Silinen kaydı geri getirir */
+export function restoreTrash(id: string) {
+  setData((d) => {
+    const item = d.trash.find((t) => t.id === id)
+    if (!item) return d
+    const next: AppData = { ...d, trash: d.trash.filter((t) => t.id !== id) }
+    for (const key of Object.keys(item.payload) as Restorable[]) {
+      const list = item.payload[key] as { id: string }[] | undefined
+      if (!list?.length) continue
+      let cur = next[key] as { id: string }[]
+      for (const x of list) cur = upsert(cur, x)
+      ;(next as unknown as Record<string, unknown>)[key] = cur
+    }
+    // Geri gelen kurum derslerinin anahtarları artık "silinmiş" sayılmaz
+    const keys = new Set((item.payload.events ?? []).flatMap((e) => e.importKeys ?? []))
+    if (keys.size) next.ignoredImportKeys = d.ignoredImportKeys.filter((k) => !keys.has(k))
+    return next
+  })
+}
+
+export function emptyTrash() {
+  setData((d) => ({ ...d, trash: [] }))
+}
+
 export function newStudent(): Student {
-  return { id: uid(), name: '', fee: 0, color: '#33b679', active: true, billing: 'ders', createdAt: Date.now() }
+  return { id: uid(), name: '', fee: 0, color: '#33b679', active: true, payWhen: 'ders', createdAt: Date.now() }
 }
 
 // ---- Hesaplamalar ----

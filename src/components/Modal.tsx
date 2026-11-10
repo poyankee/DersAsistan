@@ -8,6 +8,8 @@ export default function Modal({ title, onClose, children, footer, wide }: {
   wide?: boolean
 }) {
   const ref = useRef<HTMLDivElement>(null)
+  const openedAt = useRef(Date.now())
+  const downOnBackdrop = useRef(false)
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
@@ -19,13 +21,30 @@ export default function Modal({ title, onClose, children, footer, wide }: {
     return () => window.removeEventListener('keydown', h)
   }, [onClose])
   return (
-    <div ref={ref} className="modal-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      ref={ref}
+      className="modal-backdrop"
+      // Dokunma sonrası gelen "hayalet tıklama" pencereyi hemen kapatmasın: hem basma hem bırakma arka planda olmalı
+      onPointerDown={(e) => (downOnBackdrop.current = e.target === e.currentTarget && Date.now() - openedAt.current > 350)}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && downOnBackdrop.current) onClose()
+        downOnBackdrop.current = false
+      }}
+    >
       <div className={'modal' + (wide ? ' wide' : '')} role="dialog" aria-modal="true">
         <div className="modal-head">
           <h3>{title}</h3>
           <button className="icon-btn" onClick={onClose} aria-label="Kapat">✕</button>
         </div>
-        <div className="modal-body">{children}</div>
+        <div
+          className="modal-body"
+          onFocus={(e) => {
+            const t = e.target as HTMLElement
+            if (!/INPUT|TEXTAREA|SELECT/.test(t.tagName)) return
+            // Klavye açıldıktan sonra alanı görünür yap
+            setTimeout(() => t.scrollIntoView({ block: 'center', behavior: 'smooth' }), 300)
+          }}
+        >{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
       </div>
     </div>

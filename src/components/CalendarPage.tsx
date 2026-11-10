@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
-import { AlertCircle, CalendarSearch, ChevronLeft, ChevronRight, PenLine, Upload } from 'lucide-react'
+import { AlertCircle, CalendarSearch, ChevronLeft, ChevronRight, GraduationCap, ListTodo, PenLine, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import FreeSlotsModal from './FreeSlotsModal'
 import { holidayMap } from '../lib/holidays'
 import type { OpenEvent } from '../App'
-import type { AppData, CalEvent } from '../lib/types'
+import type { AppData, CalEvent, Exam, Task } from '../lib/types'
 import { eventColor, eventTitle, useData } from '../lib/store'
 import {
   TR_DAYS_SHORT, addDays, addMonths, formatLong, formatShort, fromISO, fromMinutes, isPast,
@@ -15,9 +15,11 @@ import { gestureActive, startGesture } from '../lib/gesture'
 import { moveEvent } from '../lib/eventOps'
 import { needsNote } from './NotebookPage'
 
-type View = 'day' | 'week' | 'month' | 'agenda'
-const VIEW_LABEL: Record<View, string> = { day: 'Gün', week: 'Hafta', month: 'Ay', agenda: 'Liste' }
-const HOUR_PX = 52
+type View = 'day' | '3day' | 'week' | 'month' | 'agenda'
+const VIEW_LABEL: Record<View, string> = { day: 'Gün', '3day': '3 Gün', week: 'Hafta', month: 'Ay', agenda: 'Liste' }
+const VIEW_SHORT: Record<View, string> = { day: '1', '3day': '3', week: '7', month: 'Ay', agenda: 'Liste' }
+const MIN_PX = 32
+const MAX_PX = 130
 
 function useIsMobile() {
   const [m, setM] = useState(() => window.matchMedia('(max-width: 720px)').matches)
@@ -30,11 +32,45 @@ function useIsMobile() {
   return m
 }
 
-export default function CalendarPage({ openEvent, goMissing }: { openEvent: OpenEvent; goMissing: () => void }) {
+function stored<T extends string | number>(key: string, fallback: T): T {
+  try {
+    const v = localStorage.getItem(key)
+    if (v === null) return fallback
+    return (typeof fallback === 'number' ? Number(v) : v) as T
+  } catch {
+    return fallback
+  }
+}
+function store(key: string, v: string | number) {
+  try {
+    localStorage.setItem(key, String(v))
+  } catch {
+    /* önemsiz */
+  }
+}
+
+export default function CalendarPage({ openEvent, goMissing, onAddExam, onOpenTask, initialDate }: {
+  initialDate?: string
+  openEvent: OpenEvent
+  goMissing: () => void
+  onAddExam?: (date: string) => void
+  onOpenTask?: (t: Task) => void
+}) {
   const data = useData()
   const mobile = useIsMobile()
-  const [view, setView] = useState<View>(() => (window.matchMedia('(max-width: 720px)').matches ? 'day' : 'week'))
-  const [cursor, setCursor] = useState(todayISO())
+  const [view, setViewRaw] = useState<View>(() => stored<View>('cal-view', window.matchMedia('(max-width: 720px)').matches ? '3day' : 'week'))
+  const setView = (v: View) => {
+    setViewRaw(v)
+    store('cal-view', v)
+  }
+  const [cursor, setCursor] = useState(initialDate ?? todayISO())
+  const [hourPx, setHourPxRaw] = useState<number>(() => stored<number>('cal-hour-px', window.matchMedia('(max-width: 720px)').matches ? 60 : 52))
+  const setHourPx = (v: number) => {
+    const c = Math.max(MIN_PX, Math.min(MAX_PX, Math.round(v)))
+    setHourPxRaw(c)
+    store('cal-hour-px', c)
+  }
+  const [monthSel, setMonthSel] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [freeOpen, setFreeOpen] = useState(false)
   const [, tick] = useState(0)
@@ -48,25 +84,28 @@ export default function CalendarPage({ openEvent, goMissing }: { openEvent: Open
   const missing = useMemo(() => data.events.filter((e) => needsNote(e)).length, [data.events])
   const current = useMemo(() => {
     const now = toMinutes(nowHM())
-    // Şu an süren ya da son 90 dk içinde biten, notu girilmemiş ders
     return data.events
       .filter((e) => e.date === today && e.kind !== 'diger' && e.status !== 'cancelled' && !e.topic)
       .filter((e) => toMinutes(e.start) <= now && toMinutes(e.end) + 90 >= now)
       .sort((a, b) => b.start.localeCompare(a.start))[0]
   }, [data.events, today])
 
+  const stepSize = view === 'day' ? 1 : view === '3day' ? 3 : view === 'week' ? 7 : view === 'agenda' ? 14 : 0
   const step = (dir: number) => {
-    if (view === 'day') setCursor(addDays(cursor, dir))
-    else if (view === 'week') setCursor(addDays(cursor, 7 * dir))
-    else if (view === 'month') setCursor(addMonths(cursor, dir))
-    else setCursor(addDays(cursor, 14 * dir))
+    if (view === 'month') setCursor(addMonths(cursor, dir))
+    else setCursor(addDays(cursor, stepSize * dir))
   }
+
+  const days =
+    view === 'day' ? [cursor]
+    : view === '3day' ? [cursor, addDays(cursor, 1), addDays(cursor, 2)]
+    : Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor), i))
 
   let label = ''
   if (view === 'day') label = formatLong(cursor)
-  else if (view === 'week') {
-    const s = startOfWeek(cursor)
-    const e = addDays(s, 6)
+  else if (view === 'week' || view === '3day') {
+    const s = days[0]
+    const e = days[days.length - 1]
     label = s.slice(0, 7) === e.slice(0, 7) ? monthLabel(s) : `${formatShort(s).split(' ').slice(0, 2).join(' ')} – ${formatShort(e).split(' ').slice(0, 2).join(' ')} ${e.slice(0, 4)}`
   } else if (view === 'month') label = monthLabel(cursor)
   else label = `${formatShort(cursor)} itibarıyla`
@@ -85,10 +124,16 @@ export default function CalendarPage({ openEvent, goMissing }: { openEvent: Open
         <h2 className="period">{label}</h2>
         <div className="spacer" />
         <div className="seg small view-seg">
-          {(Object.keys(VIEW_LABEL) as View[]).map((v) => (
-            <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>{mobile ? VIEW_LABEL[v][0] : VIEW_LABEL[v]}</button>
+          {(Object.keys(VIEW_LABEL) as View[]).filter((v) => !(mobile && v === 'week') && !(!mobile && v === '3day')).map((v) => (
+            <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>{mobile ? VIEW_SHORT[v] : VIEW_LABEL[v]}</button>
           ))}
         </div>
+        {(view === 'day' || view === '3day' || view === 'week') && !mobile && (
+          <>
+            <button className="icon-btn" onClick={() => setHourPx(hourPx - 10)} aria-label="Uzaklaştır" title="Uzaklaştır"><ZoomOut size={18} /></button>
+            <button className="icon-btn" onClick={() => setHourPx(hourPx + 10)} aria-label="Yakınlaştır" title="Yakınlaştır"><ZoomIn size={18} /></button>
+          </>
+        )}
         <button className="btn" onClick={() => setFreeOpen(true)} title="Boş saat bul" aria-label="Boş saat bul"><CalendarSearch size={16} /><span className="hide-mobile">Boş saat</span></button>
         <button className="btn" onClick={() => setImportOpen(true)} title="Kurum programını yükle" aria-label="Program yükle"><Upload size={16} /><span className="hide-mobile">Program yükle</span></button>
       </div>
@@ -110,40 +155,58 @@ export default function CalendarPage({ openEvent, goMissing }: { openEvent: Open
 
       {data.events.length === 0 && (
         <div className="empty-hint">
-          <p>Takviminiz boş. Başlamak için kurumun verdiği <b>ders programı dosyasını</b> yükleyin ya da takvimde bir saate tıklayarak ders ekleyin.</p>
+          <p>Takviminiz boş. Başlamak için kurumun verdiği <b>ders programı dosyasını</b> yükleyin ya da takvimde bir saate dokunarak ders ekleyin.</p>
           <button className="btn primary" onClick={() => setImportOpen(true)}><Upload size={16} /> Ders programını yükle</button>
         </div>
       )}
 
-      {(view === 'day' || view === 'week') && (
+      {(view === 'day' || view === '3day' || view === 'week') && (
         <TimeGrid
           data={data}
-          days={view === 'day' ? [cursor] : Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor), i))}
+          days={days}
+          scrollKey={view}
+          hourPx={hourPx}
+          setHourPx={setHourPx}
           openEvent={openEvent}
           onEmpty={newAt}
-          onSwipe={mobile ? step : undefined}
+          onSwipe={step}
           onDayClick={(d) => {
             setCursor(d)
             setView('day')
           }}
+          onOpenTask={onOpenTask}
         />
       )}
       {view === 'month' && (
-        <MonthGrid
-          data={data}
-          cursor={cursor}
-          openEvent={openEvent}
-          onDay={(d) => {
-            setCursor(d)
-            setView('day')
-          }}
-        />
+        <>
+          <MonthGrid
+            data={data}
+            cursor={cursor}
+            selected={monthSel}
+            openEvent={openEvent}
+            onSelect={setMonthSel}
+            onSwipe={step}
+          />
+          {monthSel && (
+            <DayPanel
+              data={data}
+              date={monthSel}
+              openEvent={openEvent}
+              onAdd={() => newAt(monthSel)}
+              onAddExam={onAddExam}
+              onDayView={() => {
+                setCursor(monthSel)
+                setView('day')
+              }}
+            />
+          )}
+        </>
       )}
       {view === 'agenda' && <Agenda data={data} from={cursor} openEvent={openEvent} />}
 
       {freeOpen && (
         <FreeSlotsModal
-          from={view === 'week' ? (startOfWeek(cursor) > today ? startOfWeek(cursor) : today) : cursor}
+          from={days[0] > today ? days[0] : today}
           onClose={() => setFreeOpen(false)}
           onPick={(d, s, e) => {
             setFreeOpen(false)
@@ -211,21 +274,46 @@ interface CreateState {
 
 const SNAP = 5
 
-function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
+/** Gün başlığı altındaki tüm gün satırı: sınavlar ve son günü gelen görevler */
+function AllDayItems({ data, date, onOpenTask }: { data: AppData; date: string; onOpenTask?: (t: Task) => void }) {
+  const exams = data.exams.filter((x) => x.date === date)
+  const tasks = data.tasks.filter((t) => !t.done && t.due === date)
+  if (!exams.length && !tasks.length) return null
+  return (
+    <div className="allday">
+      {exams.map((x) => (
+        <span key={x.id} className="allday-chip exam" title={x.title}><GraduationCap size={11} /> {x.title}</span>
+      ))}
+      {tasks.map((t) => (
+        <span key={t.id} className="allday-chip task" title={t.title} onClick={(e) => { e.stopPropagation(); onOpenTask?.(t) }}><ListTodo size={11} /> {t.title}</span>
+      ))}
+    </div>
+  )
+}
+
+function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, openEvent, onEmpty, onDayClick, onSwipe, onOpenTask }: {
   data: AppData
   days: string[]
+  scrollKey: string
+  hourPx: number
+  setHourPx: (v: number) => void
   openEvent: OpenEvent
   onEmpty: (date: string, start: string, end?: string) => void
   onDayClick: (d: string) => void
   onSwipe?: (dir: number) => void
+  onOpenTask?: (t: Task) => void
 }) {
+  const HOUR_PX = hourPx
   const today = todayISO()
   const hol = holidayMap(data)
+  const rootRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const colRefs = useRef(new Map<string, HTMLDivElement>())
   const [drag, setDrag] = useState<DragState | null>(null)
   const [create, setCreate] = useState<CreateState | null>(null)
-  const swipe = useRef<{ x: number; y: number; t: number } | null>(null)
+  const [swipeX, setSwipeX] = useState(0)
+  const [animating, setAnimating] = useState(false)
+  const touch = useRef<{ x: number; y: number; t: number; mode: 'none' | 'h' | 'v' | 'pinch'; dist?: number; basePx?: number; anchorMin?: number; anchorY?: number } | null>(null)
 
   const byDay = useMemo(() => {
     const m = new Map<string, CalEvent[]>()
@@ -248,13 +336,26 @@ function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
   const hours = Array.from({ length: endH - startH }, (_, i) => startH + i)
   const nowMin = toMinutes(nowHM())
 
-  useEffect(() => {
+  // Sadece görünüm değişince (veya ilk açılışta) ilk derse kaydır; gün değişince konum korunur
+  useLayoutEffect(() => {
     const first = Math.min(...days.flatMap((d) => (byDay.get(d) ?? []).map((e) => toMinutes(e.start))), nowMin)
-    if (scrollRef.current) scrollRef.current.scrollTop = Math.max(0, ((first - startH * 60) / 60) * HOUR_PX - 20)
+    if (scrollRef.current) scrollRef.current.scrollTop = Math.max(0, ((first - startH * 60) / 60) * HOUR_PX - 24)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days.join()])
+  }, [scrollKey])
 
-  /** Ekran koordinatından (gün, dakika) bul */
+  // Bilgisayarda Ctrl + tekerlek ile yakınlaştırma
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const h = (e: WheelEvent) => {
+      if (!e.ctrlKey) return
+      e.preventDefault()
+      setHourPx(HOUR_PX * (e.deltaY < 0 ? 1.1 : 0.9))
+    }
+    el.addEventListener('wheel', h, { passive: false })
+    return () => el.removeEventListener('wheel', h)
+  }, [HOUR_PX, setHourPx])
+
   const locate = (x: number, y: number, keepDate?: string) => {
     let date = keepDate
     let rect: DOMRect | undefined
@@ -265,7 +366,6 @@ function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
         date = d
         rect = r
       }
-      if (d === keepDate && !rect) rect = r
     }
     if (!rect && date) rect = colRefs.current.get(date)?.getBoundingClientRect()
     const min = rect ? startH * 60 + ((y - rect.top) / HOUR_PX) * 60 : 0
@@ -333,31 +433,94 @@ function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
     })
   }
 
+  // ---- Dokunmatik: yatay kaydırma (gün değiştir) ve iki parmakla yakınlaştırma ----
+  const width = () => rootRef.current?.getBoundingClientRect().width ?? 360
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const [a, b] = [e.touches[0], e.touches[1]]
+      const midY = (a.clientY + b.clientY) / 2
+      const el = scrollRef.current!
+      const r = el.getBoundingClientRect()
+      const anchorY = midY - r.top
+      touch.current = {
+        x: 0, y: 0, t: Date.now(), mode: 'pinch', dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), basePx: HOUR_PX,
+        anchorMin: startH * 60 + ((el.scrollTop + anchorY) / HOUR_PX) * 60, anchorY,
+      }
+      setSwipeX(0)
+      return
+    }
+    touch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), mode: 'none' }
+  }
+  const onTouchMove = (e: React.TouchEvent) => {
+    const t = touch.current
+    if (!t || gestureActive) return
+    if (t.mode === 'pinch' && e.touches.length === 2) {
+      const [a, b] = [e.touches[0], e.touches[1]]
+      const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+      const px = Math.max(MIN_PX, Math.min(MAX_PX, (t.basePx! * d) / t.dist!))
+      setHourPx(px)
+      const el = scrollRef.current
+      if (el) el.scrollTop = ((t.anchorMin! - startH * 60) / 60) * px - t.anchorY!
+      return
+    }
+    if (!onSwipe || e.touches.length !== 1) return
+    const dx = e.touches[0].clientX - t.x
+    const dy = e.touches[0].clientY - t.y
+    if (t.mode === 'none' && Math.hypot(dx, dy) > 10) t.mode = Math.abs(dx) > Math.abs(dy) * 1.2 ? 'h' : 'v'
+    if (t.mode === 'h') {
+      setAnimating(false)
+      setSwipeX(dx)
+    }
+  }
+  const onTouchEnd = () => {
+    const t = touch.current
+    touch.current = null
+    if (!t || t.mode !== 'h' || !onSwipe) return
+    const w = width()
+    const v = Math.abs(swipeX) / Math.max(1, Date.now() - t.t)
+    if (Math.abs(swipeX) > w * 0.22 || (v > 0.5 && Math.abs(swipeX) > 40)) {
+      const dir = swipeX < 0 ? 1 : -1
+      setAnimating(true)
+      setSwipeX(-dir * w)
+      setTimeout(() => {
+        onSwipe(dir)
+        setAnimating(false)
+        setSwipeX(dir * w * 0.35)
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          setAnimating(true)
+          setSwipeX(0)
+        }))
+      }, 170)
+    } else {
+      setAnimating(true)
+      setSwipeX(0)
+    }
+  }
+
   return (
-    <div className="timegrid">
+    <div
+      ref={rootRef}
+      className={'timegrid' + (animating ? ' anim' : '') + (days.length === 1 ? ' single' : '')}
+      style={{ ['--sx' as string]: `${swipeX}px` }}
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={onTouchEnd}
+    >
       <div className="tg-head" style={{ gridTemplateColumns: `52px repeat(${days.length}, 1fr)` }}>
         <div />
         {days.map((d) => (
-          <button key={d} className={'tg-dayhead' + (d === today ? ' today' : '')} onClick={() => onDayClick(d)}>
-            <span className="dname">{TR_DAYS_SHORT[weekdayIndex(d)]}</span>
-            <span className="dnum">{fromISO(d).getDate()}</span>
-            {hol.get(d) && <span className="hol-tag" title={hol.get(d)!.name}>{hol.get(d)!.name}</span>}
-          </button>
+          <div key={d} className="tg-headcell">
+            <button className={'tg-dayhead' + (d === today ? ' today' : '')} onClick={() => onDayClick(d)}>
+              <span className="dname">{TR_DAYS_SHORT[weekdayIndex(d)]}</span>
+              <span className="dnum">{fromISO(d).getDate()}</span>
+              {hol.get(d) && <span className="hol-tag" title={hol.get(d)!.name}>{hol.get(d)!.name}</span>}
+            </button>
+            <AllDayItems data={data} date={d} onOpenTask={onOpenTask} />
+          </div>
         ))}
       </div>
-      <div
-        className="tg-body"
-        ref={scrollRef}
-        onTouchStart={(e) => (swipe.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() })}
-        onTouchEnd={(e) => {
-          const s0 = swipe.current
-          swipe.current = null
-          if (!s0 || !onSwipe || gestureActive) return
-          const dx = e.changedTouches[0].clientX - s0.x
-          const dy = e.changedTouches[0].clientY - s0.y
-          if (Math.abs(dx) > 70 && Math.abs(dy) < 50 && Date.now() - s0.t < 600) onSwipe(dx < 0 ? 1 : -1)
-        }}
-      >
+      <div className="tg-body" ref={scrollRef}>
         <div className="tg-inner" style={{ gridTemplateColumns: `52px repeat(${days.length}, 1fr)`, height: hours.length * HOUR_PX }}>
           <div className="tg-hours">
             {hours.map((h) => (
@@ -371,11 +534,12 @@ function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
                 if (el) colRefs.current.set(d, el)
                 else colRefs.current.delete(d)
               }}
-              className={'tg-col' + (hol.get(d) && !hol.get(d)!.half ? ' holiday' : '')}
+              className={'tg-col' + (hol.get(d) && !hol.get(d)!.half ? ' holiday' : '') + (d === today ? ' is-today' : '')}
               onPointerDown={(ev) => onColDown(ev, d)}
               onContextMenu={(ev) => ev.preventDefault()}
             >
               {hours.map((h) => <div key={h} className="tg-line" style={{ top: (h - startH) * HOUR_PX }} />)}
+              {HOUR_PX >= 70 && hours.map((h) => <div key={'h' + h} className="tg-line half" style={{ top: (h - startH) * HOUR_PX + HOUR_PX / 2 }} />)}
               {d === today && nowMin >= startH * 60 && nowMin <= endH * 60 && (
                 <div className="now-line" style={{ top: ((nowMin - startH * 60) / 60) * HOUR_PX }} />
               )}
@@ -386,7 +550,7 @@ function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
               )}
               {layoutDay(byDay.get(d) ?? []).map(({ e, col, cols }) => {
                 const top = ((toMinutes(e.start) - startH * 60) / 60) * HOUR_PX
-                const h = Math.max(20, ((toMinutes(e.end) - toMinutes(e.start)) / 60) * HOUR_PX - 2)
+                const h = Math.max(22, ((toMinutes(e.end) - toMinutes(e.start)) / 60) * HOUR_PX - 2)
                 const color = eventColor(data, e)
                 const isDragging = drag?.id === e.id
                 return (
@@ -394,16 +558,17 @@ function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
                     key={e.id}
                     role="button"
                     tabIndex={0}
-                    className={`ev ev-${e.status}` + (isPast(e.date, e.end) ? ' past' : '') + (isDragging ? ' dragging' : '')}
+                    className={`ev ev-${e.status}` + (isPast(e.date, e.end) ? ' past' : '') + (isDragging ? ' dragging' : '') + (h < 34 ? ' compact' : '')}
                     style={{ top, height: h, left: isDragging ? 1 : `calc(${(col / cols) * 100}% + 1px)`, width: isDragging ? 'calc(100% - 3px)' : `calc(${100 / cols}% - 3px)`, ['--ev' as string]: color }}
                     onPointerDown={(ev) => onEventDown(ev, e, 'move')}
                     onKeyDown={(ev) => ev.key === 'Enter' && openEvent(e)}
                     onContextMenu={(ev) => ev.preventDefault()}
-                    title={`${eventTitle(data, e)}\n${e.start}–${e.end}${e.topic ? '\nKonu: ' + e.topic : ''}\n(Taşımak için sürükleyin)`}
+                    title={`${eventTitle(data, e)}\n${e.start}–${e.end}${e.topic ? '\nKonu: ' + e.topic : ''}`}
                   >
                     <div className="ev-title"><StatusMark e={e} />{eventTitle(data, e)}</div>
                     <div className="ev-time">{e.start}–{e.end}{e.hours && e.hours > 1 ? ` · ${e.hours} saat` : ''}</div>
-                    {e.topic && h > 50 && <div className="ev-topic">{e.topic}</div>}
+                    {e.topic && h > 54 && <div className="ev-topic">{e.topic}</div>}
+                    {isDragging && <div className="ev-drag-time">{e.start}–{e.end}</div>}
                     <div className="ev-resize" onPointerDown={(ev) => onEventDown(ev, e, 'resize')} />
                   </div>
                 )
@@ -416,13 +581,21 @@ function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
   )
 }
 
-function MonthGrid({ data, cursor, openEvent, onDay }: { data: AppData; cursor: string; openEvent: OpenEvent; onDay: (d: string) => void }) {
+function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
+  data: AppData
+  cursor: string
+  selected: string | null
+  openEvent: OpenEvent
+  onSelect: (d: string) => void
+  onSwipe: (dir: number) => void
+}) {
   const first = startOfWeek(startOfMonth(cursor))
   const month = cursor.slice(0, 7)
   const today = todayISO()
   const cells = Array.from({ length: 42 }, (_, i) => addDays(first, i))
   const hol = holidayMap(data)
   const [drag, setDrag] = useState<{ id: string; date: string } | null>(null)
+  const sw = useRef<{ x: number; y: number } | null>(null)
   const byDay = useMemo(() => {
     const m = new Map<string, CalEvent[]>()
     for (const e0 of data.events) {
@@ -433,6 +606,7 @@ function MonthGrid({ data, cursor, openEvent, onDay }: { data: AppData; cursor: 
     m.forEach((l) => l.sort((a, b) => a.start.localeCompare(b.start)))
     return m
   }, [data.events, drag])
+  const examDays = useMemo(() => new Set(data.exams.map((x) => x.date)), [data.exams])
 
   const onEvDown = (ev: React.PointerEvent, e: CalEvent) => {
     ev.stopPropagation()
@@ -456,14 +630,30 @@ function MonthGrid({ data, cursor, openEvent, onDay }: { data: AppData; cursor: 
   }
 
   return (
-    <div className="monthgrid">
+    <div
+      className="monthgrid"
+      onTouchStart={(e) => (sw.current = { x: e.touches[0].clientX, y: e.touches[0].clientY })}
+      onTouchEnd={(e) => {
+        const s = sw.current
+        sw.current = null
+        if (!s || gestureActive) return
+        const dx = e.changedTouches[0].clientX - s.x
+        const dy = e.changedTouches[0].clientY - s.y
+        if (Math.abs(dx) > 70 && Math.abs(dy) < 50) onSwipe(dx < 0 ? 1 : -1)
+      }}
+    >
       {TR_DAYS_SHORT.map((d) => <div key={d} className="mg-head">{d}</div>)}
       {cells.map((d) => {
         const list = byDay.get(d) ?? []
         const max = drag?.date === d ? 6 : 3
         return (
-          <div key={d} data-date={d} className={'mg-cell' + (d.slice(0, 7) !== month ? ' other' : '') + (drag?.date === d ? ' drop' : '')} onClick={() => onDay(d)}>
-            <span className={'mg-num' + (d === today ? ' today' : '')}>{fromISO(d).getDate()}</span>
+          <div
+            key={d}
+            data-date={d}
+            className={'mg-cell' + (d.slice(0, 7) !== month ? ' other' : '') + (drag?.date === d ? ' drop' : '') + (selected === d ? ' sel' : '')}
+            onClick={() => onSelect(d)}
+          >
+            <span className={'mg-num' + (d === today ? ' today' : '')}>{fromISO(d).getDate()}{examDays.has(d) && <i className="mg-exam" title="Sınav" />}</span>
             {hol.get(d) && <span className="hol-tag" title={hol.get(d)!.name}>{hol.get(d)!.name}</span>}
             {list.slice(0, max).map((e) => (
               <div
@@ -475,10 +665,11 @@ function MonthGrid({ data, cursor, openEvent, onDay }: { data: AppData; cursor: 
                 onContextMenu={(ev) => ev.preventDefault()}
               >
                 <i style={{ background: eventColor(data, e) }} />
-                {e.start} {eventTitle(data, e)}
+                <span className="mg-time">{e.start}</span> {eventTitle(data, e)}
               </div>
             ))}
-            {list.length > max && <span className="mg-more">+{list.length - max} daha</span>}
+            {list.length > max && <span className="mg-more">+{list.length - max}</span>}
+            {list.length > 0 && <span className="mg-dots">{list.slice(0, 5).map((e) => <i key={e.id} style={{ background: eventColor(data, e) }} />)}</span>}
           </div>
         )
       })}
@@ -486,17 +677,55 @@ function MonthGrid({ data, cursor, openEvent, onDay }: { data: AppData; cursor: 
   )
 }
 
+/** Ay görünümünde seçilen günün listesi */
+function DayPanel({ data, date, openEvent, onAdd, onDayView, onAddExam }: {
+  data: AppData
+  date: string
+  openEvent: OpenEvent
+  onAdd: () => void
+  onDayView: () => void
+  onAddExam?: (date: string) => void
+}) {
+  const list = data.events.filter((e) => e.date === date).sort((a, b) => a.start.localeCompare(b.start))
+  const exams = data.exams.filter((x) => x.date === date)
+  const tasks = data.tasks.filter((t) => !t.done && t.due === date)
+  return (
+    <div className="day-panel">
+      <div className="row middle">
+        <b className="grow">{formatLong(date)}</b>
+        <button className="btn small ghost" onClick={onDayView}>Gün görünümü</button>
+        {onAddExam && <button className="btn small" onClick={() => onAddExam(date)}><GraduationCap size={14} /> Sınav</button>}
+        <button className="btn small primary" onClick={onAdd}><Plus size={14} /> Ders</button>
+      </div>
+      {exams.map((x) => <div key={x.id} className="dp-item exam"><GraduationCap size={14} /> {x.title}{x.start ? ` · ${x.start}` : ''}</div>)}
+      {tasks.map((t) => <div key={t.id} className="dp-item task"><ListTodo size={14} /> {t.title}</div>)}
+      {list.length === 0 && !exams.length && !tasks.length && <p className="muted small">Bu gün boş.</p>}
+      {list.map((e) => (
+        <button key={e.id} className={`ag-ev ev-${e.status}`} onClick={() => openEvent(e)}>
+          <i style={{ background: eventColor(data, e) }} />
+          <span className="ag-time">{e.start}–{e.end}</span>
+          <span className="ag-title"><StatusMark e={e} />{eventTitle(data, e)}</span>
+          {e.topic && <span className="ag-topic">{e.topic}</span>}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function Agenda({ data, from, openEvent }: { data: AppData; from: string; openEvent: OpenEvent }) {
   const to = addDays(from, 30)
   const list = data.events.filter((e) => e.date >= from && e.date <= to).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
-  const days = Array.from(new Set(list.map((e) => e.date)))
-  if (!list.length) return <p className="muted pad">Önümüzdeki 30 günde etkinlik yok.</p>
+  const examsByDay = new Map<string, Exam[]>()
+  for (const x of data.exams) if (x.date >= from && x.date <= to) examsByDay.set(x.date, [...(examsByDay.get(x.date) ?? []), x])
+  const days = Array.from(new Set([...list.map((e) => e.date), ...examsByDay.keys()])).sort()
+  if (!days.length) return <p className="muted pad">Önümüzdeki 30 günde etkinlik yok.</p>
   return (
     <div className="agenda">
       {days.map((d) => (
         <div key={d} className="ag-day">
           <div className={'ag-date' + (d === todayISO() ? ' today' : '')}>{formatShort(d)}{holidayMap(data).get(d) && <span className="hol-tag">{holidayMap(data).get(d)!.name}</span>}</div>
           <div className="ag-list">
+            {(examsByDay.get(d) ?? []).map((x) => <div key={x.id} className="dp-item exam"><GraduationCap size={14} /> {x.title}{x.start ? ` · ${x.start}` : ''}</div>)}
             {list.filter((e) => e.date === d).map((e) => (
               <button key={e.id} className={`ag-ev ev-${e.status}`} onClick={() => openEvent(e)}>
                 <i style={{ background: eventColor(data, e) }} />

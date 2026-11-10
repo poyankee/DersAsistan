@@ -79,3 +79,46 @@ export function waLink(phone: string, text?: string) {
   else if (p.length === 10) p = '90' + p
   return `https://wa.me/${p}${text ? '?text=' + encodeURIComponent(text) : ''}`
 }
+
+export type AppAction = { type: 'new-lesson' | 'payment' | 'today' | 'task' | 'wrap' | 'student' | 'event'; id?: string }
+
+/** dersasistani://yeni-ders gibi bağlantıları eyleme çevirir */
+export function parseActionUrl(url: string): AppAction | null {
+  const m = url.match(/^dersasistani:\/\/([a-z-]+)(?:\/([^?#]+))?/i)
+  if (!m) return null
+  const map: Record<string, AppAction['type']> = { 'yeni-ders': 'new-lesson', odeme: 'payment', bugun: 'today', gorev: 'task', ders: 'wrap', ogrenci: 'student' }
+  const type = map[m[1].toLowerCase()]
+  return type ? { type, id: m[2] ? decodeURIComponent(m[2]) : undefined } : null
+}
+
+let launchHandled = false
+
+/** Simge kısayolları, derin bağlantılar ve bildirime dokunma → uygulama içi eylem */
+export function onAppAction(cb: (a: AppAction) => void): () => void {
+  if (!isNative) return () => undefined
+  const subs: { remove: () => Promise<void> }[] = []
+  let active = true
+  ;(async () => {
+    const { App } = await import('@capacitor/app')
+    const { LocalNotifications } = await import('@capacitor/local-notifications')
+    if (!active) return
+    if (!launchHandled) {
+      launchHandled = true
+      const launch = await App.getLaunchUrl()
+      const a = launch?.url ? parseActionUrl(launch.url) : null
+      if (a) cb(a)
+    }
+    subs.push(await App.addListener('appUrlOpen', (e) => {
+      const a = parseActionUrl(e.url)
+      if (a) cb(a)
+    }))
+    subs.push(await LocalNotifications.addListener('localNotificationActionPerformed', (e) => {
+      const x = e.notification.extra as AppAction | undefined
+      if (x?.type) cb(x.type === 'event' ? { type: 'today' } : x)
+    }))
+  })()
+  return () => {
+    active = false
+    subs.forEach((s) => s.remove())
+  }
+}

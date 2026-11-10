@@ -13,7 +13,7 @@ export interface GestureHandlers {
 /** Şu an bir sürükleme aktif mi (kaydırma ile gün değiştirmeyi engellemek için) */
 export let gestureActive = false
 
-const LONG_PRESS_MS = 380
+const LONG_PRESS_MS = 260
 const MOUSE_THRESHOLD = 4
 const TOUCH_SLOP = 10
 

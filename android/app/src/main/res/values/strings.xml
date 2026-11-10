@@ -5,4 +5,9 @@
     <string name="package_name">com.dersasistani.app</string>
     <string name="custom_url_scheme">com.dersasistani.app</string>
     <string name="widget_description">Bugünkü dersler ve sıradaki ders</string>
+    <string name="sc_new_lesson">Yeni ders</string>
+    <string name="sc_new_lesson_long">Yeni ders ekle</string>
+    <string name="sc_payment">Ödeme al</string>
+    <string name="sc_task">Görev ekle</string>
+    <string name="sc_today">Bugün</string>
 </resources>

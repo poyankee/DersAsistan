@@ -1,6 +1,10 @@
 import { useRef, useState } from 'react'
-import { Download, Upload, CalendarDays } from 'lucide-react'
-import { deleteHoliday, emptyData, normalize, saveGroup, saveHoliday, setData, useData } from '../lib/store'
+import { Bell, CalendarDays, Download, Palette, RotateCcw, Trash2, Upload } from 'lucide-react'
+import { deleteHoliday, emptyData, emptyTrash, normalize, restoreTrash, saveGroup, saveHoliday, setData, useData } from '../lib/store'
+import { notifySettings, requestNotifyPermission, testNotification } from '../lib/notify'
+import { isNative } from '../lib/native'
+import type { NotifySettings, Settings } from '../lib/types'
+import { showToast } from '../lib/toast'
 import { holidaysBetween } from '../lib/holidays'
 import { TR_DAYS, addDays, formatShort, todayISO } from '../lib/date'
 import { uid } from '../lib/util'
@@ -54,6 +58,8 @@ export default function SettingsPage() {
         )}
       </section>
 
+      <AppearancePanel />
+      <NotifyPanel />
       <HolidaysPanel />
 
       {data.settings.bellTimes && Object.keys(data.settings.bellTimes).length > 0 && (
@@ -121,6 +127,8 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      <TrashPanel />
+
       <section className="panel danger-zone">
         <h3>Tehlikeli bölge</h3>
         <button
@@ -130,7 +138,7 @@ export default function SettingsPage() {
           }}
         >Tüm verileri sil</button>
       </section>
-      <p className="muted small center">Ders Asistanı v0.5 · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
+      <p className="muted small center">Ders Asistanı v0.6 · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
     </div>
   )
 }
@@ -171,6 +179,101 @@ function HolidaysPanel() {
         <label className="field"><span>Bitiş</span><input type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} /></label>
         <button className="btn primary" style={{ marginBottom: 10 }} disabled={!name.trim() || !start || !end} onClick={() => { saveHoliday({ id: uid(), name: name.trim(), start, end }); setName('') }}>Ekle</button>
       </div>
+    </section>
+  )
+}
+
+function setSettings(patch: Partial<Settings>) {
+  setData((d) => ({ ...d, settings: { ...d.settings, ...patch } }))
+}
+
+function AppearancePanel() {
+  const data = useData()
+  const theme = data.settings.theme ?? 'system'
+  const scale = data.settings.fontScale ?? 1
+  return (
+    <section className="panel">
+      <h3 className="row-title"><Palette size={18} /> Görünüm</h3>
+      <div className="row wrap">
+        <div className="field">
+          <span>Tema</span>
+          <div className="seg small" style={{ margin: 0 }}>
+            {([['system', 'Telefona göre'], ['light', 'Açık'], ['dark', 'Koyu']] as const).map(([v, l]) => (
+              <button key={v} className={theme === v ? 'active' : ''} onClick={() => setSettings({ theme: v })}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <div className="field">
+          <span>Yazı boyutu</span>
+          <div className="seg small" style={{ margin: 0 }}>
+            {([[0.9, 'Küçük'], [1, 'Normal'], [1.1, 'Büyük'], [1.2, 'Çok büyük']] as const).map(([v, l]) => (
+              <button key={v} className={scale === v ? 'active' : ''} onClick={() => setSettings({ fontScale: v })}>{l}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function NotifyPanel() {
+  const data = useData()
+  const n = notifySettings(data)
+  const set = (patch: Partial<NotifySettings>) => setSettings({ notify: { ...n, ...patch } })
+  const enable = async (on: boolean) => {
+    if (on && isNative) {
+      const ok = await requestNotifyPermission()
+      if (!ok) {
+        showToast('Bildirim izni verilmedi. Telefon ayarlarından izin verebilirsiniz.')
+        return
+      }
+    }
+    set({ enabled: on })
+  }
+  return (
+    <section className="panel">
+      <h3 className="row-title"><Bell size={18} /> Bildirimler</h3>
+      {!isNative && <p className="muted small">Bildirimler Android uygulamasında çalışır.</p>}
+      <label className="check"><input type="checkbox" checked={n.enabled} onChange={(e) => enable(e.target.checked)} /> Bildirimleri aç</label>
+      {n.enabled && (
+        <div className="notify-opts">
+          <div className="field">
+            <span>Ders başlamadan önce hatırlat</span>
+            <div className="chips">
+              {[0, 5, 10, 15, 30, 60].map((m) => <button key={m} className={'chip' + (n.before === m ? ' sel' : '')} onClick={() => set({ before: m })}>{m ? `${m} dk` : 'Kapalı'}</button>)}
+            </div>
+          </div>
+          <label className="check"><input type="checkbox" checked={n.after} onChange={(e) => set({ after: e.target.checked })} /> Ders bitince "ne işlediniz?" hatırlatması (dokununca ders sonu ekranı açılır)</label>
+          <label className="check"><input type="checkbox" checked={n.payments} onChange={(e) => set({ payments: e.target.checked })} /> Ödeme günü gelen öğrenciler (saat 09:00)</label>
+          <label className="check"><input type="checkbox" checked={n.tasks} onChange={(e) => set({ tasks: e.target.checked })} /> Görevler (son gün, 08:30)</label>
+          <label className="check"><input type="checkbox" checked={n.exams} onChange={(e) => set({ exams: e.target.checked })} /> Sınavlar (bir gün önce, 19:00)</label>
+          {isNative && <button className="btn small" onClick={() => testNotification()}>Deneme bildirimi gönder</button>}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function TrashPanel() {
+  const data = useData()
+  if (!data.trash.length) return null
+  const ago = (t: number) => {
+    const d = Math.floor((Date.now() - t) / 86400000)
+    return d === 0 ? 'bugün' : `${d} gün önce`
+  }
+  return (
+    <section className="panel">
+      <h3 className="row-title"><Trash2 size={18} /> Çöp kutusu</h3>
+      <p className="muted small">Silinen kayıtlar 30 gün burada kalır, sonra kalıcı olarak silinir.</p>
+      <ul className="promise-list">
+        {data.trash.slice(0, 50).map((t) => (
+          <li key={t.id}>
+            <span className="grow">{t.label} <span className="muted small">· {ago(t.deletedAt)}</span></span>
+            <button className="btn small" onClick={() => { restoreTrash(t.id); showToast('Geri yüklendi') }}><RotateCcw size={13} /> Geri yükle</button>
+          </li>
+        ))}
+      </ul>
+      <button className="btn small ghost" style={{ marginTop: 8 }} onClick={() => confirm('Çöp kutusu boşaltılsın mı? Bu işlem geri alınamaz.') && emptyTrash()}>Çöp kutusunu boşalt</button>
     </section>
   )
 }

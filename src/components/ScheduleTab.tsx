@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import TimePicker from './TimePicker'
 import { CalendarRange, Pencil, Plus, Square } from 'lucide-react'
 import type { CalEvent, Student } from '../lib/types'
 import { deleteEvents, saveEvents, useData } from '../lib/store'
@@ -103,8 +104,8 @@ function ChangeForm({ p, onDone }: { p: Pattern; onDone: () => void }) {
         <label className="field"><span>Yeni gün</span>
           <select value={wd} onChange={(e) => setWd(Number(e.target.value))}>{TR_DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}</select>
         </label>
-        <label className="field"><span>Başlangıç</span><input type="time" value={start} onChange={(e) => e.target.value && (setStart(e.target.value), setEnd(fromMinutes(toMinutes(e.target.value) + toMinutes(end) - toMinutes(start))))} /></label>
-        <label className="field"><span>Bitiş</span><input type="time" value={end} onChange={(e) => e.target.value && setEnd(e.target.value)} /></label>
+        <div className="field"><span>Başlangıç</span><TimePicker label="Başlangıç" value={start} onChange={(v) => { setStart(v); setEnd(fromMinutes(toMinutes(v) + toMinutes(end) - toMinutes(start))) }} /></div>
+        <div className="field"><span>Bitiş</span><TimePicker label="Bitiş" value={end} onChange={setEnd} /></div>
       </div>
       <div className="row middle">
         <span className="muted small grow">{affected.length} ders değişecek</span>
@@ -141,7 +142,7 @@ function NewPattern({ student, onDone }: { student: Student; onDone: () => void 
       id: uid(), kind: 'ozel', studentId: student.id, title: student.name, date, start, end, fee: student.fee, status: 'planned', seriesId, createdAt: Date.now(),
     }))
     saveEvents(evs)
-    showToast(`${evs.length} ders eklendi`, [{ label: 'Geri al', run: () => deleteEvents(evs.map((e) => e.id)) }])
+    showToast(`${evs.length} ders eklendi`, [{ label: 'Geri al', run: () => deleteEvents(evs.map((e) => e.id), { trash: false }) }])
     onDone()
   }
   return (
@@ -151,8 +152,8 @@ function NewPattern({ student, onDone }: { student: Student; onDone: () => void 
         <label className="field"><span>Gün</span>
           <select value={wd} onChange={(e) => setWd(Number(e.target.value))}>{TR_DAYS.map((d, i) => <option key={d} value={i}>{d}</option>)}</select>
         </label>
-        <label className="field"><span>Başlangıç</span><input type="time" value={start} onChange={(e) => e.target.value && (setStart(e.target.value), setEnd(fromMinutes(toMinutes(e.target.value) + toMinutes(end) - toMinutes(start))))} /></label>
-        <label className="field"><span>Bitiş</span><input type="time" value={end} onChange={(e) => e.target.value && setEnd(e.target.value)} /></label>
+        <div className="field"><span>Başlangıç</span><TimePicker label="Başlangıç" value={start} onChange={(v) => { setStart(v); setEnd(fromMinutes(toMinutes(v) + toMinutes(end) - toMinutes(start))) }} /></div>
+        <div className="field"><span>Bitiş</span><TimePicker label="Bitiş" value={end} onChange={setEnd} /></div>
         <label className="field"><span>İlk hafta</span><input type="date" value={from} onChange={(e) => e.target.value && setFrom(e.target.value)} /></label>
         <label className="field"><span>Bitiş tarihi</span><input type="date" value={until} onChange={(e) => e.target.value && setUntil(e.target.value)} /></label>
       </div>

@@ -1,49 +1,50 @@
-import type { AppData, BillingType, CalEvent, PaymentPromise, Student } from './types'
+import type { AppData, CalEvent, PayNote, PayWhen, Student } from './types'
+
+/**
+ * Sade ödeme modeli ("veresiye defteri"):
+ * - Ders yapılınca ücreti öğrencinin hesabına borç yazılır, ödeme alınınca düşer.
+ * - Tek bakiye vardır. "Ne zaman öder?" bilgisi sadece borcun gecikmiş sayılıp sayılmayacağını belirler.
+ */
 
 export type LessonPayState = 'paid' | 'partial' | 'unpaid'
 
 export interface StudentFinance {
-  billing: BillingType
+  payWhen: PayWhen
   doneLessons: number
   plannedPast: number
-  /** Yapılan derslerin toplam ücreti */
   earned: number
-  /** Alınan toplam ödeme */
   paid: number
-  /** earned − paid (pozitif: öğrencinin borcu, negatif: peşin ödeme) */
+  /** earned − paid (pozitif: borç, negatif: peşin) */
   balance: number
-  /** Borcun dağılımı (toplamı = max(0, balance)) */
-  dueNow: number
-  promised: number
-  accruing: number
-  /** Peşin alınmış, karşılığında henüz ders yapılmamış tutar */
+  debt: number
   credit: number
-  /** Tarihi geçmiş ödeme sözü tutarı (dueNow içinde) */
-  overduePromised: number
-  openPromises: PaymentPromise[]
-  /** Ödemelerin eskiden yeniye derslere dağıtımı */
-  lessonPay: Map<string, LessonPayState>
+  /** Borcun gecikmiş sayılan kısmı */
+  overdue: number
   unpaidLessons: number
-  /** Paket: kalan ders hakkı */
-  packageRemaining?: number
-  /** Toplu: dönem bilgisi (ör. "Kasım dönemi", "2/4 ders") */
-  periodLabel?: string
+  /** Peşin ödemenin karşıladığı ders sayısı */
+  creditLessons: number
+  lessonPay: Map<string, LessonPayState>
+  payNote?: PayNote
+  /** Ödeme notunun tarihi geçti mi */
+  noteLate: boolean
+  /** Ödeme notu kaç gündür bekliyor */
+  noteDays?: number
 }
 
-const TR_MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
-
-export function billingOf(s: Student): BillingType {
-  return s.billing ?? 'ders'
+export const PAY_WHEN_LABEL: Record<PayWhen, string> = {
+  ders: 'Her ders',
+  aysonu: 'Ay sonu',
+  pesin: 'Peşin',
 }
 
-export const BILLING_LABEL: Record<BillingType, string> = {
-  ders: 'Ders başı',
-  toplu: 'Toplu',
-  paket: 'Paket',
+export function payWhenOf(s: Student): PayWhen {
+  return s.payWhen ?? 'ders'
 }
+
+const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + 'T12:00:00') - Date.parse(a + 'T12:00:00')) / 86400000)
 
 export function studentFinance(d: AppData, s: Student, today: string): StudentFinance {
-  const billing = billingOf(s)
+  const payWhen = payWhenOf(s)
   const lessons: CalEvent[] = []
   let plannedPast = 0
   for (const e of d.events) {
@@ -53,132 +54,111 @@ export function studentFinance(d: AppData, s: Student, today: string): StudentFi
   }
   lessons.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
   const earned = lessons.reduce((a, e) => a + (e.fee ?? 0), 0)
-  const paid = d.payments.filter((p) => p.studentId === s.id).reduce((a, p) => a + p.amount, 0)
+  const payments = d.payments.filter((p) => p.studentId === s.id)
+  const paid = payments.reduce((a, p) => a + p.amount, 0)
   const balance = earned - paid
 
-  // Önce belirli bir derse bağlanmış ödemeler o derse, kalanı eskiden yeniye dağıtılır
-  const lessonPay = new Map<string, LessonPayState>()
+  // Ödemeleri derslere dağıt: derse bağlı ödeme önce o derse, kalanı eskiden yeniye
   const direct = new Map<string, number>()
   let pool = 0
-  for (const p of d.payments) {
-    if (p.studentId !== s.id) continue
+  for (const p of payments) {
     if (p.eventId) direct.set(p.eventId, (direct.get(p.eventId) ?? 0) + p.amount)
     else pool += p.amount
   }
-  const remainingFee = new Map<string, number>()
+  const remaining = new Map<string, number>()
   for (const e of lessons) {
     const fee = e.fee ?? 0
     const got = Math.min(fee, direct.get(e.id) ?? 0)
-    pool += (direct.get(e.id) ?? 0) - got // fazlası havuza
+    pool += (direct.get(e.id) ?? 0) - got
     direct.delete(e.id)
-    remainingFee.set(e.id, fee - got)
+    remaining.set(e.id, fee - got)
   }
-  for (const v of direct.values()) pool += v // silinmiş/iptal derslere bağlı ödemeler
-  let unpaidLessons = 0
-  const unpaidFees: { e: CalEvent; due: number }[] = []
+  for (const v of direct.values()) pool += v
+  const lessonPay = new Map<string, LessonPayState>()
+  const unpaid: { e: CalEvent; due: number }[] = []
   for (const e of lessons) {
-    let due = remainingFee.get(e.id) ?? 0
     const fee = e.fee ?? 0
+    let due = remaining.get(e.id) ?? 0
     const take = Math.min(due, pool)
     pool -= take
     due -= take
     if (fee === 0 || due <= 0.0001) lessonPay.set(e.id, 'paid')
     else {
       lessonPay.set(e.id, due < fee ? 'partial' : 'unpaid')
-      unpaidLessons++
-      unpaidFees.push({ e, due })
+      unpaid.push({ e, due })
     }
   }
 
   const debt = Math.max(0, balance)
   const credit = Math.max(0, -balance)
 
-  // Toplu ödeyenlerde dönemi dolmamış kısım "birikiyor" sayılır
-  let accruing = 0
-  let periodLabel: string | undefined
-  if (billing === 'toplu') {
-    if ((s.bulkPeriod ?? 'ay') === 'ay') {
-      const ym = today.slice(0, 7)
-      accruing = unpaidFees.filter((u) => u.e.date.slice(0, 7) === ym).reduce((a, u) => a + u.due, 0)
-      periodLabel = `${TR_MONTHS[Number(ym.slice(5, 7)) - 1]} dönemi`
-    } else {
-      const n = Math.max(1, s.bulkEvery ?? 4)
-      const open = unpaidFees.length % n
-      accruing = unpaidFees.slice(unpaidFees.length - open).reduce((a, u) => a + u.due, 0)
-      periodLabel = `${open}/${n} ders`
-    }
-    accruing = Math.min(accruing, debt)
+  // Gecikmiş: her ders ödeyende önceki günlerin dersleri, ay sonu ödeyende önceki ayların dersleri,
+  // peşin ödeyende tüm borç. Gelecek tarihli ödeme notu varsa o tarihe kadar gecikmiş sayılmaz.
+  let overdue = 0
+  const ym = today.slice(0, 7)
+  for (const u of unpaid) {
+    if (payWhen === 'pesin') overdue += u.due
+    else if (payWhen === 'aysonu') {
+      if (u.e.date.slice(0, 7) < ym) overdue += u.due
+    } else if (u.e.date < today) overdue += u.due
   }
-
-  const openPromises = d.promises.filter((p) => p.studentId === s.id).sort((a, b) => a.dueDate.localeCompare(b.dueDate))
-  const rest = debt - accruing
-  const futurePromised = openPromises.filter((p) => p.dueDate >= today).reduce((a, p) => a + p.amount, 0)
-  const pastPromised = openPromises.filter((p) => p.dueDate < today).reduce((a, p) => a + p.amount, 0)
-  const promised = Math.min(rest, futurePromised)
-  const dueNow = rest - promised
-  const overduePromised = Math.min(dueNow, pastPromised)
-
-  let packageRemaining: number | undefined
-  if (billing === 'paket') {
-    const per = s.packageSize && s.packagePrice ? s.packagePrice / s.packageSize : s.fee
-    packageRemaining = per > 0 ? Math.floor((credit + 0.0001) / per) : 0
-  }
+  overdue = Math.min(overdue, debt)
+  const payNote = debt > 0 ? s.payNote : undefined
+  const noteLate = !!payNote?.due && payNote.due < today
+  if (payNote?.due && !noteLate) overdue = 0
 
   return {
-    billing,
+    payWhen,
     doneLessons: lessons.length,
     plannedPast,
     earned,
     paid,
     balance,
-    dueNow,
-    promised,
-    accruing,
+    debt,
     credit,
-    overduePromised,
-    openPromises: debt > 0 ? openPromises : [],
+    overdue,
+    unpaidLessons: unpaid.length,
+    creditLessons: s.fee > 0 ? Math.floor((credit + 0.0001) / s.fee) : 0,
     lessonPay,
-    unpaidLessons,
-    packageRemaining,
-    periodLabel,
+    payNote,
+    noteLate,
+    noteDays: payNote ? Math.max(0, dayDiff(payNote.since, today)) : undefined,
   }
 }
 
 export interface FinanceTotals {
-  dueNow: number
-  promised: number
-  accruing: number
   total: number
+  overdue: number
   credit: number
-  overduePromised: number
+  debtors: number
 }
 
 export function financeTotals(d: AppData, today: string): FinanceTotals {
-  const t: FinanceTotals = { dueNow: 0, promised: 0, accruing: 0, total: 0, credit: 0, overduePromised: 0 }
+  const t: FinanceTotals = { total: 0, overdue: 0, credit: 0, debtors: 0 }
   for (const s of d.students) {
     const f = studentFinance(d, s, today)
-    t.dueNow += f.dueNow
-    t.promised += f.promised
-    t.accruing += f.accruing
+    t.total += f.debt
+    t.overdue += f.overdue
     t.credit += f.credit
-    t.overduePromised += f.overduePromised
+    if (f.debt > 0) t.debtors++
   }
-  t.total = t.dueNow + t.promised + t.accruing
   return t
 }
 
-/** Öğrencinin durumunu tek cümleyle özetler */
+/** Öğrencinin hesabını tek satırda özetler */
 export function financeLine(f: StudentFinance, money: (n: number) => string): { text: string; tone: 'due' | 'credit' | 'zero' | 'info' } {
-  if (f.balance <= 0) {
-    if (f.billing === 'paket') {
-      const r = f.packageRemaining ?? 0
-      return { text: r > 0 ? `Pakette ${r} ders kaldı` : 'Paket bitti — yenilenmeli', tone: r > 1 ? 'credit' : 'due' }
-    }
-    return f.credit > 0 ? { text: `Peşin: ${money(f.credit)}`, tone: 'credit' } : { text: 'Hesap kapalı', tone: 'zero' }
+  if (f.debt > 0) {
+    const lessons = f.unpaidLessons ? ` · ${f.unpaidLessons} ders` : ''
+    return { text: `${money(f.debt)} borç${lessons}`, tone: f.overdue > 0 ? 'due' : 'info' }
   }
-  const parts: string[] = []
-  if (f.dueNow > 0) parts.push(`${money(f.dueNow)} ödenecek`)
-  if (f.promised > 0 && f.openPromises[0]) parts.push(`${money(f.promised)} söz verildi`)
-  if (f.accruing > 0) parts.push(`${money(f.accruing)} birikiyor${f.periodLabel ? ` (${f.periodLabel})` : ''}`)
-  return { text: parts.join(' · '), tone: f.dueNow > 0 ? 'due' : 'info' }
+  if (f.credit > 0) return { text: `Peşin ${money(f.credit)}${f.creditLessons ? ` · ${f.creditLessons} ders hakkı` : ''}`, tone: 'credit' }
+  return { text: 'Hesap kapalı', tone: 'zero' }
+}
+
+/** Ödeme notunu okunur hale getirir: "15 Ara'da ödeyecek" / "Tarihi belli değil · 12 gündür" */
+export function payNoteText(f: StudentFinance, fmtDate: (iso: string) => string): string | null {
+  if (!f.payNote) return null
+  const extra = f.payNote.note ? ` · ${f.payNote.note}` : ''
+  if (f.payNote.due) return `${f.noteLate ? 'Söz tarihi geçti: ' : 'Ödeme: '}${fmtDate(f.payNote.due)}${extra}`
+  return `Ödeme tarihi belli değil${f.noteDays ? ` · ${f.noteDays} gündür` : ''}${extra}`
 }

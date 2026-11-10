@@ -1,64 +1,7 @@
 # Yapılacaklar
 
-## 🔜 Sıradaki toplu geliştirme (v0.6)
-
-### Senin istediklerin
-- [ ] **Tarihi belli olmayan ödeme:** Veli "sonra ödeyeceğim" dediğinde tarih girmeden "Ödeme bekleniyor"
-  olarak işaretlenebilsin. Alacaklarda ayrı bir kalem olarak görünsün ("tarihi belirsiz"), kaç gündür
-  beklediği yazsın (ör. "12 gündür bekliyor"), belirli bir süreyi geçince nazikçe hatırlatsın.
-  Sonradan tarih belli olursa tek dokunuşla tarihli söze çevrilebilsin.
-- [ ] **Takvimin akıcı kullanımı (soft his):** Takvim baştan elden geçirilecek. Tespit edilen/olası sorunlar:
-  - Telefonda dersi taşımak için basılı tutma süresi uzun, basarken görsel geri bildirim yok
-  - Derse dokununca ağır tam form açılıyor → önce küçük bir **özet kartı** (saat, konu, hızlı
-    "Yapıldı / İptal / Taşı / Not yaz" düğmeleri), detay istenirse form
-  - Gün değiştirirken (kaydırma) animasyon yok, sayfa "zıplıyor" → parmakla sürüklenen, yumuşak geçiş
-  - Saat yüksekliği sabit ve telefonda küçük → iki parmakla yakınlaştırma / sıkıştırma
-  - Telefonda sadece Gün görünümü rahat → **3 günlük görünüm** eklenmeli
-  - Görünüm/gün değişince kaydırma konumu sıfırlanıyor
-  - Süre değiştirme tutamağı dokunmatik için çok ince
-  - Saat seçicide AM/PM görünebiliyor → her yerde 24 saat, 5 dakikalık adımlı kendi saat seçicimiz
-  - Telefonda form açılınca klavye alanları kapatıyor
-  - Ay görünümü telefonda sıkışık; güne dokununca altta o günün listesi açılmalı
-  - Genel geçiş animasyonları ve dokunma geri bildirimi (titreşim, basılma efekti)
-  > Kullanırken takıldığın somut anları buraya ekle (ör. "X'e dokununca Y oluyor") — öncelik onlara.
-
-### Seçilen ek geliştirmeler
-- [ ] **Hızlı işlem:** Bugün ekranındaki derslerde kaydırarak "Yapıldı ✓ / Ücreti alındı ₺ / İptal"
-- [ ] **Ders bitince tek ekran akışı:** "Ne işledin + ödev + ücreti alındı mı?" tek adımda
-- [ ] **Öğrenci arama ve sıralama:** Ada göre arama, borca/son derse göre sıralama
-- [ ] **Geri dönüşüm kutusu:** Silinen ders/öğrenci/ödeme 30 gün geri alınabilsin
-- [ ] **Bildirimler:** Ders öncesi hatırlatma, ders sonrası "ne işledin", vadesi gelen ödeme sözleri
-
-### Beklemede (şimdilik seçilmedi)
-- [ ] Son kullanılan konu/ödev metinlerinden otomatik tamamlama
-- [ ] Borcu olan veliye hazır WhatsApp ödeme hatırlatma metni
-- [ ] Ay sonu toplu tahsilat listesi (toplu ödeyenler)
-- [ ] Her gün otomatik yerel yedek
-
-### Seçilen iş akışı özellikleri
-- [ ] **A. Yapılacaklar / görevler:** Ders dışı işler için tarihli hatırlatmalar ("8-H yazılılarını oku")
-- [ ] **D. Haftalık bakış:** Gelecek hafta ders sayısı, boşluklar, tatiller, beklenen ödemeler
-- [ ] **E. Sınıf sayfası:** Kurum sınıfları için profil; sınıf notları, konu ilerlemesi, son işlenenler
-- [ ] **G. Sınav/yazılı takvimi:** Takvimde gösterme, öncesinde hatırlatma
-- [ ] **I. Toplu ücret güncelleme:** Belirli tarihten itibaren tüm/seçili öğrencilere yeni ücret
-- [ ] **M. Tablette çift panel:** Solda liste, sağda detay
-- [ ] **N. Simge kısayolları:** Uzun basınca "Yeni ders", "Ödeme al", "Bugün"
-- [ ] **O. Tema ve yazı boyutu ayarı**
-
-### Ödeme sisteminin sadeleştirilmesi (onay bekliyor)
-Şu anki sorun: 3 ödeme düzeni, 5 ayrı alacak kartı, tarihli söz, ders ders dağıtım → karmaşık.
-Önerilen sade model — **"veresiye defteri" mantığı:**
-- [ ] Her öğrencinin tek bir **bakiyesi** var: ders yapılınca ücret borç yazılır, ödeme alınınca düşer.
-  Kartta tek satır: "2.400 ₺ borç · 3 ders" veya "Peşin 1.500 ₺ · 3 ders hakkı".
-- [ ] "Ödeme düzeni" seçimi kalkar; yerine isteğe bağlı tek etiket: **"Ne zaman öder?" → Her ders / Ay sonu / Peşin**.
-  Sadece "gecikti mi?" kararında kullanılır (ay sonu ödeyenin bu ayki borcu gecikmiş sayılmaz).
-- [ ] Ödeme sözü + tarihi belirsiz ödeme birleşir: öğrenciye tek bir **"Ödeme notu"** — "Bilinmiyor" (varsayılan)
-  ya da tarih. Ayrı alacak kategorisi yok, sadece ismin altında görünür.
-- [ ] Alacak özeti **2 sayıya** iner: **Toplam alacak** ve bunun içinden **Gecikmiş** olan.
-- [ ] Ödeme alma tek ekran: büyük tutar alanı + "Tüm borç" / "1 ders" düğmeleri, tarih bugün. Bitti.
-- [ ] Ders ders "ödendi/ödenmedi" etiketleri varsayılan olarak gizlenir (geçmişte küçük bir nokta).
-- [ ] Ders penceresindeki "Ücreti alındı" kutusu kalır (ders başı ödeyenler için en hızlı yol).
-- [ ] Mevcut veriler kaybolmaz; eski ödeme düzeni bilgisi yeni etikete çevrilir.
+## Sıradaki adımlar
+- [ ] Gerçek telefonda deneme geri bildirimi (takvim hissi, widget, bildirimler, kısayollar)
 
 ### Beklemede (seçilmedi)
 - [ ] B. Ders planı · C. Hızlı ekleme cümlesi · F. Sınıf listesi ve yoklama · H. Kardeş/aile hesabı
@@ -138,3 +81,8 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
   süre değiştirme, geri al, seriye uygula, çakışma uyarısı, çoğaltma, kaydırarak gün değiştirme
 - v0.4 Modern arayüz: kenar menüsü, alt menü, "+" düğmesi, Bugün ekranı, yeni takvim görünümü, koyu tema, Inter yazı tipi ve simgeler
 - v0.5 Ödeme sistemi (ders başı/toplu/paket, söz, ayrı alacak dağılımı), boş saat bulucu, telafi, tatiller, zil saatleri, değişiklik raporu, ders düzeni, gelir paneli, ek ders puantajı, Android ana ekran widget'ı
+- v0.6 Sade ödeme modeli (tek bakiye, "ne zaman öder", tarihi belirsiz ödeme notu, toplam/gecikmiş);
+  akıcı takvim (3 gün, kaydırma animasyonu, iki parmak yakınlaştırma, özet kartı, 24 saat seçici, ay görünümünde
+  gün paneli); ders bitiş ekranı; Bugün'de kaydırarak Yapıldı/İptal; görevler; sınav/yazılı takvimi; haftalık bakış;
+  kurum sınıf sayfası; öğrenci arama/sıralama; toplu ücret güncelleme; tablette çift panel; çöp kutusu (30 gün);
+  tema ve yazı boyutu; Android bildirimleri ve simge kısayolları

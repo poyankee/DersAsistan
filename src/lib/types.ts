@@ -41,7 +41,19 @@ export interface Group {
   color: string
 }
 
+/** Eski sürüm ödeme düzeni (sadece geçiş için) */
 export type BillingType = 'ders' | 'toplu' | 'paket'
+
+/** Ne zaman öder? Sadece "gecikti mi?" kararında kullanılır */
+export type PayWhen = 'ders' | 'aysonu' | 'pesin'
+
+/** Öğrencinin bekleyen ödemesi hakkında not: tarih belli değilse due boş */
+export interface PayNote {
+  due?: string
+  note?: string
+  /** Notun girildiği gün (ne kadar süredir beklediğini göstermek için) */
+  since: string
+}
 
 export interface Student {
   id: string
@@ -51,7 +63,11 @@ export interface Student {
   parentPhone?: string
   /** Ders başı ücret (paket öğrencilerinde paket fiyatı / ders sayısı) */
   fee: number
-  /** Ödeme düzeni: her ders sonrası, toplu (ay sonu / her N ders) veya peşin paket */
+  /** Ne zaman öder: her ders / ay sonu / peşin */
+  payWhen?: PayWhen
+  /** Bekleyen ödeme notu (tarih bilinmiyor olabilir) */
+  payNote?: PayNote
+  /** Eski alanlar (geçiş için) */
   billing?: BillingType
   /** Toplu ödemede dönem: takvim ayı veya her N ders */
   bulkPeriod?: 'ay' | 'ders'
@@ -124,6 +140,63 @@ export interface StudentNote {
   createdAt: number
 }
 
+/** Ders dışı görev / hatırlatma */
+export interface Task {
+  id: string
+  title: string
+  /** Son tarih (opsiyonel) */
+  due?: string
+  done: boolean
+  doneAt?: string
+  groupCode?: string
+  studentId?: string
+  createdAt: number
+}
+
+/** Sınav / yazılı / deneme */
+export interface Exam {
+  id: string
+  title: string
+  date: string
+  start?: string
+  groupCode?: string
+  studentId?: string
+  note?: string
+  createdAt: number
+}
+
+/** Kurum sınıfı için serbest not */
+export interface ClassNote {
+  id: string
+  groupCode: string
+  date: string
+  text: string
+  createdAt: number
+}
+
+export type TrashKind = 'event' | 'student' | 'payment' | 'note' | 'book' | 'task' | 'exam' | 'classNote'
+
+/** Silinen kayıt: 30 gün geri alınabilir */
+export interface TrashItem {
+  id: string
+  kind: TrashKind
+  label: string
+  deletedAt: number
+  /** Geri yüklenecek kayıtlar (öğrenci silinince dersleri/ödemeleri de) */
+  payload: Partial<Pick<AppData, 'events' | 'students' | 'payments' | 'notes' | 'books' | 'tasks' | 'exams' | 'classNotes'>>
+}
+
+export interface NotifySettings {
+  enabled: boolean
+  /** Ders başlamadan kaç dk önce (0 = kapalı) */
+  before: number
+  /** Ders bitince "ne işledin" */
+  after: boolean
+  payments: boolean
+  tasks: boolean
+  exams: boolean
+}
+
 export interface Settings {
   /** Kurum ek ders saat ücreti (opsiyonel, özet hesabı için) */
   kurumHourlyRate?: number
@@ -134,6 +207,10 @@ export interface Settings {
   bellTimes?: BellTimes
   /** Yerleşik resmi tatilleri göster */
   showOfficialHolidays?: boolean
+  theme?: 'system' | 'light' | 'dark'
+  /** Yazı boyutu çarpanı (1 = normal) */
+  fontScale?: number
+  notify?: NotifySettings
 }
 
 export interface AppData {
@@ -147,6 +224,10 @@ export interface AppData {
   promises: PaymentPromise[]
   /** Kullanıcının eklediği tatiller (ara tatil, yarıyıl vb.) */
   holidays: Holiday[]
+  tasks: Task[]
+  exams: Exam[]
+  classNotes: ClassNote[]
+  trash: TrashItem[]
   /** Kullanıcının sildiği kurum ders saatleri: yeniden içe aktarılmaz */
   ignoredImportKeys: string[]
   settings: Settings

@@ -3,6 +3,32 @@
 ## Sıradaki adımlar
 - [ ] Gerçek telefonda deneme geri bildirimi (takvim hissi, widget, bildirimler, kısayollar)
 
+## 🔜 v0.7 — senin istediklerin
+### Ücretler öğrencinin yanında görünmesin
+- [ ] Ders eklerken / ders bitiş ekranında **ücret alanı olmasın**; ücret otomatik olarak öğrencinin kayıtlı ücretinden gelsin
+- [ ] Öğrenci profilinde para bilgileri tek bir **"Ödeme işlemleri"** sekmesine taşınsın
+  (borç, ödemeler, ödeme notu, ödeme al); profilin üst kısmında, ders kartında ve özet kartında tutar görünmesin
+- [ ] Öğrenci kartlarında ve takvimde tutar yerine sadece küçük, renkli bir işaret (ör. ödeme bekliyor noktası)
+- [ ] (Öneri) Ayarlarda **"Tutarları gizle"** anahtarı / başlıkta göz simgesi: açıkken tüm ekranlarda tutarlar ••• olur
+
+### 24 saatlik takvim ve kişisel işler
+- [ ] Takvim **günün tamamını (00:00–24:00)** göstersin; açılışta şu anki saate / ilk derse kaydırsın
+- [ ] **Kişisel etkinlikler**: "Diğer" yerine kendi kategorilerin (ör. Yüksek lisans, Spor, Doktor, Toplantı) — her biri kendi rengiyle
+- [ ] Kişisel etkinlikler de **haftalık tekrarlansın** (ör. yüksek lisans dersleri dönem boyunca), tatilleri atlayabilsin
+- [ ] Kişisel etkinlikler ders sayısına, puantaja ve gelire **karışmasın**; boş saat bulucu onları dolu saysın
+- [ ] Takvimde **katman filtresi**: Kurum / Özel ders / Kişisel göster-gizle
+
+### Önerilen ek özellikler (seçim bekliyor)
+- [ ] P. **Yüksek lisans takibi**: ödev/proje teslim tarihleri, sınavlar, devamsızlık sayacı (görev ve sınav altyapısıyla)
+- [ ] R. **Öğrenciye gösterilebilir ekran**: öğrenci yanındayken açılacak sade görünüm — sadece konu, ödev, kitap ilerlemesi (para yok)
+- [ ] S. **Genel arama**: tüm uygulamada konu, ödev, not, öğrenci, sınıf arama
+- [ ] T. **Haftayı kopyala**: geçen haftanın özel/kişisel düzenini bu haftaya tek dokunuşla kopyalama
+- [ ] U. **Günlük yük uyarısı**: arka arkaya çok ders, mola/yol süresi kalmayan geçişler için uyarı
+- [ ] V. **Dönem ayarları**: dönem başı/sonu, yarıyıl tatili; tekrarlayan dersler dönem sonunda otomatik bitsin
+- [ ] W. **Ders notu etiketleri**: "Anlaşıldı / Tekrar gerek / Sınav konusu" gibi hızlı etiketler, öğrencide tekrar edilecek konular listesi
+- [ ] X. **Özel derste "gelmedi"** durumu ve isteğe bağlı ücretlendirme kuralı
+- [ ] Y. **Takvimi paylaşma**: belirli günlerin boş saatlerini veliye mesaj olarak gönderme ("Salı 15:00 ve Perşembe 17:00 müsaitim")
+
 ### Beklemede (seçilmedi)
 - [ ] B. Ders planı · C. Hızlı ekleme cümlesi · F. Sınıf listesi ve yoklama · H. Kardeş/aile hesabı
 - [ ] J. Ders sonu değerlendirme · K. Bekleme listesi · L. Derse fotoğraf ekleme

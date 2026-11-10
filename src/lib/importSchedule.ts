@@ -1,4 +1,4 @@
-import type { AppData, CalEvent } from './types'
+import type { AppData, BellTimes, CalEvent } from './types'
 import { toISO, toMinutes } from './date'
 import { uid } from './util'
 
@@ -9,6 +9,8 @@ export interface ImportedSlot {
   end: string
   groupCode: string
   key: string
+  /** Kaçıncı ders saati (başlıktaki "3. Saat" → 3) */
+  period?: number
 }
 
 /** Aynı sınıfın art arda gelen ders saatleri birleştirilmiş hali */
@@ -94,10 +96,19 @@ export function parseRows(rows: string[][]): ParseResult {
   const slots: ImportedSlot[] = []
   const warnings: string[] = []
   const seen = new Set<string>()
+  let periods: (number | undefined)[] = []
   for (const row of rows) {
     if (!row.length) continue
     const date = parseDateCell(String(row[0] ?? ''))
-    if (!date) continue // başlık veya boş satır
+    if (!date) {
+      // Başlık satırı: "1. Saat", "8 Saat" → ders saati numaraları
+      const nums = row.map((c) => {
+        const m = String(c ?? '').match(/^\s*(\d{1,2})\s*\.?\s*saat/i)
+        return m ? Number(m[1]) : undefined
+      })
+      if (nums.some((n) => n !== undefined)) periods = nums
+      continue
+    }
     for (let i = 1; i < row.length; i++) {
       const cell = String(row[i] ?? '').trim()
       if (!cell) continue
@@ -109,7 +120,7 @@ export function parseRows(rows: string[][]): ParseResult {
       const key = slotKey(date, lesson.start, lesson.groupCode)
       if (seen.has(key)) continue
       seen.add(key)
-      slots.push({ date, ...lesson, key })
+      slots.push({ date, ...lesson, key, period: periods[i] })
     }
   }
   slots.sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
@@ -119,6 +130,35 @@ export function parseRows(rows: string[][]): ParseResult {
     minDate: slots[0]?.date,
     maxDate: slots[slots.length - 1]?.date,
   }
+}
+
+/** İçe aktarılan derslerden haftanın her günü için zil saatlerini çıkarır (en sık görülen) */
+export function learnBellTimes(slots: ImportedSlot[], prev: BellTimes = {}): BellTimes {
+  const counts = new Map<string, number>()
+  for (const s of slots) {
+    if (!s.period) continue
+    const wd = (new Date(s.date + 'T12:00:00').getDay() + 6) % 7
+    const k = `${wd}|${s.period}|${s.start}|${s.end}`
+    counts.set(k, (counts.get(k) ?? 0) + 1)
+  }
+  const best = new Map<string, { start: string; end: string; c: number }>()
+  for (const [k, c] of counts) {
+    const [wd, n, start, end] = k.split('|')
+    const bk = `${wd}|${n}`
+    if (!best.has(bk) || best.get(bk)!.c < c) best.set(bk, { start, end, c })
+  }
+  const out: BellTimes = { ...prev }
+  const touched = new Set<number>()
+  for (const [bk, v] of best) {
+    const [wd, n] = bk.split('|').map(Number)
+    if (!touched.has(wd)) {
+      out[wd] = []
+      touched.add(wd)
+    }
+    out[wd].push({ n, start: v.start, end: v.end })
+  }
+  for (const wd of touched) out[wd].sort((a, b) => a.n - b.n)
+  return out
 }
 
 /** Excel'in "HTML olarak kaydedilmiş" .xls dosyalarını satırlara çevirir */
@@ -224,5 +264,53 @@ export function applyImport(data: AppData, parsed: ParseResult, today: string, r
   return {
     ...data,
     events: [...data.events.filter((e) => !staleIds.has(e.id)), ...newEvents],
+    settings: { ...data.settings, bellTimes: learnBellTimes(parsed.slots, data.settings.bellTimes) },
+  }
+}
+
+export interface DayChange {
+  date: string
+  added: SlotBlock[]
+  removed: CalEvent[]
+  moved: { group: string; from: string; to: string }[]
+}
+
+export interface ChangeReport {
+  /** Takvimde zaten kurum dersi olan günlerdeki değişiklikler (dikkat!) */
+  changedDays: DayChange[]
+  /** Daha önce hiç kurum dersi olmayan, yeni eklenen günler */
+  newDays: { date: string; blocks: SlotBlock[] }[]
+}
+
+/** Yeni programın mevcut takvime göre farkını çıkarır */
+export function changeReport(data: AppData, plan: ImportPlan, includeStale: boolean): ChangeReport {
+  const knownDays = new Set(data.events.filter((e) => e.kind === 'kurum' && e.importKeys?.length).map((e) => e.date))
+  const byDate = new Map<string, DayChange>()
+  const get = (date: string) => {
+    if (!byDate.has(date)) byDate.set(date, { date, added: [], removed: [], moved: [] })
+    return byDate.get(date)!
+  }
+  const newDays = new Map<string, SlotBlock[]>()
+  for (const b of plan.newBlocks) {
+    if (knownDays.has(b.date)) get(b.date).added.push(b)
+    else {
+      if (!newDays.has(b.date)) newDays.set(b.date, [])
+      newDays.get(b.date)!.push(b)
+    }
+  }
+  if (includeStale) for (const e of plan.staleEvents) get(e.date).removed.push(e)
+  for (const day of byDate.values()) {
+    for (const r of [...day.removed]) {
+      const a = day.added.find((x) => x.groupCode === r.groupCode)
+      if (a) {
+        day.moved.push({ group: a.groupCode, from: `${r.start}–${r.end}`, to: `${a.start}–${a.end}` })
+        day.added = day.added.filter((x) => x !== a)
+        day.removed = day.removed.filter((x) => x !== r)
+      }
+    }
+  }
+  return {
+    changedDays: Array.from(byDate.values()).filter((d) => d.added.length || d.removed.length || d.moved.length).sort((a, b) => a.date.localeCompare(b.date)),
+    newDays: Array.from(newDays.entries()).map(([date, blocks]) => ({ date, blocks })).sort((a, b) => a.date.localeCompare(b.date)),
   }
 }

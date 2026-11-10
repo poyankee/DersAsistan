@@ -20,7 +20,7 @@ const TABS: { id: Tab; label: string; short: string; icon: LucideIcon }[] = [
   { id: 'takvim', label: 'Takvim', short: 'Takvim', icon: CalendarDays },
   { id: 'defter', label: 'Ders Defteri', short: 'Defter', icon: BookOpenText },
   { id: 'ozel', label: 'Özel Ders', short: 'Öğrenciler', icon: Users },
-  { id: 'ozet', label: 'Özet', short: 'Özet', icon: BarChart3 },
+  { id: 'ozet', label: 'Raporlar', short: 'Raporlar', icon: BarChart3 },
   { id: 'ayarlar', label: 'Ayarlar', short: 'Ayarlar', icon: Settings },
 ]
 

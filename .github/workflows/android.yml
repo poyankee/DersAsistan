@@ -30,26 +30,24 @@ jobs:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KEYSTORE_PW: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
+          SIGNED=hayir
           if [ -n "$KEYSTORE_B64" ]; then
             # Kopyala-yapıştırdan gelen boşluk/satır sonu/tırnakları temizle
             CLEAN=$(printf '%s' "$KEYSTORE_B64" | tr -cd 'A-Za-z0-9+/=')
-            echo "Anahtar metni uzunluğu: ${#CLEAN} karakter (beklenen ~3500)"
-            if ! printf '%s' "$CLEAN" | base64 -d > "$RUNNER_TEMP/release.keystore" 2>/dev/null; then
-              echo "::error::ANDROID_KEYSTORE_BASE64 çözülemedi. Değer eksik veya hatalı kopyalanmış olabilir; dosyanın tamamını yeniden yapıştırın."
-              exit 1
-            fi
             KEYSTORE_PW=$(printf '%s' "$KEYSTORE_PW" | tr -d ' \r\n\t')
-            if ! keytool -list -keystore "$RUNNER_TEMP/release.keystore" -storepass "$KEYSTORE_PW" >/dev/null 2>&1; then
-              echo "::error::Anahtar okunamadı veya ANDROID_KEYSTORE_PASSWORD yanlış."
-              exit 1
+            echo "Anahtar metni uzunluğu: ${#CLEAN} karakter (beklenen ~3500)"
+            if printf '%s' "$CLEAN" | base64 -d > "$RUNNER_TEMP/release.keystore" 2>/dev/null \
+               && keytool -list -keystore "$RUNNER_TEMP/release.keystore" -storepass "$KEYSTORE_PW" >/dev/null 2>&1; then
+              echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+              echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PW" >> "$GITHUB_ENV"
+              SIGNED=evet
+            else
+              echo "::warning::İmza anahtarı okunamadı (ANDROID_KEYSTORE_BASE64 eksik/hatalı veya şifre yanlış). APK geçici anahtarla imzalanacak."
             fi
-            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
-            echo "ANDROID_KEYSTORE_PASSWORD=$KEYSTORE_PW" >> "$GITHUB_ENV"
-            echo "SIGNED=evet" >> "$GITHUB_ENV"
           else
-            echo "::warning::ANDROID_KEYSTORE_BASE64 secret'i yok. APK geçici anahtarla imzalanacak; sonraki sürümler üstüne kurulamaz."
-            echo "SIGNED=hayir" >> "$GITHUB_ENV"
+            echo "::warning::ANDROID_KEYSTORE_BASE64 secret'i yok. APK geçici anahtarla imzalanacak."
           fi
+          echo "SIGNED=$SIGNED" >> "$GITHUB_ENV"
       - name: APK derle
         working-directory: android
         run: |
@@ -63,10 +61,11 @@ jobs:
       - name: Releases sayfasında yayınla
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.4.${{ github.run_number }}
-          name: Ders Asistanı 0.4.${{ github.run_number }}
+          tag_name: v0.5.${{ github.run_number }}
+          name: Ders Asistanı 0.5.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
-          make_latest: true
+          make_latest: ${{ env.SIGNED == 'evet' }}
+          prerelease: ${{ env.SIGNED != 'evet' }}
           files: DersAsistani.apk
           body: |
             Telefona/tablete kurmak için aşağıdaki **DersAsistani.apk** dosyasını indirip açın.

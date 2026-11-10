@@ -1,15 +1,18 @@
 import { useMemo, useState } from 'react'
-import { ChevronLeft, Pencil, CalendarPlus, MessageCircle, Wallet, History as HistoryIcon, BookOpen, PlusCircle } from 'lucide-react'
+import { CalendarClock, CalendarRange, ChevronLeft, Pencil, CalendarPlus, MessageCircle, Wallet, History as HistoryIcon, BookOpen, PlusCircle } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { Book, BookStatus, CalEvent, Payment, Student, StudentNote } from '../lib/types'
-import { deleteBook, deleteEvents, deleteNote, saveBook, saveEvents, saveNote, studentBalance, useData } from '../lib/store'
+import { deleteBook, deleteEvents, deleteNote, saveBook, saveEvents, saveNote, useData } from '../lib/store'
+import { BILLING_LABEL, financeLine, studentFinance, type LessonPayState } from '../lib/finance'
+import { suggestedAmount } from './StudentsPage'
+import ScheduleTab from './ScheduleTab'
 import { formatLong, formatShort, fromMinutes, toMinutes, todayISO } from '../lib/date'
 import { money, uid } from '../lib/util'
 import { openExternal, waLink } from '../lib/native'
 import { showToast } from '../lib/toast'
 import { STATUS_LABEL } from './EventModal'
 
-type Tab = 'gecmis' | 'kitaplar' | 'odemeler'
+type Tab = 'gecmis' | 'duzen' | 'kitaplar' | 'odemeler'
 
 const BOOK_STATUS: Record<BookStatus, string> = { devam: 'Devam ediyor', planli: 'Sırada', bitti: 'Bitti' }
 
@@ -17,7 +20,7 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onEditP
   student: Student
   onBack: () => void
   onEdit: () => void
-  onPay: (amount: number) => void
+  onPay: (amount: number, mode?: 'odeme' | 'soz') => void
   onEditPayment: (p: Payment) => void
   openEvent: OpenEvent
 }) {
@@ -25,7 +28,9 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onEditP
   const today = todayISO()
   const cur = data.settings.currency
   const [tab, setTab] = useState<Tab>('gecmis')
-  const b = studentBalance(data, student.id, today)
+  const b = studentFinance(data, student, today)
+  const line = financeLine(b, (n) => money(Math.round(n), cur))
+  const payNow = () => onPay(suggestedAmount(student, b))
   const books = data.books.filter((x) => x.studentId === student.id)
   const lessons = data.events.filter((e) => e.studentId === student.id)
   const upcoming = lessons.filter((e) => e.date >= today && e.status === 'planned').sort((x, y) => (x.date + x.start).localeCompare(y.date + y.start))
@@ -62,14 +67,22 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onEditP
         <button className="btn" onClick={onEdit}><Pencil size={15} /> Bilgileri düzenle</button>
         <button className="btn" onClick={() => openEvent({ kind: 'ozel', studentId: student.id, fee: student.fee, date: today, start: '17:00', end: '18:00' })}><CalendarPlus size={15} /> Takvime ders ekle</button>
         {phone && <button className="btn" onClick={() => openExternal(waLink(phone, reportText()))}><MessageCircle size={15} /> Veliye özet gönder</button>}
-        <button className="btn primary" onClick={() => onPay(Math.max(0, b.balance) || student.fee)}><Wallet size={15} /> Ödeme al</button>
+        <button className="btn" onClick={() => onPay(0, 'soz')}><CalendarClock size={15} /> Ödeme sözü</button>
+        <button className="btn primary" onClick={payNow}><Wallet size={15} /> Ödeme al</button>
       </div>
 
+      <div className={'fin-banner ' + line.tone}>
+        <span className={'bill-tag ' + b.billing}>{BILLING_LABEL[b.billing]}{b.billing === 'toplu' ? ` · ${(student.bulkPeriod ?? 'ay') === 'ay' ? 'ay sonu' : `her ${student.bulkEvery ?? 4} ders`}` : ''}{b.billing === 'paket' && student.packageSize ? ` · ${student.packageSize} ders` : ''}</span>
+        <b>{line.text}</b>
+        {b.openPromises.map((p) => (
+          <span key={p.id} className={'small' + (p.dueDate < today ? ' warn-text' : ' muted')}>Söz: {formatShort(p.dueDate)} → {money(p.amount, cur)}{p.dueDate < today ? ' (tarihi geçti)' : ''}</span>
+        ))}
+      </div>
       <div className="kpis">
-        <div className="kpi"><span>Yapılan ders</span><b>{b.doneLessons}</b></div>
+        <div className="kpi"><span>Yapılan ders</span><b>{b.doneLessons}</b>{b.unpaidLessons > 0 && <small className="warn-text">{b.unpaidLessons} ders ödenmedi</small>}</div>
         <div className="kpi"><span>Toplam ücret</span><b>{money(b.earned, cur)}</b></div>
         <div className="kpi"><span>Ödenen</span><b>{money(b.paid, cur)}</b></div>
-        <div className="kpi"><span>{b.balance >= 0 ? 'Kalan borç' : 'Ön ödeme'}</span><b className={b.balance > 0 ? 'warn-text' : 'ok'}>{money(Math.abs(b.balance), cur)}</b></div>
+        <div className="kpi"><span>{b.balance >= 0 ? 'Kalan borç' : 'Peşin ödeme'}</span><b className={b.balance > 0 ? 'warn-text' : 'ok'}>{money(Math.abs(Math.round(b.balance)), cur)}</b></div>
       </div>
 
       {upcoming.length > 0 && (
@@ -84,13 +97,15 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onEditP
 
       <div className="seg tabs-seg">
         <button className={tab === 'gecmis' ? 'active' : ''} onClick={() => setTab('gecmis')}><HistoryIcon size={15} /> Geçmiş</button>
+        <button className={tab === 'duzen' ? 'active' : ''} onClick={() => setTab('duzen')}><CalendarRange size={15} /> Ders düzeni</button>
         <button className={tab === 'kitaplar' ? 'active' : ''} onClick={() => setTab('kitaplar')}><BookOpen size={15} /> Kitaplar ({books.length})</button>
         <button className={tab === 'odemeler' ? 'active' : ''} onClick={() => setTab('odemeler')}><Wallet size={15} /> Ödemeler</button>
       </div>
 
       {tab === 'gecmis' && <History student={student} openEvent={openEvent} />}
+      {tab === 'duzen' && <ScheduleTab student={student} />}
       {tab === 'kitaplar' && <Books student={student} />}
-      {tab === 'odemeler' && <Payments student={student} onEditPayment={onEditPayment} onPay={() => onPay(Math.max(0, b.balance) || student.fee)} />}
+      {tab === 'odemeler' && <Payments student={student} onEditPayment={onEditPayment} onPay={payNow} />}
     </div>
   )
 }
@@ -102,9 +117,12 @@ type Item =
   | { kind: 'note'; date: string; time: string; n: StudentNote }
   | { kind: 'payment'; date: string; time: string; p: Payment }
 
+const PAY_LABEL: Record<LessonPayState, string> = { paid: 'Ödendi', partial: 'Kısmen ödendi', unpaid: 'Ödenmedi' }
+
 function History({ student, openEvent }: { student: Student; openEvent: OpenEvent }) {
   const data = useData()
   const today = todayISO()
+  const fin = studentFinance(data, student, today)
   const cur = data.settings.currency
   const [filter, setFilter] = useState<'hepsi' | 'ders' | 'not'>('hepsi')
   const [editingNote, setEditingNote] = useState<StudentNote | null>(null)
@@ -150,6 +168,7 @@ function History({ student, openEvent }: { student: Student; openEvent: OpenEven
                     <div className="tl-top">
                       <span className={'pill st-' + e.status}>{STATUS_LABEL[e.status]}</span>
                       {e.status === 'done' && e.fee ? <span className="muted small">{money(e.fee, cur)}</span> : null}
+                      {e.status === 'done' && e.fee ? <span className={'pay-state ' + (fin.lessonPay.get(e.id) ?? 'unpaid')}>{PAY_LABEL[fin.lessonPay.get(e.id) ?? 'unpaid']}</span> : null}
                     </div>
                     {e.topic ? <div className="tl-topic">{e.topic}</div> : <div className="warn-text small">Konu yazılmadı — eklemek için dokunun</div>}
                     {e.bookId && <div className="small">📚 {bookName(e.bookId) ?? 'Kitap'}{e.bookProgress ? ` — ${e.bookProgress}` : ''}</div>}

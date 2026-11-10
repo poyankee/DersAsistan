@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertCircle, ArrowRight, CalendarDays, CheckCircle2, Clock, PenLine, Wallet, Sun, Moon, Sunrise, Settings } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { CalEvent } from '../lib/types'
-import { eventColor, eventTitle, studentBalance, useData } from '../lib/store'
+import { eventColor, eventTitle, useData } from '../lib/store'
+import { financeTotals, studentFinance } from '../lib/finance'
 import { addDays, formatLong, isPast, nowHM, startOfWeek, toMinutes, todayISO } from '../lib/date'
 import { money } from '../lib/util'
 import { needsNote } from './NotebookPage'
@@ -58,10 +59,10 @@ export default function TodayPage({ openEvent, goMissing, goCalendar, openStuden
     .filter((e) => e.date >= weekStart && e.date <= weekEnd && e.status !== 'cancelled' && e.status !== 'postponed' && e.kind !== 'diger')
     .reduce((a, e) => a + (e.kind === 'kurum' ? e.hours ?? 1 : (toMinutes(e.end) - toMinutes(e.start)) / 60), 0)
   const debtors = data.students
-    .map((s) => ({ s, bal: studentBalance(data, s.id, today).balance }))
-    .filter((x) => x.bal > 0)
-    .sort((a, b) => b.bal - a.bal)
-  const totalDue = debtors.reduce((a, x) => a + x.bal, 0)
+    .map((s) => ({ s, f: studentFinance(data, s, today) }))
+    .filter((x) => x.f.dueNow > 0 || x.f.promised > 0 || x.f.accruing > 0 || (x.f.billing === 'paket' && (x.f.packageRemaining ?? 0) <= 1 && x.f.doneLessons > 0))
+    .sort((a, b) => b.f.dueNow - a.f.dueNow || b.f.balance - a.f.balance)
+  const fin = financeTotals(data, today)
   const month = today.slice(0, 7)
   const monthEarned = data.events.filter((e) => e.kind === 'ozel' && e.status === 'done' && e.date.slice(0, 7) === month).reduce((a, e) => a + (e.fee ?? 0), 0)
 
@@ -127,10 +128,11 @@ export default function TodayPage({ openEvent, goMissing, goCalendar, openStuden
           <b>{money(monthEarned, cur)}</b>
           <span>bu ay özel ders</span>
         </div>
-        <div className={'stat' + (totalDue ? ' warn' : '')}>
+        <div className={'stat' + (fin.dueNow ? ' warn' : '')}>
           <span className="stat-ico"><Wallet size={20} /></span>
-          <b>{money(totalDue, cur)}</b>
-          <span>toplam alacak</span>
+          <b>{money(Math.round(fin.dueNow), cur)}</b>
+          <span>hemen tahsil edilecek</span>
+          {fin.total > fin.dueNow && <small className="muted stat-sub">Toplam alacak {money(Math.round(fin.total), cur)}</small>}
         </div>
       </div>
 
@@ -151,14 +153,23 @@ export default function TodayPage({ openEvent, goMissing, goCalendar, openStuden
 
         {debtors.length > 0 && (
           <section className="surface">
-            <div className="surface-head"><h3>Ödeme bekleyenler</h3></div>
+            <div className="surface-head"><h3>Ödemeler</h3></div>
             <ul className="debtors">
-              {debtors.slice(0, 6).map(({ s, bal }) => (
+              {debtors.slice(0, 8).map(({ s, f }) => (
                 <li key={s.id}>
                   <button onClick={() => openStudent(s.id)}>
                     <i className="avatar sm" style={{ background: s.color }}>{s.name.slice(0, 1).toLocaleUpperCase('tr')}</i>
-                    <span className="grow">{s.name}</span>
-                    <b className="warn-text">{money(bal, cur)}</b>
+                    <span className="grow">
+                      {s.name}
+                      <small className="muted debtor-sub">
+                        {f.billing === 'paket' && f.balance <= 0 ? ((f.packageRemaining ?? 0) > 0 ? `Pakette ${f.packageRemaining} ders kaldı` : 'Paket bitti') : [
+                          f.promised > 0 && f.openPromises[0] ? `${f.openPromises[0].dueDate.split('-').reverse().slice(0, 2).join('.')} tarihinde ödeyecek` : '',
+                          f.accruing > 0 ? `${money(Math.round(f.accruing), cur)} birikiyor (${f.periodLabel})` : '',
+                          f.overduePromised > 0 ? 'söz tarihi geçti' : '',
+                        ].filter(Boolean).join(' · ')}
+                      </small>
+                    </span>
+                    {f.dueNow > 0 ? <b className="warn-text">{money(Math.round(f.dueNow), cur)}</b> : f.balance > 0 ? <b className="muted">{money(Math.round(f.balance), cur)}</b> : <b className="warn-text">Yenile</b>}
                   </button>
                 </li>
               ))}

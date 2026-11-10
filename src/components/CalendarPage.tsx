@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
-import { AlertCircle, ChevronLeft, ChevronRight, PenLine, Upload } from 'lucide-react'
+import { AlertCircle, CalendarSearch, ChevronLeft, ChevronRight, PenLine, Upload } from 'lucide-react'
+import FreeSlotsModal from './FreeSlotsModal'
+import { holidayMap } from '../lib/holidays'
 import type { OpenEvent } from '../App'
 import type { AppData, CalEvent } from '../lib/types'
 import { eventColor, eventTitle, useData } from '../lib/store'
@@ -34,6 +36,7 @@ export default function CalendarPage({ openEvent, goMissing }: { openEvent: Open
   const [view, setView] = useState<View>(() => (window.matchMedia('(max-width: 720px)').matches ? 'day' : 'week'))
   const [cursor, setCursor] = useState(todayISO())
   const [importOpen, setImportOpen] = useState(false)
+  const [freeOpen, setFreeOpen] = useState(false)
   const [, tick] = useState(0)
 
   useEffect(() => {
@@ -86,6 +89,7 @@ export default function CalendarPage({ openEvent, goMissing }: { openEvent: Open
             <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>{mobile ? VIEW_LABEL[v][0] : VIEW_LABEL[v]}</button>
           ))}
         </div>
+        <button className="btn" onClick={() => setFreeOpen(true)} title="Boş saat bul" aria-label="Boş saat bul"><CalendarSearch size={16} /><span className="hide-mobile">Boş saat</span></button>
         <button className="btn" onClick={() => setImportOpen(true)} title="Kurum programını yükle" aria-label="Program yükle"><Upload size={16} /><span className="hide-mobile">Program yükle</span></button>
       </div>
 
@@ -137,6 +141,16 @@ export default function CalendarPage({ openEvent, goMissing }: { openEvent: Open
       )}
       {view === 'agenda' && <Agenda data={data} from={cursor} openEvent={openEvent} />}
 
+      {freeOpen && (
+        <FreeSlotsModal
+          from={view === 'week' ? (startOfWeek(cursor) > today ? startOfWeek(cursor) : today) : cursor}
+          onClose={() => setFreeOpen(false)}
+          onPick={(d, s, e) => {
+            setFreeOpen(false)
+            newAt(d, s, e)
+          }}
+        />
+      )}
       {importOpen && <ImportModal onClose={() => setImportOpen(false)} onDone={(d) => d && setCursor(d)} />}
     </div>
   )
@@ -206,6 +220,7 @@ function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
   onSwipe?: (dir: number) => void
 }) {
   const today = todayISO()
+  const hol = holidayMap(data)
   const scrollRef = useRef<HTMLDivElement>(null)
   const colRefs = useRef(new Map<string, HTMLDivElement>())
   const [drag, setDrag] = useState<DragState | null>(null)
@@ -326,6 +341,7 @@ function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
           <button key={d} className={'tg-dayhead' + (d === today ? ' today' : '')} onClick={() => onDayClick(d)}>
             <span className="dname">{TR_DAYS_SHORT[weekdayIndex(d)]}</span>
             <span className="dnum">{fromISO(d).getDate()}</span>
+            {hol.get(d) && <span className="hol-tag" title={hol.get(d)!.name}>{hol.get(d)!.name}</span>}
           </button>
         ))}
       </div>
@@ -355,7 +371,7 @@ function TimeGrid({ data, days, openEvent, onEmpty, onDayClick, onSwipe }: {
                 if (el) colRefs.current.set(d, el)
                 else colRefs.current.delete(d)
               }}
-              className="tg-col"
+              className={'tg-col' + (hol.get(d) && !hol.get(d)!.half ? ' holiday' : '')}
               onPointerDown={(ev) => onColDown(ev, d)}
               onContextMenu={(ev) => ev.preventDefault()}
             >
@@ -405,6 +421,7 @@ function MonthGrid({ data, cursor, openEvent, onDay }: { data: AppData; cursor: 
   const month = cursor.slice(0, 7)
   const today = todayISO()
   const cells = Array.from({ length: 42 }, (_, i) => addDays(first, i))
+  const hol = holidayMap(data)
   const [drag, setDrag] = useState<{ id: string; date: string } | null>(null)
   const byDay = useMemo(() => {
     const m = new Map<string, CalEvent[]>()
@@ -447,6 +464,7 @@ function MonthGrid({ data, cursor, openEvent, onDay }: { data: AppData; cursor: 
         return (
           <div key={d} data-date={d} className={'mg-cell' + (d.slice(0, 7) !== month ? ' other' : '') + (drag?.date === d ? ' drop' : '')} onClick={() => onDay(d)}>
             <span className={'mg-num' + (d === today ? ' today' : '')}>{fromISO(d).getDate()}</span>
+            {hol.get(d) && <span className="hol-tag" title={hol.get(d)!.name}>{hol.get(d)!.name}</span>}
             {list.slice(0, max).map((e) => (
               <div
                 key={e.id}
@@ -477,7 +495,7 @@ function Agenda({ data, from, openEvent }: { data: AppData; from: string; openEv
     <div className="agenda">
       {days.map((d) => (
         <div key={d} className="ag-day">
-          <div className={'ag-date' + (d === todayISO() ? ' today' : '')}>{formatShort(d)}</div>
+          <div className={'ag-date' + (d === todayISO() ? ' today' : '')}>{formatShort(d)}{holidayMap(data).get(d) && <span className="hol-tag">{holidayMap(data).get(d)!.name}</span>}</div>
           <div className="ag-list">
             {list.filter((e) => e.date === d).map((e) => (
               <button key={e.id} className={`ag-ev ev-${e.status}`} onClick={() => openEvent(e)}>

@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 // Her GitHub Actions derlemesinde sürüm numarası artar, böylece güncelleme üstüne kurulur
 def runNumber = System.getenv("GITHUB_RUN_NUMBER") ?: "1"
 def appVersionCode = Integer.parseInt(runNumber)
-def appVersionName = "0.4.${runNumber}".toString()
+def appVersionName = "0.5.${runNumber}".toString()
 
 android {
     namespace "com.dersasistani.app"

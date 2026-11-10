@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { applyImport, parseRows, planImport, rowsFromFile, type ParseResult } from '../lib/importSchedule'
+import { applyImport, changeReport, parseRows, planImport, rowsFromFile, type ParseResult } from '../lib/importSchedule'
 import { setData, useData } from '../lib/store'
 import { formatShort, todayISO } from '../lib/date'
 import Modal from './Modal'
@@ -41,6 +41,7 @@ export default function ImportModal({ onClose, onDone }: { onClose: () => void; 
     onClose()
   }
 
+  const report = useMemo(() => (plan ? changeReport(data, plan, true) : null), [data, plan])
   const byDate = useMemo(() => {
     const m = new Map<string, string[]>()
     plan?.newBlocks.forEach((b) => {
@@ -86,21 +87,31 @@ export default function ImportModal({ onClose, onDone }: { onClose: () => void; 
           </div>
           <p className="muted small">Tarih aralığı: {formatShort(parsed.minDate!)} – {formatShort(parsed.maxDate!)}</p>
 
-          {plan.staleEvents.length > 0 && (
-            <div className="stale">
-              <label className="check">
-                <input type="checkbox" checked={removeStale} onChange={(e) => setRemoveStale(e.target.checked)} />
-                <span>
-                  Yeni programda artık bulunmayan <b>{plan.staleEvents.length}</b> gelecek dersi takvimden kaldır (program değişmiş olabilir)
-                </span>
-              </label>
-              <ul className="mini-list">
-                {plan.staleEvents.slice(0, 12).map((e) => <li key={e.id}>{formatShort(e.date)} {e.start}–{e.end} {e.groupCode}</li>)}
-                {plan.staleEvents.length > 12 && <li>… ve {plan.staleEvents.length - 12} tane daha</li>}
+          {report && report.changedDays.length > 0 && (
+            <div className="change-report">
+              <b className="row-title">⚠️ Mevcut günlerde {report.changedDays.length} değişiklik var</b>
+              <ul className="change-list">
+                {report.changedDays.map((d) => (
+                  <li key={d.date}>
+                    <b>{formatShort(d.date)}</b>
+                    {d.moved.map((m, i) => <span key={'m' + i} className="chg moved">↔ {m.group}: {m.from} → {m.to}</span>)}
+                    {d.added.map((x, i) => <span key={'a' + i} className="chg add">+ {x.groupCode} {x.start}–{x.end}</span>)}
+                    {d.removed.map((x) => <span key={x.id} className="chg del">− {x.groupCode} {x.start}–{x.end}</span>)}
+                  </li>
+                ))}
               </ul>
-              <p className="muted small">Notu girilmiş veya geçmiş dersler hiçbir zaman silinmez.</p>
+              {plan.staleEvents.length > 0 && (
+                <label className="check">
+                  <input type="checkbox" checked={removeStale} onChange={(e) => setRemoveStale(e.target.checked)} />
+                  <span>Yeni programda olmayan <b>{plan.staleEvents.length}</b> dersi takvimden kaldır (notu girilmiş veya geçmiş dersler asla silinmez)</span>
+                </label>
+              )}
             </div>
           )}
+          {report && report.newDays.length > 0 && (
+            <p className="ok small">+ {report.newDays.length} yeni gün, {report.newDays.reduce((a, d) => a + d.blocks.reduce((x, b) => x + b.keys.length, 0), 0)} ders saati eklenecek ({formatShort(report.newDays[0].date)} – {formatShort(report.newDays[report.newDays.length - 1].date)})</p>
+          )}
+          {report && report.changedDays.length === 0 && plan.newSlotCount > 0 && <p className="muted small">Mevcut günlerde değişiklik yok; sadece yeni günler eklenecek.</p>}
 
           <label className="check">
             <input type="checkbox" checked={merge} onChange={(e) => setMerge(e.target.checked)} />

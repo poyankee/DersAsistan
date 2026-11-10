@@ -64,3 +64,32 @@ describe('kurum programı içe aktarma', () => {
     expect(applyImport(afterDelete, parsed, '2026-11-10', false).events).toHaveLength(3)
   })
 })
+
+describe('zil saatleri', () => {
+  it('başlıktaki ders saati numaralarından haftanın günlerine göre zil saatlerini öğrenir', async () => {
+    const { learnBellTimes } = await import('./importSchedule')
+    const r = parseRows(rowsFromHtml(HTML))
+    expect(r.slots.find((s) => s.date === '2026-11-16' && s.start === '10:10')?.period).toBe(2)
+    const bt = learnBellTimes(r.slots)
+    expect(bt[0]).toEqual([{ n: 2, start: '10:10', end: '10:50' }, { n: 3, start: '11:00', end: '11:40' }]) // Pazartesi
+    expect(bt[5]?.[0]).toEqual({ n: 1, start: '09:20', end: '10:00' }) // Cumartesi
+  })
+})
+
+describe('değişiklik raporu', () => {
+  it('mevcut günlerdeki değişiklikleri yeni günlerden ayırır ve taşınan dersi bulur', async () => {
+    const { changeReport } = await import('./importSchedule')
+    const first = applyImport(emptyData(), parseRows(rowsFromHtml(HTML)), '2026-11-10', false)
+    const html2 = HTML.replace('<td>478-H0821<br>10:10-10:50</td><td>478-H0821<br>11:00-11:40</td>', '<td></td><td>478-H0821<br>14:00-14:40</td>').replace(
+      '</tbody>',
+      '<tr><td>18 Kasım 2026 Çar</td><td>478-K0811<br>08:30-09:10</td><td></td><td></td></tr></tbody>',
+    )
+    const parsed2 = parseRows(rowsFromHtml(html2))
+    const plan = planImport(first, parsed2, '2026-11-10', true)
+    const r = changeReport(first, plan, true)
+    expect(r.changedDays).toHaveLength(1)
+    expect(r.changedDays[0].date).toBe('2026-11-16')
+    expect(r.changedDays[0].moved[0]).toMatchObject({ group: '478-H0821', from: '10:10–11:40', to: '14:00–14:40' })
+    expect(r.newDays.map((d) => d.date)).toEqual(['2026-11-18'])
+  })
+})

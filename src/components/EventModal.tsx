@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react'
 import { CheckCircle2, Copy } from 'lucide-react'
 import type { CalEvent, EventKind, LessonStatus } from '../lib/types'
-import { deleteEvents, eventTitle, saveEvents, useData } from '../lib/store'
+import { deleteEvents, eventTitle, saveEvents, savePayment, useData } from '../lib/store'
+import { studentFinance } from '../lib/finance'
+import { holidayMap, isFullHoliday } from '../lib/holidays'
+import FreeSlotsModal from './FreeSlotsModal'
 import { applyShiftToSeries, conflictsOf, futureSeriesEvents } from '../lib/eventOps'
 import { showToast } from '../lib/toast'
-import { addDays, formatLong, formatShort, fromMinutes, isPast, toMinutes, todayISO } from '../lib/date'
+import { addDays, formatLong, formatShort, fromMinutes, isPast, toMinutes, todayISO, weekdayIndex } from '../lib/date'
 import { money, uid } from '../lib/util'
 import Modal from './Modal'
 
@@ -34,6 +37,10 @@ export default function EventModal({ initial, onClose, onDuplicate }: { initial:
   const [repeat, setRepeat] = useState(false)
   const [repeatUntil, setRepeatUntil] = useState(() => addDays(ev.date, 7 * 12))
   const [error, setError] = useState('')
+  const [feeReceived, setFeeReceived] = useState(false)
+  const [skipHolidays, setSkipHolidays] = useState(true)
+  const [makeupOpen, setMakeupOpen] = useState(false)
+  const [bellSel, setBellSel] = useState<[number, number] | null>(null)
 
   const set = <K extends keyof CalEvent>(k: K, v: CalEvent[K]) => setEv((p) => ({ ...p, [k]: v }))
   const student = data.students.find((s) => s.id === ev.studentId)
@@ -50,6 +57,41 @@ export default function EventModal({ initial, onClose, onDuplicate }: { initial:
 
   const groupCodes = Object.keys(data.groups).sort()
   const conflicts = conflictsOf(data, ev)
+  const holiday = holidayMap(data).get(ev.date)
+  const bells = ev.kind === 'kurum' ? data.settings.bellTimes?.[weekdayIndex(ev.date)] ?? [] : []
+  const pickBell = (n: number) => {
+    const sel: [number, number] = !bellSel || bellSel[0] !== bellSel[1] ? [n, n] : [Math.min(bellSel[0], n), Math.max(bellSel[0], n)]
+    const inRange = bells.filter((b) => b.n >= sel[0] && b.n <= sel[1])
+    if (!inRange.length) return
+    setBellSel(sel)
+    setEv((p) => ({ ...p, start: inRange[0].start, end: inRange[inRange.length - 1].end, hours: inRange.length }))
+  }
+  const repeatDates = useMemo(() => {
+    if (!isNew || !repeat) return { dates: [] as string[], skipped: 0 }
+    const dates: string[] = []
+    let skipped = 0
+    for (let d = addDays(ev.date, 7); d <= repeatUntil; d = addDays(d, 7)) {
+      if (skipHolidays && isFullHoliday(data, d)) skipped++
+      else dates.push(d)
+    }
+    return { dates, skipped }
+  }, [isNew, repeat, ev.date, repeatUntil, skipHolidays, data])
+  const original = ev.makeupOf ? data.events.find((e) => e.id === ev.makeupOf) : undefined
+  const makeups = !isNew ? data.events.filter((e) => e.makeupOf === ev.id) : []
+
+  const planMakeup = (date: string, start: string, end: string) => {
+    setMakeupOpen(false)
+    const orig: CalEvent = { ...ev, status: ev.status === 'planned' ? 'postponed' : ev.status }
+    const copy: CalEvent = {
+      ...ev, id: uid(), date, start, end, status: 'planned', makeupOf: ev.id, topic: undefined, homework: undefined, notes: undefined,
+      importKeys: undefined, seriesId: undefined, createdAt: Date.now(),
+    }
+    saveEvents([orig, copy])
+    showToast(`Telafi dersi eklendi: ${formatShort(date)} ${start}–${end}`, [{ label: 'Geri al', run: () => { deleteEvents([copy.id]); saveEvents([initial as CalEvent]) } }])
+    onClose()
+  }
+  const payState = student && !isNew ? studentFinance(data, student, todayISO()).lessonPay.get(ev.id) : undefined
+  const canReceiveFee = ev.kind === 'ozel' && !!student && (ev.fee ?? 0) > 0 && payState !== 'paid' && ev.status !== 'cancelled' && ev.status !== 'postponed'
   const books = ev.studentId ? data.books.filter((b) => b.studentId === ev.studentId && (b.status !== 'bitti' || b.id === ev.bookId)) : []
   const series = ev.seriesId ? data.events.filter((e) => e.seriesId === ev.seriesId) : []
 
@@ -71,11 +113,16 @@ export default function EventModal({ initial, onClose, onDuplicate }: { initial:
     const out: CalEvent[] = [base]
     if (isNew && repeat) {
       base.seriesId = uid()
-      for (let d = addDays(ev.date, 7); d <= repeatUntil; d = addDays(d, 7)) {
+      for (const d of repeatDates.dates) {
         out.push({ ...base, id: uid(), date: d, status: 'planned', topic: undefined, homework: undefined, notes: undefined })
       }
     }
     saveEvents(out)
+    if (feeReceived && canReceiveFee && (status === 'done' || isPast(ev.date, ev.start))) {
+      if (status !== 'done') saveEvents([{ ...base, status: 'done' }])
+      savePayment({ id: uid(), studentId: base.studentId!, date: todayISO() < base.date ? base.date : todayISO(), amount: base.fee ?? 0, eventId: base.id, note: `${formatShort(base.date)} dersi` })
+      showToast(`Ders ve ${money(base.fee ?? 0, data.settings.currency)} ödeme kaydedildi`)
+    }
     // Tekrarlayan derste saat/gün değiştiyse sonrakilere de uygulamayı teklif et
     const before = initial as CalEvent
     if (!isNew && before.seriesId && (before.date !== base.date || before.start !== base.start || before.end !== base.end)) {
@@ -117,7 +164,7 @@ export default function EventModal({ initial, onClose, onDuplicate }: { initial:
           )}
           <div className="spacer" />
           <button className="btn" onClick={onClose}>Vazgeç</button>
-          {ev.kind !== 'diger' && past && ev.status !== 'done' && (
+          {ev.kind !== 'diger' && past && ev.status === 'planned' && (
             <button className="btn success" onClick={() => save(true)}><CheckCircle2 size={16} /> Yapıldı olarak kaydet</button>
           )}
           <button className="btn primary" onClick={() => save()}>Kaydet</button>
@@ -197,6 +244,21 @@ export default function EventModal({ initial, onClose, onDuplicate }: { initial:
         </label>
       </div>
 
+      {holiday && <div className="row-title" style={{ margin: '4px 0' }}><span className="hol-tag">{holiday.name}</span></div>}
+      {original && <div className="makeup-tag">↺ Telafi dersi — asıl ders: {formatShort(original.date)} {original.start}</div>}
+      {makeups.length > 0 && <div className="makeup-tag">↺ Telafisi planlandı: {makeups.map((m) => `${formatShort(m.date)} ${m.start}`).join(', ')}</div>}
+      {bells.length > 0 && (
+        <div className="field" style={{ marginBottom: 0 }}>
+          <span>Kurum ders saatleri ({['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'][weekdayIndex(ev.date)]}) — art arda saatler için iki saate dokunun</span>
+          <div className="bell-chips">
+            {bells.map((b) => (
+              <button key={b.n} className={'chip' + ((bellSel ? b.n >= bellSel[0] && b.n <= bellSel[1] : b.start >= ev.start && b.end <= ev.end) ? ' sel' : '')} onClick={() => pickBell(b.n)}>
+                {b.n}. saat<small>{b.start}</small>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {conflicts.length > 0 && (
         <div className="conflict">⚠️ Çakışma: {conflicts.map((c) => `${eventTitle(data, c)} (${c.start}–${c.end})`).join(', ')}</div>
       )}
@@ -212,6 +274,10 @@ export default function EventModal({ initial, onClose, onDuplicate }: { initial:
               <input type="date" value={repeatUntil} onChange={(e) => setRepeatUntil(e.target.value)} />
             </label>
           )}
+          {repeat && (
+            <label className="check"><input type="checkbox" checked={skipHolidays} onChange={(e) => setSkipHolidays(e.target.checked)} /> Tatilleri atla</label>
+          )}
+          {repeat && <span className="muted small">{repeatDates.dates.length + 1} ders oluşturulacak{repeatDates.skipped ? `, ${repeatDates.skipped} tatil günü atlandı` : ''}</span>}
         </div>
       )}
 
@@ -222,6 +288,10 @@ export default function EventModal({ initial, onClose, onDuplicate }: { initial:
               <button key={s} className={ev.status === s ? 'active st-' + s : ''} onClick={() => set('status', s)}>{STATUS_LABEL[s]}</button>
             ))}
           </div>
+
+          {!isNew && (ev.status === 'cancelled' || ev.status === 'postponed') && makeups.length === 0 && (
+            <button className="btn" onClick={() => setMakeupOpen(true)}>↺ Telafi dersi planla</button>
+          )}
 
           {previous.length > 0 && (
             <div className="prev-box">
@@ -264,9 +334,31 @@ export default function EventModal({ initial, onClose, onDuplicate }: { initial:
         <textarea rows={2} value={ev.notes ?? ''} onChange={(e) => set('notes', e.target.value)} placeholder={ev.kind === 'diger' ? '' : 'ör. Ali gelmedi, sınıf çok iyiydi…'} />
       </label>
       {ev.kind === 'ozel' && student && ev.fee !== undefined && (
-        <p className="muted small">Bu ders "Yapıldı" olarak işaretlenince {student.name} hesabına {money(ev.fee, data.settings.currency)} eklenir.</p>
+        <div className="fee-box">
+          {payState === 'paid' ? (
+            <span className="pay-state paid">Bu dersin ücreti ödendi</span>
+          ) : (
+            <>
+              {payState && <span className={'pay-state ' + payState}>{payState === 'partial' ? 'Kısmen ödendi' : 'Ücreti ödenmedi'}</span>}
+              {canReceiveFee && (ev.status === 'done' || isPast(ev.date, ev.start)) && (
+                <label className="check"><input type="checkbox" checked={feeReceived} onChange={(e) => setFeeReceived(e.target.checked)} /> Bu dersin ücreti alındı ({money(ev.fee ?? 0, data.settings.currency)})</label>
+              )}
+              {!(ev.status === 'done' || isPast(ev.date, ev.start)) && <span className="muted small">Ders yapılınca {student.name} hesabına {money(ev.fee, data.settings.currency)} eklenir.</span>}
+            </>
+          )}
+        </div>
       )}
       {ev.kind !== 'diger' && <p className="muted small">İpucu: Geçmiş bir derse konu yazıp kaydettiğinizde ders otomatik "Yapıldı" olur.</p>}
+      {makeupOpen && (
+        <FreeSlotsModal
+          title="Telafi için boş saat seç"
+          initialDuration={toMinutes(ev.end) - toMinutes(ev.start)}
+          from={addDays(todayISO(), 0)}
+          ignoreId={ev.id}
+          onClose={() => setMakeupOpen(false)}
+          onPick={planMakeup}
+        />
+      )}
     </Modal>
   )
 }

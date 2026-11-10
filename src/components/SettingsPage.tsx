@@ -1,8 +1,10 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Download, Upload, CalendarDays } from 'lucide-react'
-import { emptyData, normalize, saveGroup, setData, useData } from '../lib/store'
+import { deleteHoliday, emptyData, normalize, saveGroup, saveHoliday, setData, useData } from '../lib/store'
+import { holidaysBetween } from '../lib/holidays'
+import { TR_DAYS, addDays, formatShort, todayISO } from '../lib/date'
+import { uid } from '../lib/util'
 import { buildICS } from '../lib/ics'
-import { todayISO } from '../lib/date'
 import { PALETTE, downloadFile } from '../lib/util'
 
 export default function SettingsPage() {
@@ -51,6 +53,32 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
+
+      <HolidaysPanel />
+
+      {data.settings.bellTimes && Object.keys(data.settings.bellTimes).length > 0 && (
+        <section className="panel">
+          <h3>Kurum zil saatleri</h3>
+          <p className="muted small">Yüklediğiniz programlardan otomatik öğrenildi. Takvimde kurum dersi eklerken "3. saat" gibi seçebilirsiniz.</p>
+          <div className="table-wrap">
+            <table className="table bell-table">
+              <thead><tr><th>Gün</th>{Array.from({ length: Math.max(...Object.values(data.settings.bellTimes).flat().map((b) => b.n)) }, (_, i) => <th key={i}>{i + 1}.</th>)}</tr></thead>
+              <tbody>
+                {Object.entries(data.settings.bellTimes).sort(([a], [b]) => Number(a) - Number(b)).map(([wd, list]) => (
+                  <tr key={wd}>
+                    <td><b>{TR_DAYS[Number(wd)]}</b></td>
+                    {Array.from({ length: Math.max(...Object.values(data.settings.bellTimes!).flat().map((b) => b.n)) }, (_, i) => {
+                      const b = list.find((x) => x.n === i + 1)
+                      return <td key={i} className="small nowrap">{b ? `${b.start}–${b.end}` : <span className="muted">·</span>}</td>
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button className="btn small ghost" style={{ marginTop: 8 }} onClick={() => confirm('Öğrenilen zil saatleri silinsin mi? Bir sonraki program yüklemesinde yeniden öğrenilir.') && setSetting('bellTimes', undefined)}>Sıfırla</button>
+        </section>
+      )}
 
       <section className="panel">
         <h3>Genel</h3>
@@ -102,7 +130,47 @@ export default function SettingsPage() {
           }}
         >Tüm verileri sil</button>
       </section>
-      <p className="muted small center">Ders Asistanı v0.4 · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
+      <p className="muted small center">Ders Asistanı v0.5 · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
     </div>
+  )
+}
+
+function HolidaysPanel() {
+  const data = useData()
+  const today = todayISO()
+  const [name, setName] = useState('')
+  const [start, setStart] = useState(today)
+  const [end, setEnd] = useState(today)
+  const upcoming = holidaysBetween(data, today, addDays(today, 120)).filter((x) => x.h.builtin)
+  const official = data.settings.showOfficialHolidays !== false
+  return (
+    <section className="panel">
+      <h3>Tatiller</h3>
+      <p className="muted small">Tatiller takvimde işaretlenir; tekrarlayan özel dersler oluşturulurken tam gün tatiller atlanır, boş saat aramasında da gösterilmez.</p>
+      <label className="check">
+        <input type="checkbox" checked={official} onChange={(e) => setData((d) => ({ ...d, settings: { ...d.settings, showOfficialHolidays: e.target.checked } }))} />
+        Resmi tatilleri göster (bayramlar dahil)
+      </label>
+      {official && upcoming.length > 0 && (
+        <p className="small muted">Yaklaşan: {upcoming.slice(0, 6).map((x) => `${formatShort(x.date)} ${x.h.name}`).join(' · ')}</p>
+      )}
+      <h4>Okul / kişisel tatiller</h4>
+      {data.holidays.length > 0 && (
+        <ul className="promise-list">
+          {[...data.holidays].sort((a, b) => a.start.localeCompare(b.start)).map((h) => (
+            <li key={h.id}>
+              <span className="grow"><b>{h.name}</b> <span className="muted">{formatShort(h.start)}{h.end !== h.start ? ` – ${formatShort(h.end)}` : ''}</span></span>
+              <button className="btn small ghost" onClick={() => deleteHoliday(h.id)}>Sil</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="row wrap">
+        <label className="field grow"><span>Ad</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="ör. Ara tatil, Yarıyıl tatili" /></label>
+        <label className="field"><span>Başlangıç</span><input type="date" value={start} onChange={(e) => { setStart(e.target.value); if (e.target.value > end) setEnd(e.target.value) }} /></label>
+        <label className="field"><span>Bitiş</span><input type="date" value={end} min={start} onChange={(e) => setEnd(e.target.value)} /></label>
+        <button className="btn primary" style={{ marginBottom: 10 }} disabled={!name.trim() || !start || !end} onClick={() => { saveHoliday({ id: uid(), name: name.trim(), start, end }); setName('') }}>Ekle</button>
+      </div>
+    </section>
   )
 }

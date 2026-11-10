@@ -1,10 +1,32 @@
 import { useMemo, useState } from 'react'
 import { School, Users } from 'lucide-react'
-import { eventTitle, studentBalance, useData } from '../lib/store'
+import { eventTitle, useData } from '../lib/store'
+import FinanceKpis from './FinanceKpis'
+import IncomePanel from './IncomePanel'
+import PuantajPanel from './PuantajPanel'
 import { addMonths, isPast, monthLabel, startOfMonth, todayISO } from '../lib/date'
 import { money } from '../lib/util'
 
+type STab = 'ozet' | 'gelir' | 'puantaj'
+
 export default function SummaryPage() {
+  const [tab, setTab] = useState<STab>('ozet')
+  return (
+    <div className="page">
+      <div className="page-head"><h2>Raporlar</h2></div>
+      <div className="seg tabs-seg">
+        <button className={tab === 'ozet' ? 'active' : ''} onClick={() => setTab('ozet')}>Aylık özet</button>
+        <button className={tab === 'gelir' ? 'active' : ''} onClick={() => setTab('gelir')}>Gelir paneli</button>
+        <button className={tab === 'puantaj' ? 'active' : ''} onClick={() => setTab('puantaj')}>Ek ders puantajı</button>
+      </div>
+      {tab === 'ozet' && <MonthlySummary />}
+      {tab === 'gelir' && <IncomePanel />}
+      {tab === 'puantaj' && <PuantajPanel />}
+    </div>
+  )
+}
+
+function MonthlySummary() {
   const data = useData()
   const [month, setMonth] = useState(startOfMonth(todayISO()))
   const cur = data.settings.currency
@@ -37,16 +59,14 @@ export default function SummaryPage() {
         return { st, lessons: l.length, earned: l.reduce((a, e) => a + (e.fee ?? 0), 0), paid: data.payments.filter((p) => p.studentId === st.id && p.date.slice(0, 7) === ym).reduce((a, p) => a + p.amount, 0) }
       })
       .filter((x) => x.lessons || x.paid)
-    const outstanding = data.students.reduce((a, st) => a + Math.max(0, studentBalance(data, st.id, todayISO()).balance), 0)
-    return { kurumTotal, kurumDone, kurumCancelled, byGroup, ozelDone: ozelDone.length, ozelPlanned: ozelPlanned.length, earned, expected, received, byStudent, outstanding }
+    return { kurumTotal, kurumDone, kurumCancelled, byGroup, ozelDone: ozelDone.length, ozelPlanned: ozelPlanned.length, earned, expected, received, byStudent }
   }, [data, ym])
 
   const rate = data.settings.kurumHourlyRate
 
   return (
-    <div className="page">
+    <div>
       <div className="page-head">
-        <h2>Aylık Özet</h2>
         <div className="spacer" />
         <span className="month-nav">
           <button className="icon-btn" onClick={() => setMonth(addMonths(month, -1))}>‹</button>
@@ -82,8 +102,9 @@ export default function SummaryPage() {
         <div className="kpi"><span>Kazanılan</span><b>{money(s.earned, cur)}</b></div>
         <div className="kpi"><span>Bu ay tahsil edilen</span><b>{money(s.received, cur)}</b></div>
         <div className="kpi"><span>Ay sonu beklenen</span><b>{money(s.expected, cur)}</b><small className="muted">{s.ozelPlanned} planlı ders dahil</small></div>
-        <div className="kpi"><span>Toplam alacak (tüm zamanlar)</span><b className={s.outstanding > 0 ? 'warn-text' : ''}>{money(s.outstanding, cur)}</b></div>
       </div>
+      <h4>Alacak durumu (bugün itibarıyla)</h4>
+      <FinanceKpis compact />
       {s.byStudent.length > 0 && (
         <div className="table-wrap">
           <table className="table">

@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core'
+import { Capacitor, registerPlugin } from '@capacitor/core'
 
 export const isNative = Capacitor.isNativePlatform()
 
@@ -31,10 +31,26 @@ export function openExternal(url: string) {
 }
 
 /** Android'de verinin kalıcı kopyası (localStorage temizlenirse geri yüklemek için) */
+interface WidgetBridgePlugin {
+  refresh(): Promise<void>
+}
+let widgetBridge: WidgetBridgePlugin | null = null
+let widgetTimer: ReturnType<typeof setTimeout> | undefined
+
 export async function nativeSave(key: string, value: string) {
   if (!isNative) return
   const { Preferences } = await import('@capacitor/preferences')
   await Preferences.set({ key, value })
+  // Ana ekran widget'ını kısa bir gecikmeyle yenile (art arda kayıtlarda tek sefer)
+  clearTimeout(widgetTimer)
+  widgetTimer = setTimeout(() => {
+    try {
+      if (!widgetBridge) widgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge')
+      widgetBridge.refresh().catch(() => undefined)
+    } catch {
+      /* widget yoksa sorun değil */
+    }
+  }, 800)
 }
 
 export async function nativeLoad(key: string): Promise<string | null> {

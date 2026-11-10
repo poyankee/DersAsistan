@@ -24,6 +24,8 @@ export interface CalEvent {
   homework?: string
   /** Özel ders ücreti (ders oluşturulduğu andaki) */
   fee?: number
+  /** Telafi dersi ise, telafisi yapılan dersin kimliği */
+  makeupOf?: string
   /** Derste kullanılan kitap ve ilerleme (ör. "s. 40–55", "Test 3–5") */
   bookId?: string
   bookProgress?: string
@@ -39,14 +41,24 @@ export interface Group {
   color: string
 }
 
+export type BillingType = 'ders' | 'toplu' | 'paket'
+
 export interface Student {
   id: string
   name: string
   phone?: string
   parentName?: string
   parentPhone?: string
-  /** Ders başı ücret */
+  /** Ders başı ücret (paket öğrencilerinde paket fiyatı / ders sayısı) */
   fee: number
+  /** Ödeme düzeni: her ders sonrası, toplu (ay sonu / her N ders) veya peşin paket */
+  billing?: BillingType
+  /** Toplu ödemede dönem: takvim ayı veya her N ders */
+  bulkPeriod?: 'ay' | 'ders'
+  bulkEvery?: number
+  /** Paket: kaç derslik, kaç liraya */
+  packageSize?: number
+  packagePrice?: number
   color: string
   notes?: string
   active: boolean
@@ -60,7 +72,32 @@ export interface Payment {
   amount: number
   method?: string
   note?: string
+  /** Belirli bir dersin ücreti olarak alındıysa */
+  eventId?: string
 }
+
+/** İleri tarihli ödeme sözü: "15 Aralık'ta ödeyeceğim" */
+export interface PaymentPromise {
+  id: string
+  studentId: string
+  dueDate: string
+  amount: number
+  note?: string
+  createdAt: number
+}
+
+/** Resmi tatil veya okul tatili (bitiş dahil) */
+export interface Holiday {
+  id: string
+  name: string
+  start: string
+  end: string
+  /** Yerleşik resmi tatil mi, kullanıcı mı ekledi */
+  builtin?: boolean
+}
+
+/** Kurum zil saatleri: haftanın günü (0=Pzt) → ders saatleri */
+export type BellTimes = Record<number, { n: number; start: string; end: string }[]>
 
 export type BookStatus = 'devam' | 'bitti' | 'planli'
 
@@ -93,6 +130,10 @@ export interface Settings {
   dayStart: number
   dayEnd: number
   currency: string
+  /** İçe aktarılan programlardan öğrenilen zil saatleri */
+  bellTimes?: BellTimes
+  /** Yerleşik resmi tatilleri göster */
+  showOfficialHolidays?: boolean
 }
 
 export interface AppData {
@@ -103,6 +144,9 @@ export interface AppData {
   payments: Payment[]
   books: Book[]
   notes: StudentNote[]
+  promises: PaymentPromise[]
+  /** Kullanıcının eklediği tatiller (ara tatil, yarıyıl vb.) */
+  holidays: Holiday[]
   /** Kullanıcının sildiği kurum ders saatleri: yeniden içe aktarılmaz */
   ignoredImportKeys: string[]
   settings: Settings

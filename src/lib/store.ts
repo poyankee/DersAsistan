@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { AppData, Book, CalEvent, Group, Payment, Student, StudentNote } from './types'
+import type { AppData, Book, CalEvent, Group, Holiday, Payment, PaymentPromise, Student, StudentNote } from './types'
 import { PALETTE, colorFor, uid } from './util'
 import { nativeLoad, nativeSave } from './native'
 
@@ -14,6 +14,8 @@ export function emptyData(): AppData {
     payments: [],
     books: [],
     notes: [],
+    promises: [],
+    holidays: [],
     ignoredImportKeys: [],
     settings: { dayStart: 8, dayEnd: 21, currency: '₺' },
   }
@@ -41,6 +43,8 @@ export function normalize(d: Partial<AppData>): AppData {
     payments: d.payments ?? [],
     books: d.books ?? [],
     notes: d.notes ?? [],
+    promises: d.promises ?? [],
+    holidays: d.holidays ?? [],
     ignoredImportKeys: d.ignoredImportKeys ?? [],
   } as AppData
 }
@@ -158,6 +162,7 @@ export function deleteStudent(id: string) {
     payments: d.payments.filter((p) => p.studentId !== id),
     books: d.books.filter((b) => b.studentId !== id),
     notes: d.notes.filter((n) => n.studentId !== id),
+    promises: d.promises.filter((n) => n.studentId !== id),
     events: d.events.filter((e) => e.studentId !== id),
   }))
 }
@@ -198,8 +203,24 @@ export function deleteNote(id: string) {
   setData((d) => ({ ...d, notes: d.notes.filter((n) => n.id !== id) }))
 }
 
+export function savePromise(p: PaymentPromise) {
+  setData((d) => ({ ...d, promises: upsert(d.promises, p) }))
+}
+
+export function deletePromise(id: string) {
+  setData((d) => ({ ...d, promises: d.promises.filter((p) => p.id !== id) }))
+}
+
+export function saveHoliday(h: Holiday) {
+  setData((d) => ({ ...d, holidays: upsert(d.holidays, h) }))
+}
+
+export function deleteHoliday(id: string) {
+  setData((d) => ({ ...d, holidays: d.holidays.filter((h) => h.id !== id) }))
+}
+
 export function newStudent(): Student {
-  return { id: uid(), name: '', fee: 0, color: '#33b679', active: true, createdAt: Date.now() }
+  return { id: uid(), name: '', fee: 0, color: '#33b679', active: true, billing: 'ders', createdAt: Date.now() }
 }
 
 // ---- Hesaplamalar ----
@@ -220,28 +241,4 @@ export function eventTitle(d: AppData, e: CalEvent): string {
     return s ? `Özel: ${s.name}` : e.title
   }
   return e.title || '(Başlıksız)'
-}
-
-export interface StudentBalance {
-  doneLessons: number
-  earned: number
-  paid: number
-  balance: number
-  plannedPast: number
-}
-
-/** Bakiye = yapılan derslerin ücreti − alınan ödemeler (pozitif = öğrencinin borcu) */
-export function studentBalance(d: AppData, studentId: string, today: string): StudentBalance {
-  let doneLessons = 0
-  let earned = 0
-  let plannedPast = 0
-  for (const e of d.events) {
-    if (e.studentId !== studentId) continue
-    if (e.status === 'done') {
-      doneLessons++
-      earned += e.fee ?? 0
-    } else if (e.status === 'planned' && e.date < today) plannedPast++
-  }
-  const paid = d.payments.filter((p) => p.studentId === studentId).reduce((a, p) => a + p.amount, 0)
-  return { doneLessons, earned, paid, balance: earned - paid, plannedPast }
 }

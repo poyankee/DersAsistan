@@ -4,4 +4,5 @@
     <string name="title_activity_main">Ders Asistanı</string>
     <string name="package_name">com.dersasistani.app</string>
     <string name="custom_url_scheme">com.dersasistani.app</string>
+    <string name="widget_description">Bugünkü dersler ve sıradaki ders</string>
 </resources>

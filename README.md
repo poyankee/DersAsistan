@@ -43,6 +43,9 @@ base64 -w0 dersasistani.keystore   # çıktıyı ANDROID_KEYSTORE_BASE64 olarak 
 ```
 Anahtar dosyasını ve şifresini kaybetmeyin; kaybolursa uygulamayı silip yeniden kurmak (önce yedek alarak) gerekir.
 
+**Ana ekran widget'ı:** Uygulamayı kurduktan sonra telefonun ana ekranına uzun basın → *Widget'lar* →
+*Ders Asistanı · Bugün*. Bugünün derslerini, sıradaki dersi ve notu eksik ders sayısını gösterir.
+
 ## Geliştirme
 
 ```bash

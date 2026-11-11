@@ -143,15 +143,9 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
             <button key={v} className={view === v ? 'active' : ''} onClick={() => setView(v)}>{VIEW_LABEL[v]}</button>
           ))}
         </div>
+        <button className="icon-btn" onClick={() => setImportOpen(true)} aria-label="Ders programı yükle" title="Ders programı yükle"><Upload size={19} /></button>
         <button className={'icon-btn' + (hidden ? ' has-dot' : '')} onClick={() => setMenuOpen(true)} aria-label="Diğer seçenekler" title="Diğer seçenekler"><MoreHorizontal size={20} /></button>
       </div>
-
-      {data.events.length === 0 && (
-        <div className="empty-hint">
-          <p>Takviminiz boş. Kurumun verdiği <b>ders programı dosyasını</b> yükleyin ya da takvimde bir saate dokunarak etkinlik ekleyin.</p>
-          <button className="btn primary" onClick={() => setImportOpen(true)}><Upload size={16} /> Ders programını yükle</button>
-        </div>
-      )}
 
       {view !== 'month' && (
         <TimeGrid

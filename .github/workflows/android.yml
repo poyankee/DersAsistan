@@ -28,7 +28,8 @@ jobs:
       - run: npm run build
       - name: Uçtan uca testler (gerçek tarayıcıda)
         run: |
-          npx playwright install --with-deps chromium
+          # Ubuntu paket sunucusuna erişim anlık kesilirse birkaç kez dene
+          for i in 1 2 3; do npx playwright install --with-deps chromium && break; echo "Yeniden deneniyor ($i)"; sleep 20; done
           npm run e2e
       - run: npx cap sync android
       # Güncellemelerin eskisinin üzerine kurulabilmesi için imza anahtarı derlemeler arasında saklanır.

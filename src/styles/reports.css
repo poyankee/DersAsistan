@@ -1,0 +1,33 @@
+/* ============ Grafikler ============ */
+.chart-card { margin-bottom: 16px; --s1: #2a78d6; --s2: #eb6834; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .chart-card { --s1: #3987e5; --s2: #d95926; } }
+:root[data-theme="dark"] .chart-card { --s1: #3987e5; --s2: #d95926; }
+.chart-wrap { position: relative; }
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .baseline { stroke: var(--line-strong); stroke-width: 1; }
+.chart .axis { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.chart .bar.s1 { fill: var(--s1); }
+.chart .bar.s2 { fill: var(--s2); }
+.chart .hover-band { fill: var(--surface-2); }
+.legend { display: flex; gap: 14px; font-size: 13px; color: var(--text-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
+.sw.s1 { background: var(--s1); }
+.sw.s2 { background: var(--s2); }
+.tooltip { position: absolute; top: 6px; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); padding: 8px 12px; font-size: 13px; display: flex; flex-direction: column; gap: 3px; pointer-events: none; white-space: nowrap; z-index: 5; }
+.tooltip span { display: inline-flex; align-items: center; gap: 6px; }
+.tt-total { font-weight: 650; }
+.hbars { display: flex; flex-direction: column; gap: 8px; }
+.hbar-row { display: grid; grid-template-columns: 140px 1fr 90px; gap: 10px; align-items: center; font-size: 14px; }
+.hbar-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar-track { height: 12px; background: var(--surface-2); border-radius: 6px; overflow: hidden; }
+.hbar-fill { display: block; height: 100%; background: var(--s1); border-radius: 0 4px 4px 0; }
+.hbar-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-2); }
+.puantaj-table td, .puantaj-table th { text-align: center; }
+.puantaj-table td:first-child, .puantaj-table th:first-child, .puantaj-table td:nth-child(2), .puantaj-table th:nth-child(2) { text-align: left; }
+.puantaj-table tbody tr { cursor: default; }
+.puantaj-table tr.future td { color: var(--muted); }
+.puantaj-table tfoot td { border-top: 2px solid var(--line-strong); background: var(--surface-2); }
+@media (max-width: 720px) { .hbar-row { grid-template-columns: 96px 1fr 76px; font-size: 13px; } .tooltip { font-size: 12px; } }
+

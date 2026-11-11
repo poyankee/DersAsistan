@@ -105,3 +105,13 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
 - v0.7.1 Kod incelemesi düzeltmeleri: iptal edilmeyen geçmiş dersler otomatik yapılmış sayılır (ücret açığı kapandı),
   aynı güne ikinci kayıt üzerine yazmaz, açılışta veri yükleme yarışı giderildi, imza anahtarı derlemeler arasında
   saklanır, ölü kod ve 97 kullanılmayan stil kuralı temizlendi
+- v0.8 Sistem ve tasarım: dosya tabanlı depo, açılışta doğrulama ve sağlam kopyalar, şema geçişleri, günlük otomatik
+  yedek (Belgeler/DersAsistani), parolalı yedek; hata raporu, ESLint, uçtan uca testler (CI); küçük .xlsx okuyucu;
+  genel arama, telafi planlama, ders ve hesap dökümü, PIN kilidi, kılavuz, yenilikler; canlı ve renkli tasarım,
+  seçilebilir ana renk, animasyonlar (açılış, sayfa geçişi, listeler); stil dosyaları ekran bazında bölündü
+
+## Bekleyenler (kullanıcı tarafında)
+- [ ] Kalıcı imza anahtarı (GitHub Secrets) ya da Google Play kapalı test
+- [ ] Depoyu gizli yapma (GitHub → Settings → Danger zone → Change visibility)
+- [ ] Gerçek telefonda deneme: otomatik yedek, bildirimler, widget, kısayollar, animasyon akıcılığı
+- [ ] Bulut eşitleme, uygulama içi güncelleme bildirimi (istenirse)

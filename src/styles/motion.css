@@ -1,0 +1,54 @@
+/* ============ Animasyonlar ============ */
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: translateY(14px) scale(.96); } }
+@keyframes sheet { from { transform: translateY(100%); } }
+@keyframes page-in { from { opacity: 0; transform: translateY(14px); } }
+@keyframes rise { from { opacity: 0; transform: translateY(12px) scale(.98); } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(24px) scale(.9); } }
+@keyframes nav-pop { 0% { transform: scale(.6) rotate(-12deg); } 60% { transform: scale(1.18) rotate(4deg); } 100% { transform: none; } }
+@keyframes fab-in { from { opacity: 0; transform: scale(.3) rotate(-90deg); } }
+@keyframes hero-shift { from { background-position: 0% 30%; } to { background-position: 100% 70%; } }
+@keyframes float { 50% { transform: translate(14px, -12px) scale(1.06); } }
+@keyframes ev-in { from { opacity: 0; transform: scale(.94); } }
+@keyframes shake { 20%, 60% { transform: translateX(-9px); } 40%, 80% { transform: translateX(9px); } }
+@keyframes pulse { 70% { box-shadow: 0 0 0 9px rgba(255,255,255,0); } 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); } }
+@keyframes check-pop { 0% { transform: scale(.4); } 60% { transform: scale(1.25); } 100% { transform: none; } }
+@keyframes splash-logo { 0% { opacity: 0; transform: scale(.5) rotate(-14deg); } 55% { opacity: 1; transform: scale(1.12) rotate(3deg); } 100% { transform: none; } }
+@keyframes splash-text { from { opacity: 0; transform: translateY(10px); letter-spacing: .2em; } }
+
+/* Sayfa geçişi: sekme değişince içerik aşağıdan yumuşakça gelir */
+.page-anim { height: 100%; animation: page-in .38s var(--ease); }
+
+/* Listeler sırayla belirir */
+.cards > *, .daylist > li, .log-list > li, .hit-list > li, .task-list > li, .debtors > li, .action-grid > button, .peek-actions > button, .stats > div, .kpis > *, .fin-kpis > *, .course-list > li {
+  animation: rise .42s var(--ease) backwards;
+}
+:is(.cards, .daylist, .log-list, .hit-list, .task-list, .debtors, .action-grid, .peek-actions, .stats, .kpis, .fin-kpis, .course-list) > :nth-child(2) { animation-delay: .04s; }
+:is(.cards, .daylist, .log-list, .hit-list, .task-list, .debtors, .action-grid, .peek-actions, .stats, .kpis, .fin-kpis, .course-list) > :nth-child(3) { animation-delay: .08s; }
+:is(.cards, .daylist, .log-list, .hit-list, .task-list, .debtors, .action-grid, .peek-actions, .stats, .kpis, .fin-kpis, .course-list) > :nth-child(4) { animation-delay: .12s; }
+:is(.cards, .daylist, .log-list, .hit-list, .task-list, .debtors, .action-grid, .peek-actions, .stats, .kpis, .fin-kpis, .course-list) > :nth-child(5) { animation-delay: .16s; }
+:is(.cards, .daylist, .log-list, .hit-list, .task-list, .debtors, .action-grid, .peek-actions, .stats, .kpis, .fin-kpis, .course-list) > :nth-child(6) { animation-delay: .2s; }
+:is(.cards, .daylist, .log-list, .hit-list, .task-list, .debtors, .action-grid, .peek-actions, .stats, .kpis, .fin-kpis, .course-list) > :nth-child(n+7) { animation-delay: .24s; }
+
+.hero-card { animation: hero-shift 12s ease-in-out infinite alternate, rise .5s var(--ease) backwards; }
+.surface, .panel, .quick-entry, .fin-banner, .info-card { animation: rise .45s var(--ease) backwards; }
+.today-cols > :nth-child(2) { animation-delay: .08s; }
+
+/* Takvim: dersler görünüm değişince yumuşakça belirir (sürüklenen hariç) */
+.ev:not(.dragging) { animation: ev-in .28s var(--ease) backwards; }
+.mg-cell { animation: fade .3s ease-out backwards; }
+.day-panel { animation: rise .3s var(--ease); }
+.task-check.on svg { animation: check-pop .35s var(--spring); }
+.pin-dots.shake { animation: shake .35s; }
+.tabs-seg + *, .people > .page { animation: page-in .32s var(--ease); }
+
+/* Açılış ekranı (index.html içinde; uygulama hazır olunca kaybolur) */
+#splash { position: fixed; inset: 0; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: linear-gradient(135deg, hsl(var(--h, 252) 85% 60%), hsl(var(--h2, 292) 85% 60%)); transition: opacity .45s ease, transform .45s ease; }
+#splash.hide { opacity: 0; transform: scale(1.08); pointer-events: none; }
+#splash img { width: 96px; height: 96px; border-radius: 26px; box-shadow: 0 24px 50px -12px rgba(0,0,0,.4); animation: splash-logo .7s var(--spring, cubic-bezier(.3,1.5,.5,1)) both; }
+#splash b { color: #fff; font: 700 26px 'Outfit Variable', system-ui, sans-serif; animation: splash-text .6s .25s ease-out both; }
+
+/* Hareket azaltma tercihi olanlar için animasyonlar kapatılır */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

@@ -4,6 +4,7 @@ import { Bell, BookOpen, Bug, CalendarDays, Download, KeyRound, Lock, Sparkles, 
 import { decryptText, encryptText, isEncrypted } from '../lib/crypto'
 import { autoBackupInfo, readSnapshots } from '../lib/persist'
 import { makeLock } from '../lib/lock'
+import { ACCENTS, accentOf } from '../lib/accent'
 import { APP_VERSION, CHANGELOG } from '../lib/version'
 import { clearErrors, errorReport, readErrors } from '../lib/errlog'
 import { deleteCategory, deleteHoliday, emptyData, emptyTrash, normalize, restoreTrash, saveCategory, saveGroup, saveHoliday, setData, useData } from '../lib/store'
@@ -221,6 +222,20 @@ function AppearancePanel() {
   return (
     <section className="panel">
       <h3 className="row-title"><Palette size={18} /> Görünüm</h3>
+      <div className="field">
+        <span>Ana renk</span>
+        <div className="accent-list">
+          {ACCENTS.map((a) => (
+            <button
+              key={a.id}
+              className={'accent-swatch' + (accentOf(data.settings.accent).id === a.id ? ' sel' : '')}
+              style={{ background: `linear-gradient(135deg, hsl(${a.h} ${a.s}% ${a.l}%), hsl(${a.h2} ${a.s}% ${a.l}%))` }}
+              onClick={() => setSettings({ accent: a.id })}
+              aria-label={a.name}
+            ><span>{a.name}</span></button>
+          ))}
+        </div>
+      </div>
       <div className="row wrap">
         <div className="field">
           <span>Tema</span>

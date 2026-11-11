@@ -1,0 +1,47 @@
+/* ============ Kilit ekranı ============ */
+.lock-screen { position: fixed; inset: 0; z-index: 200; background: var(--bg); background-image: var(--bg-art); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; animation: fade .25s; }
+.lock-ico { width: 68px; height: 68px; border-radius: 22px; background: var(--grad); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 16px 34px -12px var(--glow); animation: splash-logo .6s var(--spring) both; }
+.lock-screen h2 { font-size: 26px; }
+.lock-screen p { margin: 0; }
+.pin-dots { display: flex; gap: 14px; margin: 14px 0 18px; }
+.pin-dots i { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--line-strong); transition: background .15s, transform .2s var(--spring), border-color .15s; }
+.pin-dots i.on { background: var(--primary); border-color: var(--primary); transform: scale(1.2); }
+.keypad { display: grid; grid-template-columns: repeat(3, 72px); gap: 14px; margin-bottom: 10px; }
+.keypad button { height: 72px; border-radius: 50%; border: 0; background: var(--surface); box-shadow: var(--shadow-sm); font: 600 26px var(--display); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform .15s var(--spring), background .15s; }
+.keypad button:active { transform: scale(.88); background: var(--primary-soft); }
+.keypad button.ghost { background: none; box-shadow: none; color: var(--muted); }
+.lock-help { max-width: 320px; text-align: center; }
+
+/* ============ Çökme ekranı ============ */
+.crash { height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 24px; text-align: center; }
+
+/* ============ Kılavuz, renk seçici, tanıtım ============ */
+.guide { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+.guide dt { font-weight: 650; }
+.guide dd { margin: 2px 0 0; color: var(--text-2); font-size: 14px; }
+.accent-list { display: flex; gap: 10px; flex-wrap: wrap; }
+.accent-swatch { width: 44px; height: 44px; border-radius: 15px; border: 0; cursor: pointer; position: relative; transition: transform .25s var(--spring), box-shadow .2s; box-shadow: var(--shadow-sm); }
+.accent-swatch:hover { transform: translateY(-3px) scale(1.06); }
+.accent-swatch.sel { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--text); transform: scale(1.06); }
+.accent-swatch span { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); font-size: 11px; color: var(--muted); margin-top: 6px; white-space: nowrap; }
+.accent-list { padding-bottom: 20px; }
+.intro { position: fixed; inset: 0; z-index: 150; background: var(--bg); background-image: var(--bg-art); display: flex; align-items: center; justify-content: center; padding: 24px; animation: fade .3s; }
+.intro-card { max-width: 440px; width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.intro-card h1 { font-size: 34px; font-weight: 750; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; animation: rise .5s var(--ease) backwards; }
+.intro-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.intro-list li { display: flex; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 14px 16px; box-shadow: var(--shadow-sm); animation: rise .5s var(--ease) backwards; }
+.intro-list li:nth-child(1) { animation-delay: .1s; } .intro-list li:nth-child(2) { animation-delay: .2s; } .intro-list li:nth-child(3) { animation-delay: .3s; }
+.intro-list .ico { width: 44px; height: 44px; border-radius: 15px; background: var(--grad); color: #fff; display: flex; align-items: center; justify-content: center; flex: none; }
+.intro-list b { display: block; }
+.intro-list small { color: var(--muted); }
+.intro-card .btn { justify-content: center; padding: 13px; font-size: 16px; animation: rise .5s var(--ease) .4s backwards; }
+.head-actions { display: flex; gap: 2px; }
+.side-search { justify-content: flex-start; color: var(--muted); font-weight: 500; }
+
+@media (max-width: 720px) {
+  .app { grid-template-rows: 1fr; }
+  .calendar-page { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .keypad { grid-template-columns: repeat(3, 68px); }
+}
+.accent-list { row-gap: 28px; }
+@media (max-width: 720px) { .toasts { bottom: calc(100px + env(safe-area-inset-bottom)); } }

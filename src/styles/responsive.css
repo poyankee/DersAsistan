@@ -1,0 +1,74 @@
+/* ============ Tablet ============ */
+@media (max-width: 1100px) {
+  :root { --sidebar-w: 76px; }
+  .sidebar { padding: 14px 10px; align-items: center; }
+  .brand div, .side-nav span, .create-btn { display: none; }
+  .brand { padding: 2px 0 8px; }
+  .side-nav button { justify-content: center; padding: 12px; position: relative; }
+
+  .fab { display: flex; }
+
+  .page { padding: 22px 22px 90px; }
+}
+
+/* ============ Telefon ============ */
+@media (max-width: 720px) {
+  .app { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+  .sidebar { display: none; }
+  .only-mobile { display: inline-flex; }
+  .bottom-nav { display: flex; justify-content: space-around; position: fixed; left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 40; background: var(--glass); backdrop-filter: blur(20px) saturate(1.6); -webkit-backdrop-filter: blur(20px) saturate(1.6); border: 1px solid var(--line); border-radius: 26px; padding: 7px 6px; box-shadow: var(--shadow); }
+  .bottom-nav button { flex: 1; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; color: var(--muted); font-size: 11px; font-weight: 550; padding: 2px 0; }
+  .bottom-nav .pill { padding: 6px 18px; border-radius: 16px; background: none; position: relative; display: flex; transition: background .25s, transform .3s var(--spring), box-shadow .25s; }
+  .bottom-nav button.active { color: var(--primary); }
+  .bottom-nav button.active .pill { background: var(--grad); color: var(--primary-text); transform: translateY(-2px) scale(1.06); box-shadow: 0 8px 16px -6px var(--glow); }
+  .bottom-nav button.active .pill svg { animation: nav-pop .45s var(--spring); }
+
+  .fab { bottom: calc(92px + env(safe-area-inset-bottom)); }
+  .page { padding: 16px 14px 100px; }
+  .page-head h2 { font-size: 22px; }
+  .today-head h1 { font-size: 22px; }
+  .hero-title { font-size: 22px; }
+  .hero-card { padding: 18px 20px; border-radius: 20px; }
+  .today-cols { grid-template-columns: 1fr; }
+  .surface, .panel { padding: 14px 16px; }
+  .toolbar { padding: 10px 12px 8px; gap: 4px; }
+  .period { font-size: 16px; flex-basis: 100%; order: 10; margin: 6px 2px 0; }
+  .toolbar .hide-mobile { display: none; }
+
+  .row { flex-wrap: wrap; }
+  .modal-backdrop { padding: 0; align-items: flex-end; }
+  .modal { border-radius: 22px 22px 0 0; max-height: 94dvh; animation: sheet .25s cubic-bezier(.2, .9, .3, 1); border-bottom: 0; }
+  .modal-foot { border-radius: 0; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+  .modal-head::before { content: ''; position: absolute; left: 50%; margin-left: -20px; top: 8px; width: 40px; height: 4px; border-radius: 4px; background: var(--line-strong); }
+  .modal-head { position: relative; padding-top: 22px; }
+  .ag-topic { padding-left: 0; }
+  .monthgrid { grid-auto-rows: minmax(68px, 1fr); }
+  .mg-ev { font-size: 10px; padding: 1px 3px; }
+
+  .profile-head h2 { font-size: 21px; }
+  .toasts { bottom: calc(84px + env(safe-area-inset-bottom)); }
+  .kpi b { font-size: 20px; }
+}
+
+.fab { position: fixed; right: 20px; bottom: 24px; width: 60px; height: 60px; border-radius: 22px; border: 0; background: var(--grad); color: var(--primary-text); align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 14px 30px -8px var(--glow), inset 0 1px 0 rgba(255,255,255,.3); z-index: 41; transition: transform .25s var(--spring); animation: fab-in .5s var(--spring) .15s backwards; }
+.fab:hover { transform: scale(1.07) rotate(90deg); }
+.fab:active { transform: scale(.9) rotate(90deg); }
+@media (max-width: 720px) { .fab { display: flex; } }
+
+@media print {
+  .sidebar, .bottom-nav, .fab, .page-head .btn, .filters, .toasts { display: none !important; }
+  .app { display: block; height: auto; }
+  .content { overflow: visible; }
+  .table-wrap { border: 0; overflow: visible; }
+
+}
+
+.row-title { display: inline-flex; align-items: center; gap: 8px; }
+
+/* Görünürlük düzeltmeleri (daha sonra tanımlanan kuralları ezmek için en sonda) */
+.only-mobile { display: none !important; }
+@media (max-width: 720px) {
+  .only-mobile { display: inline-flex !important; }
+  .fab { bottom: calc(92px + env(safe-area-inset-bottom)); right: 18px; }
+}
+

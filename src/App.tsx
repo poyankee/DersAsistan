@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
-import { BarChart3, CalendarDays, CalendarPlus, GraduationCap, Home, ListTodo, Plus, Settings, Users, Wallet } from 'lucide-react'
+import { BarChart3, CalendarDays, CalendarPlus, GraduationCap, Home, ListTodo, Plus, Search, Settings, Users, Wallet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import CalendarPage from './components/CalendarPage'
 import PeoplePage, { type PeopleView } from './components/PeoplePage'
@@ -10,7 +10,11 @@ import Toasts from './components/Toasts'
 import Modal from './components/Modal'
 import { ExamForm, TaskForm, newExam, newTask } from './components/TaskExamForms'
 import type { CalEvent, Exam, Task } from './lib/types'
-import { takeLoadNotice, useData } from './lib/store'
+import { getData, setData, takeLoadNotice, useData } from './lib/store'
+import { applyAccent } from './lib/accent'
+import SearchModal from './components/SearchModal'
+import LockScreen from './components/LockScreen'
+import Intro from './components/Intro'
 import { showToast } from './lib/toast'
 import { fromMinutes, nowHM, toMinutes, todayISO } from './lib/date'
 import { onAppAction } from './lib/native'
@@ -40,6 +44,7 @@ export default function App() {
   const [task, setTask] = useState<Task | null>(null)
   const [exam, setExam] = useState<Exam | null>(null)
   const [fabOpen, setFabOpen] = useState(false)
+  const [searching, setSearching] = useState(false)
   const [peopleView, setPeopleView] = useState<PeopleView>('ogrenci')
   const [studentId, setStudentId] = useState<string | null>(null)
   const [classCode, setClassCode] = useState<string | null>(null)
@@ -65,7 +70,20 @@ export default function App() {
     if (theme === 'system') root.removeAttribute('data-theme')
     else root.setAttribute('data-theme', theme)
     root.style.fontSize = `${15 * (data.settings.fontScale ?? 1)}px`
-  }, [data.settings.theme, data.settings.fontScale])
+    applyAccent(data.settings.accent)
+  }, [data.settings.theme, data.settings.fontScale, data.settings.accent])
+
+  // Uygulama kilidi: açılışta ve 1 dakikadan uzun arka planda kaldıktan sonra
+  const [locked, setLocked] = useState(() => !!data.settings.lock)
+  useEffect(() => {
+    let hiddenAt = 0
+    const h = () => {
+      if (document.hidden) hiddenAt = Date.now()
+      else if (hiddenAt && Date.now() - hiddenAt > 60_000 && getData().settings.lock) setLocked(true)
+    }
+    document.addEventListener('visibilitychange', h)
+    return () => document.removeEventListener('visibilitychange', h)
+  }, [])
 
   // Bildirimleri veri değiştikçe yeniden planla (Android)
   useEffect(() => {
@@ -129,6 +147,7 @@ export default function App() {
           </div>
         </div>
         <button className="btn primary create-btn" onClick={() => setFabOpen(true)}><Plus size={18} /> Yeni</button>
+        <button className="btn ghost side-search" onClick={() => setSearching(true)} title="Ara"><Search size={17} /> <span>Ara…</span></button>
         <nav className="side-nav">
           {TABS.map((t) => (
             <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => go(t.id)} title={t.label}>
@@ -147,7 +166,8 @@ export default function App() {
       </aside>
 
       <main className="content">
-        {tab === 'bugun' && <TodayPage openEvent={openEvent} goCalendar={goCalendar} goSettings={() => go('ayarlar')} openTask={setTask} />}
+        <div key={tab} className="page-anim">
+        {tab === 'bugun' && <TodayPage openEvent={openEvent} goCalendar={goCalendar} goSettings={() => go('ayarlar')} onSearch={() => setSearching(true)} openTask={setTask} />}
         {tab === 'takvim' && (
           <CalendarPage
             key={calDate?.n ?? 0}
@@ -178,6 +198,7 @@ export default function App() {
           {tab === 'ozet' && <SummaryPage openStudent={openStudent} />}
           {tab === 'ayarlar' && <SettingsPage />}
         </Suspense>
+        </div>
       </main>
 
       <nav className="bottom-nav">
@@ -222,7 +243,12 @@ export default function App() {
       )}
       {task && <TaskForm initial={task} onClose={() => setTask(null)} />}
       {exam && <ExamForm initial={exam} onClose={() => setExam(null)} />}
+      {searching && <SearchModal onClose={() => setSearching(false)} onStudent={openStudent} onClass={openClass} onTask={setTask} onExam={setExam} />}
       <Toasts />
+      {!data.settings.introSeen && data.events.length === 0 && data.students.length === 0 && (
+        <Intro onDone={() => setData((d) => ({ ...d, settings: { ...d.settings, introSeen: true } }))} />
+      )}
+      {locked && data.settings.lock && <LockScreen lock={data.settings.lock} onUnlock={() => setLocked(false)} />}
     </div>
   )
 }

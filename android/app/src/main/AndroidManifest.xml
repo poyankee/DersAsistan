@@ -28,21 +28,14 @@
                 <data android:scheme="dersasistani" />
             </intent-filter>
 
-            <meta-data
-                android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts" />
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
 
-        <receiver
-            android:name=".TodayWidget"
-            android:exported="false"
-            android:label="Ders Asistanı · Bugün">
+        <receiver android:name=".TodayWidget" android:exported="false" android:label="Ders Asistanı · Bugün">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_today_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_today_info" />
         </receiver>
 
         <provider

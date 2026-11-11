@@ -1,0 +1,128 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/outfit';
+
+/* ============ Tasarım belirteçleri ============
+   Tüm renkler ana renkten (--h, --s, --l) ve gradyan eşinden (--h2) türetilir.
+   Ana renk Ayarlar'dan değiştirilince lib/accent.ts bu dört değişkeni günceller. */
+:root {
+  --h: 252;
+  --s: 85%;
+  --l: 60%;
+  --h2: 292;
+
+  --primary: hsl(var(--h) var(--s) var(--l));
+  --primary-2: hsl(var(--h2) var(--s) var(--l));
+  --grad: linear-gradient(135deg, var(--primary), var(--primary-2));
+  --primary-soft: hsl(var(--h) 90% 95.5%);
+  --primary-text: #ffffff;
+  --glow: hsl(var(--h) var(--s) var(--l) / .38);
+
+  --bg: hsl(var(--h) 55% 97.5%);
+  --bg-art: radial-gradient(900px 480px at 105% -8%, hsl(var(--h2) 95% 90% / .75), transparent 70%), radial-gradient(760px 460px at -8% -4%, hsl(var(--h) 95% 91% / .8), transparent 70%);
+  --surface: #ffffff;
+  --surface-2: hsl(var(--h) 45% 96.5%);
+  --surface-3: hsl(var(--h) 40% 92.5%);
+  --glass: hsl(0 0% 100% / .72);
+  --text: hsl(var(--h) 45% 11%);
+  --text-2: hsl(var(--h) 20% 29%);
+  --muted: hsl(var(--h) 12% 46%);
+  --line: hsl(var(--h) 32% 91.5%);
+  --line-strong: hsl(var(--h) 26% 83%);
+  --danger: #e11d48;
+  --danger-soft: #fff1f3;
+  --success: #059669;
+  --success-soft: #e7f8f0;
+  --warn: #c2590a;
+  --warn-soft: #fff4e2;
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 22px;
+  --shadow-sm: 0 1px 2px hsl(var(--h) 50% 30% / .06), 0 2px 8px -2px hsl(var(--h) 50% 30% / .06);
+  --shadow: 0 2px 4px hsl(var(--h) 50% 30% / .05), 0 12px 28px -10px hsl(var(--h) 60% 35% / .22);
+  --shadow-lg: 0 28px 64px -16px hsl(var(--h) 60% 20% / .38);
+  --sidebar-w: 252px;
+  --ev-text-mix: black;
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --spring: cubic-bezier(.3, 1.5, .5, 1);
+  color-scheme: light;
+  font-family: 'Inter Variable', 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+  --display: 'Outfit Variable', 'Inter Variable', system-ui, sans-serif;
+  font-size: 15px;
+  font-feature-settings: 'cv11', 'ss01';
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Koyu tema değerleri: hem telefon koyu moddayken hem de Ayarlar'dan "Koyu" seçilince */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --primary: hsl(var(--h) var(--s) calc(var(--l) + 12%));
+    --primary-2: hsl(var(--h2) var(--s) calc(var(--l) + 12%));
+    --primary-soft: hsl(var(--h) 45% 19%);
+    --primary-text: hsl(var(--h) 60% 7%);
+    --glow: hsl(var(--h) var(--s) var(--l) / .45);
+    --bg: hsl(var(--h) 32% 6.5%);
+    --bg-art: radial-gradient(900px 480px at 105% -8%, hsl(var(--h2) 70% 22% / .55), transparent 70%), radial-gradient(760px 460px at -8% -4%, hsl(var(--h) 70% 22% / .6), transparent 70%);
+    --surface: hsl(var(--h) 26% 11.5%);
+    --surface-2: hsl(var(--h) 24% 15.5%);
+    --surface-3: hsl(var(--h) 22% 21%);
+    --glass: hsl(var(--h) 26% 12% / .72);
+    --text: hsl(var(--h) 35% 95%);
+    --text-2: hsl(var(--h) 20% 80%);
+    --muted: hsl(var(--h) 12% 62%);
+    --line: hsl(var(--h) 22% 19%);
+    --line-strong: hsl(var(--h) 20% 28%);
+    --danger: #fb7185;
+    --danger-soft: #3b1420;
+    --success: #34d399;
+    --success-soft: #0f2e25;
+    --warn: #fbbf24;
+    --warn-soft: #33270e;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+    --shadow: 0 2px 4px rgba(0, 0, 0, .35), 0 12px 28px -10px rgba(0, 0, 0, .6);
+    --shadow-lg: 0 28px 64px -16px rgba(0, 0, 0, .75);
+    --ev-text-mix: white;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --primary: hsl(var(--h) var(--s) calc(var(--l) + 12%));
+  --primary-2: hsl(var(--h2) var(--s) calc(var(--l) + 12%));
+  --primary-soft: hsl(var(--h) 45% 19%);
+  --primary-text: hsl(var(--h) 60% 7%);
+  --glow: hsl(var(--h) var(--s) var(--l) / .45);
+  --bg: hsl(var(--h) 32% 6.5%);
+  --bg-art: radial-gradient(900px 480px at 105% -8%, hsl(var(--h2) 70% 22% / .55), transparent 70%), radial-gradient(760px 460px at -8% -4%, hsl(var(--h) 70% 22% / .6), transparent 70%);
+  --surface: hsl(var(--h) 26% 11.5%);
+  --surface-2: hsl(var(--h) 24% 15.5%);
+  --surface-3: hsl(var(--h) 22% 21%);
+  --glass: hsl(var(--h) 26% 12% / .72);
+  --text: hsl(var(--h) 35% 95%);
+  --text-2: hsl(var(--h) 20% 80%);
+  --muted: hsl(var(--h) 12% 62%);
+  --line: hsl(var(--h) 22% 19%);
+  --line-strong: hsl(var(--h) 20% 28%);
+  --danger: #fb7185;
+  --danger-soft: #3b1420;
+  --success: #34d399;
+  --success-soft: #0f2e25;
+  --warn: #fbbf24;
+  --warn-soft: #33270e;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4);
+  --shadow: 0 2px 4px rgba(0, 0, 0, .35), 0 12px 28px -10px rgba(0, 0, 0, .6);
+  --shadow-lg: 0 28px 64px -16px rgba(0, 0, 0, .75);
+  --ev-text-mix: white;
+  color-scheme: dark;
+}
+:root[data-theme="light"] { color-scheme: light; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); }
+body { background-image: var(--bg-art); background-attachment: fixed; background-repeat: no-repeat; }
+button, input, select, textarea { font: inherit; color: inherit; }
+h1, h2, h3, h4 { margin: 0; font-family: var(--display); font-weight: 650; letter-spacing: -.01em; }
+h4 { margin: 18px 0 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; font-weight: 600; font-family: inherit; }
+svg { flex: none; }
+::selection { background: hsl(var(--h) var(--s) var(--l) / .25); }

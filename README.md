@@ -41,9 +41,20 @@ Gerçek kullanıma geçerken sabit bir imza anahtarı (GitHub Secrets) eklenerek
 npm install
 npm run dev      # http://localhost:5173
 npm test         # birim testleri
+npm run lint     # kod denetimi
+npm run e2e      # uçtan uca testler (önce npm run build)
 npm run build    # dist/ klasörüne üretim çıktısı
 npx cap sync android   # web çıktısını Android projesine kopyalar (Android Studio ile açılabilir)
 ```
+
+## Yapı
+
+- `src/lib/` — iş mantığı (ekrandan bağımsız, testli): `schema` (doğrulama + sürüm geçişleri), `store` + `persist`
+  (kalıcı depo, sağlam kopyalar, otomatik yedek), `finance`, `status`, `importSchedule`, `lessonLog`, `search`, `report`
+- `src/components/` — ekranlar
+- `src/styles/` — ekran bazında stiller; renkler `tokens.css` içindeki ana renk değişkenlerinden türetilir
+- `e2e/` — gerçek tarayıcıda çalışan uçtan uca testler
+- `android/` — Capacitor Android projesi (widget, kısayollar)
 
 ## Yayınlama (GitHub Pages)
 

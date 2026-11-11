@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, CalendarDays, Clock, Settings, Sun, Moon, Sunrise } from 'lucide-react'
+import { ArrowRight, CalendarDays, Clock, Search, Settings, Sun, Moon, Sunrise } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { CalEvent, Task } from '../lib/types'
 import { eventColor, eventTitle, useData } from '../lib/store'
@@ -20,10 +20,11 @@ function relative(mins: number) {
 }
 
 /** Sade Bugün ekranı: sıradaki ders, bugünün programı, görevler */
-export default function TodayPage({ openEvent, goCalendar, goSettings, openTask }: {
+export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch, openTask }: {
   openEvent: OpenEvent
   goCalendar: (date?: string) => void
   goSettings: () => void
+  onSearch: () => void
   openTask: (t: Task) => void
 }) {
   const data = useData()
@@ -57,7 +58,10 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, openTask 
           <h1>{formatLong(today)}</h1>
           <p className="muted">{todaysAll.length ? (left ? `Bugün ${left} etkinlik kaldı` : 'Bugünkü programın bitti') : 'Bugün programın boş.'}</p>
         </div>
-        <button className="icon-btn only-mobile" onClick={goSettings} aria-label="Ayarlar"><Settings size={22} /></button>
+        <div className="head-actions">
+          <button className="icon-btn" onClick={onSearch} aria-label="Ara"><Search size={22} /></button>
+          <button className="icon-btn only-mobile" onClick={goSettings} aria-label="Ayarlar"><Settings size={22} /></button>
+        </div>
       </header>
 
       {hero ? (

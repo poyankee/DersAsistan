@@ -1,0 +1,63 @@
+/* ============ Bugün ============ */
+.today-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+.today-head h1 { font-size: 32px; font-weight: 700; margin: 2px 0 4px; }
+.today-head p { margin: 0; }
+.eyebrow { display: inline-flex; align-items: center; gap: 6px; color: var(--primary); font-weight: 600; font-size: 14px; }
+.hero-card { --ev: var(--primary); width: 100%; text-align: left; border: 0; cursor: pointer; border-radius: 28px; padding: 24px 26px; color: #fff; display: flex; flex-direction: column; gap: 6px; position: relative; overflow: hidden;
+  background: linear-gradient(125deg, var(--primary), var(--primary-2) 55%, hsl(calc(var(--h2) + 40) var(--s) var(--l))); background-size: 180% 180%; animation: hero-shift 12s ease-in-out infinite alternate; box-shadow: 0 22px 44px -18px var(--glow); margin-bottom: 18px; transition: transform .3s var(--spring); }
+.hero-card::before { content: ''; position: absolute; left: -30px; bottom: -70px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,.1); animation: float 9s ease-in-out infinite; }
+.hero-card:hover { transform: translateY(-2px); }
+.hero-card::after { content: ''; position: absolute; right: -40px; top: -50px; width: 210px; height: 210px; border-radius: 50%; background: rgba(255,255,255,.14); animation: float 7s ease-in-out infinite reverse; }
+.hero-card.empty { background: var(--surface); animation: none; color: var(--text); border: 1.5px dashed var(--line-strong); box-shadow: none; cursor: default; }
+.hero-card.empty::after, .hero-card.empty::before { display: none; }
+.hero-label { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; opacity: .9; text-transform: uppercase; letter-spacing: .05em; }
+.hero-title { font-size: 26px; letter-spacing: -.02em; }
+.hero-sub { opacity: .9; font-size: 15px; }
+
+.pulse { margin: 0 4px 0 2px; width: 9px; height: 9px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 0 rgba(255,255,255,.7); animation: pulse 1.6s infinite; }
+
+.today-cols { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; align-items: start; }
+.today-cols > :only-child { grid-column: 1 / -1; }
+.daylist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.dl-item { --ev: var(--primary); width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px; border: 0; background: none; border-radius: 12px; cursor: pointer; text-align: left; transition: background .15s; }
+.dl-item:hover { background: var(--surface-2); }
+.dl-item.past { opacity: .6; }
+.dl-item.live { background: color-mix(in srgb, var(--ev) 10%, var(--surface)); }
+.dl-time { width: 48px; display: flex; flex-direction: column; font-weight: 650; font-size: 14px; font-variant-numeric: tabular-nums; }
+.dl-time small { color: var(--muted); font-weight: 500; font-size: 12px; }
+.dl-bar { width: 4px; align-self: stretch; border-radius: 4px; background: var(--ev); }
+.dl-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.dl-main b { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dl-main small { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.debtors { list-style: none; margin: 0; padding: 0; }
+.debtors button { width: 100%; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 9px 6px; border-radius: 10px; cursor: pointer; text-align: left; font-weight: 500; }
+.debtors button:hover { background: var(--surface-2); }
+
+/* ============ Bugün: kaydırmalı satırlar, görevler, sınavlar, hafta ============ */
+.today-cols .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.dl-item { display: flex; align-items: center; gap: 6px; padding: 0 8px 0 0; border-radius: 12px; background: var(--surface); }
+.dl-item.cancelled .dl-main b { text-decoration: line-through; opacity: .6; }
+.dl-main-btn { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px; border: 0; background: none; border-radius: 12px; cursor: pointer; text-align: left; }
+.dl-main-btn:hover { background: var(--surface-2); }
+
+.task-add { display: flex; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 2px 4px 2px 12px; background: var(--surface-2); }
+.task-add input { flex: 1; border: 0; background: none; padding: 8px 0; outline: none; min-width: 0; }
+.task-list { list-style: none; padding: 0; margin: 8px 0 4px; display: flex; flex-direction: column; gap: 2px; }
+.task-list li { display: flex; align-items: center; gap: 10px; padding: 4px 2px; }
+.task-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line-strong); background: none; color: transparent; display: flex; align-items: center; justify-content: center; cursor: pointer; flex: none; padding: 0; }
+.task-check:hover { border-color: var(--success); color: var(--success); }
+.task-check.on { background: var(--success); border-color: var(--success); color: #fff; }
+.task-text { flex: 1; min-width: 0; border: 0; background: none; text-align: left; cursor: pointer; display: flex; flex-direction: column; padding: 2px 0; }
+.task-text small { font-size: 12px; }
+.task-list.done .task-text { text-decoration: line-through; color: var(--muted); }
+.exam-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.exam-list button { width: 100%; display: flex; align-items: center; gap: 12px; border: 0; background: none; padding: 8px 6px; border-radius: 10px; cursor: pointer; text-align: left; }
+.exam-list button:hover { background: var(--surface-2); }
+.exam-list .grow { display: flex; flex-direction: column; }
+.exam-days { min-width: 58px; text-align: center; font-size: 12px; font-weight: 700; background: #fee2e2; color: #b91c1c; border-radius: 8px; padding: 4px 6px; }
+.exam-days.past { background: var(--surface-3); color: var(--muted); }
+
+.wk-list { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
+.wk-list li { display: flex; align-items: center; gap: 6px; }
+

@@ -35,6 +35,24 @@ imzalanır ve eskisinin üzerine kurulur. Önbellek bir nedenle kaybolursa derle
 **Ana ekran widget'ı:** Uygulamayı kurduktan sonra telefonun ana ekranına uzun basın → *Widget'lar* →
 *Ders Asistanı · Bugün*. Bugünün derslerini, sıradaki dersi ve notu eksik ders sayısını gösterir.
 
+## Dosya biçimleri (içe aktarma)
+
+Depoda gerçek kurum dosyası **tutulmaz**; testlerde yalnızca küçük, uydurma bir örnek (`e2e/fixtures/program.xls`) kullanılır.
+
+**Kurum ders programı (.xls / .xlsx / .html / .csv)**
+- Kurum sisteminin verdiği ".xls" aslında bir HTML tablosudur; gerçek .xlsx de okunur.
+- Her satırın **ilk sütunu tarih**tir (`16.11.2026`, `16.11.2026 Pazartesi`, `2026-11-16` gibi).
+- Diğer hücrelerde ders: **sınıf kodu + saat aralığı**, ör. `478-H0811 09:20-10:00` (satır sonu ya da boşlukla ayrılmış).
+- Her ders saatinin anahtarı `tarih|başlangıç|SINIF KODU`dur; aynı dosya ya da güncellenmiş program tekrar yüklenince
+  kayıtlı saatler atlanır, silinenler geri gelmez, değişen günler raporlanır.
+- Art arda gelen aynı sınıf saatleri tek ders olarak birleştirilebilir (ör. 09:20–10:50, 2 saat).
+
+**Google Takvim yedeği (.zip / .ics)**
+- Google Takvim → Ayarlar → İçe ve dışa aktar → Dışa aktar ile inen .zip (her takvim için bir .ics) ya da tek .ics.
+- Tekrarlayan etkinlikler (günlük/haftalık/aylık/yıllık, COUNT/UNTIL/INTERVAL/BYDAY, EXDATE, tek tekrar değişiklikleri)
+  2 yıl ileriye kadar açılır; iptal edilenler alınmaz. Anahtar `gcal|UID|tarih-saat`; tekrar yüklemede kopya oluşmaz.
+- Her takvim kişisel etkinlik olarak kendi kategorisine girer; tüm gün etkinlikleri isteğe bağlıdır.
+
 ## Geliştirme
 
 ```bash

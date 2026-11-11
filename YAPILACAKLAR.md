@@ -65,6 +65,7 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
 ### Para ve raporlar
 - [x] ⭐ Gelir paneli ve grafikler (aylık/yıllık, kurum vs özel)
 - [x] Kurum ek ders puantaj dökümü
+- [x] Kişisel aylık ödemeler (Ödemelerim)
 - [ ] Gider takibi ve net kazanç
 - [ ] Yıllık gelir özeti
 
@@ -109,9 +110,13 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
   yedek (Belgeler/DersAsistani), parolalı yedek; hata raporu, ESLint, uçtan uca testler (CI); küçük .xlsx okuyucu;
   genel arama, telafi planlama, ders ve hesap dökümü, PIN kilidi, kılavuz, yenilikler; canlı ve renkli tasarım,
   seçilebilir ana renk, animasyonlar (açılış, sayfa geçişi, listeler); stil dosyaları ekran bazında bölündü
+- v0.9 Görevler sekmesi (yapılacaklar listesi), Ödemelerim (kişisel aylık ödeme takibi, 12 aylık toplu görünüm,
+  Bugün'de yaklaşan ödemeler), Google Takvim yedeğini (.zip/.ics) içe aktarma, ay görünümünde gün paneli ve "Güne git",
+  öğrenciye özel bilgi alanları, döküm ekranındaki beyaz ekran hatası
 
 ## Bekleyenler (kullanıcı tarafında)
 - [ ] Kalıcı imza anahtarı (GitHub Secrets) ya da Google Play kapalı test
 - [ ] Depoyu gizli yapma (GitHub → Settings → Danger zone → Change visibility)
 - [ ] Gerçek telefonda deneme: otomatik yedek, bildirimler, widget, kısayollar, animasyon akıcılığı
 - [ ] Bulut eşitleme, uygulama içi güncelleme bildirimi (istenirse)
+- [ ] Barındırma (hosting) planı: telefon + bilgisayar eşitleme ve kişisel web sitesi (sadece plan yapıldı)

@@ -1,7 +1,18 @@
 /** Uygulama sürümü ve "bu sürümde neler değişti" listesi (Ayarlar → Yenilikler) */
-export const APP_VERSION = '0.8'
+export const APP_VERSION = '0.9'
 
 export const CHANGELOG: { version: string; items: string[] }[] = [
+  {
+    version: '0.9',
+    items: [
+      'Görevler artık ayrı bir sekme: yapılacaklar listesi (gecikenler, bugün, bu hafta, daha sonra)',
+      'Ödemelerim (Raporlar): kredi kartı, kira, fatura gibi aylık ödemeler; ödendi işareti, aylık ve 12 aylık toplu görünüm',
+      'Google Takvim yedeğini (.zip / .ics) içe aktarma; tekrar yüklemede kopya oluşmaz',
+      'Takvim ay görünümünde güne dokununca yan panelde o günün listesi ve "Güne git"',
+      'Öğrenci dosyası → Bilgiler: kendi alanlarınızı ekleyin (okul, veli adı, hedef…)',
+      'Ders dökümünden geri dönememe (beyaz ekran) hatası giderildi',
+    ],
+  },
   {
     version: '0.8',
     items: [

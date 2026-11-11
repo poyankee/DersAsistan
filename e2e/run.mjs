@@ -7,6 +7,7 @@ import assert from 'node:assert/strict'
 const PORT = 4188
 const BASE = `http://localhost:${PORT}/`
 const FIXTURE = fileURLToPath(new URL('./fixtures/program.xls', import.meta.url))
+const ICS = fileURLToPath(new URL('./fixtures/google.ics', import.meta.url))
 
 const server = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore' })
 const stop = () => server.kill()
@@ -138,6 +139,60 @@ test('veri sayfa yenilenince korunur; bozuk kayıt açılışı engellemez', asy
   await nav('Takvim')
   await page.waitForSelector('.ev')
   assert.equal(await page.locator('.ev').count(), 4)
+  assert.deepEqual(errors, [])
+})
+
+test('Google Takvim yedeği içe aktarılır, tekrar yüklenince kopya oluşmaz', async (browser) => {
+  const { page, errors, nav } = await open(browser)
+  const load = async () => {
+    await nav('Takvim')
+    await page.getByRole('button', { name: 'Diğer seçenekler' }).click()
+    await page.getByRole('button', { name: /Google Takvim'den içe aktar/ }).click()
+    await page.setInputFiles('.filepick input', ICS)
+    await page.waitForSelector('.ics-cals')
+  }
+  await load()
+  assert.match(await page.locator('.ics-cals').innerText(), /Yüksek lisans[\s\S]*4 yeni/)
+  await page.locator('.modal-foot .btn.primary').click()
+  await page.waitForSelector('.ev')
+  assert.match(await page.locator('.calendar-page').innerText(), /Seminer dersi[\s\S]*Danışman görüşmesi|Danışman görüşmesi[\s\S]*Seminer dersi/)
+  await load()
+  assert.match(await page.locator('.ics-cals').innerText(), /0 yeni · 4 zaten var/)
+  assert.equal(await page.locator('.modal-foot .btn.primary').isDisabled(), true)
+  assert.deepEqual(errors, [])
+})
+
+test('Görevler sekmesi ve Ödemelerim', async (browser) => {
+  const { page, errors, nav } = await open(browser)
+  await nav('Görevler')
+  await page.locator('.todo-add input').first().fill('Yazılıları oku')
+  await page.keyboard.press('Enter')
+  assert.match(await page.locator('.page').innerText(), /Yazılıları oku/)
+  await nav('Raporlar')
+  await page.locator('.tabs-seg button', { hasText: 'Ödemelerim' }).click()
+  await page.locator('.bills .btn.primary', { hasText: 'Ödeme kalemi' }).click()
+  await page.locator('.modal input').first().fill('İş Bankası kredi kartı')
+  await page.locator('.modal input[type=number]').nth(0).fill('20')
+  await page.locator('.modal input[type=number]').nth(1).fill('4500')
+  await page.locator('.modal-foot .btn.primary').click()
+  assert.match(await page.locator('.bill-list').innerText(), /İş Bankası kredi kartı[\s\S]*20\.11\.2026/)
+  await page.locator('.bill-check').first().click()
+  await page.waitForSelector('.bill-check.on')
+  assert.match(await page.locator('.bills .kpis').innerText(), /Ödenen\s*4\.500/)
+  await page.locator('.bills .seg button', { hasText: 'Toplu görünüm' }).click()
+  assert.match(await page.locator('.bill-table').innerText(), /İş Bankası kredi kartı/)
+  assert.deepEqual(errors, [])
+})
+
+test('ay görünümünde güne dokununca yan panel, Güne git gün görünümünü açar', async (browser) => {
+  const { page, errors, nav } = await open(browser)
+  await importProgram(page, nav)
+  await page.locator('.modal-foot .btn.primary').click()
+  await page.locator('.cal-views button, .seg button', { hasText: /^Ay$/ }).first().click()
+  await page.waitForSelector('.day-panel')
+  await page.getByRole('button', { name: 'Güne git' }).click()
+  await page.waitForSelector('.ev')
+  assert.equal(await page.locator('.day-panel').count(), 0)
   assert.deepEqual(errors, [])
 })
 

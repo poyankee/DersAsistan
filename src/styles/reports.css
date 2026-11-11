@@ -57,3 +57,10 @@
 @media (max-width: 640px) {
   .bill-row { flex-wrap: wrap; }
 }
+@media (max-width: 640px) {
+  .bills .kpis { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .bills .kpi { padding: 10px 10px 10px 14px; }
+  .bills .kpi b { font-size: 17px; }
+  .bills .kpi small { font-size: 11px; }
+  .bill-row > .btn { padding: 4px 6px; }
+}

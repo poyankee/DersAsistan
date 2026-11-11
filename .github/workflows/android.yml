@@ -1,7 +1,8 @@
 name: Android APK
 on:
   push:
-    branches: [main, 'ccr-*']
+    # Tek daldan derlenir: imza anahtarı önbelleği dala bağlıdır, iki daldan derlemek farklı imzalı APK üretir
+    branches: ['ccr-*']
   workflow_dispatch:
 permissions:
   contents: write

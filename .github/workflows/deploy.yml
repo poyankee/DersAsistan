@@ -1,7 +1,6 @@
 name: GitHub Pages'e yayınla
+# Web sürümü yalnızca elle başlatılır (Settings → Pages → Source: GitHub Actions açıldıktan sonra)
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read

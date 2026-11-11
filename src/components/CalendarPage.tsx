@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
-import { CalendarSearch, ChevronLeft, ChevronRight, GraduationCap, ListTodo, MoreHorizontal, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
+import { CalendarDays, CalendarSearch, ChevronLeft, ChevronRight, GraduationCap, ListTodo, MoreHorizontal, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import FreeSlotsModal from './FreeSlotsModal'
 import { holidayMap } from '../lib/holidays'
 import type { OpenEvent } from '../App'
@@ -11,6 +11,7 @@ import {
   monthLabel, nowHM, startOfMonth, startOfWeek, toMinutes, todayISO, weekdayIndex,
 } from '../lib/date'
 import ImportModal from './ImportModal'
+import IcsImportModal from './IcsImportModal'
 import { gestureActive, startGesture } from '../lib/gesture'
 import { moveEvent } from '../lib/eventOps'
 import { findFreeGaps } from '../lib/freeSlots'
@@ -89,6 +90,7 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
   const monthDay = monthSel && monthSel.slice(0, 7) === cursor.slice(0, 7) ? monthSel : todayISO().slice(0, 7) === cursor.slice(0, 7) ? todayISO() : startOfMonth(cursor)
   const [menuOpen, setMenuOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  const [icsOpen, setIcsOpen] = useState(false)
   const [freeOpen, setFreeOpen] = useState(false)
   const [, tick] = useState(0)
 
@@ -191,6 +193,7 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
         <Modal title="Takvim" onClose={() => setMenuOpen(false)}>
           <div className="menu-list">
             <button onClick={() => { setMenuOpen(false); setImportOpen(true) }}><Upload size={18} /> Kurum programını yükle</button>
+            <button onClick={() => { setMenuOpen(false); setIcsOpen(true) }}><CalendarDays size={18} /> Google Takvim'den içe aktar</button>
             <button onClick={() => { setMenuOpen(false); setFreeOpen(true) }}><CalendarSearch size={18} /> Boş saat bul</button>
           </div>
           <h4>Göster</h4>
@@ -221,6 +224,7 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
           }}
         />
       )}
+      {icsOpen && <IcsImportModal onClose={() => setIcsOpen(false)} onDone={(d) => d && setCursor(d)} />}
       {importOpen && <ImportModal onClose={() => setImportOpen(false)} onDone={(d) => d && setCursor(d)} />}
     </div>
   )

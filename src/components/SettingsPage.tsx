@@ -16,11 +16,13 @@ import { holidaysBetween } from '../lib/holidays'
 import { TR_DAYS, addDays, formatDMY, todayISO } from '../lib/date'
 import { uid } from '../lib/util'
 import { buildICS } from '../lib/ics'
+import IcsImportModal from './IcsImportModal'
 import { PALETTE, downloadFile } from '../lib/util'
 
 export default function SettingsPage() {
   const data = useData()
   const fileRef = useRef<HTMLInputElement>(null)
+  const [icsOpen, setIcsOpen] = useState(false)
   const groups = Object.values(data.groups).sort((a, b) => a.code.localeCompare(b.code))
   const setSetting = <K extends keyof typeof data.settings>(k: K, v: (typeof data.settings)[K]) =>
     setData((d) => ({ ...d, settings: { ...d.settings, [k]: v } }))
@@ -76,7 +78,9 @@ export default function SettingsPage() {
           <button className="btn" onClick={() => backup(true)}><Lock size={16} /> Parolalı yedek al</button>
           <button className="btn" onClick={() => fileRef.current?.click()}><Upload size={16} /> Yedekten geri yükle</button>
           <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={(e) => restore(e.target.files?.[0])} />
+          <button className="btn" onClick={() => setIcsOpen(true)}><CalendarDays size={16} /> Google Takvim yedeğini yükle</button>
         </div>
+        {icsOpen && <IcsImportModal onClose={() => setIcsOpen(false)} onDone={(d) => showToast(d ? `Google Takvim etkinlikleri eklendi (ilk: ${formatDMY(d)})` : 'Google Takvim etkinlikleri eklendi')} />}
       </section>
 
       <details className="advanced">

@@ -90,3 +90,5 @@
 
 
 .student-view.modal { max-width: none; max-height: none; border-radius: 0; border: 0; display: block; }
+.ics-cals { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 6px; }
+.ics-cals li { padding: 8px 12px; background: var(--surface-2); border-radius: 12px; }

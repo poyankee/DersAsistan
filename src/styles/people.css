@@ -105,3 +105,13 @@
 
 }
 
+
+/* ============ Öğrenci özel alanları ============ */
+.custom-fields { margin-top: 14px; }
+.cf-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.cf-label { width: 130px; flex: none; font-weight: 600; color: var(--text-2); font-size: 14px; }
+.cf-row input { flex: 1; min-width: 0; border: 1.5px solid transparent; border-radius: 10px; padding: 7px 10px; background: var(--surface-2); }
+.cf-row input:focus { outline: none; border-color: var(--primary); background: var(--surface); }
+.cf-new { margin-top: 6px; }
+.cf-new .cf-label-input { flex: 0 0 150px; }
+@media (max-width: 720px) { .cf-label { width: 96px; } .cf-new { flex-wrap: wrap; } .cf-new .cf-label-input { flex: 1 1 100%; } }

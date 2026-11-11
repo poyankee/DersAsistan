@@ -61,3 +61,26 @@
 .wk-list { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; }
 .wk-list li { display: flex; align-items: center; gap: 6px; }
 
+
+/* ============ Görevler sayfası ============ */
+.todo { max-width: 820px; }
+.todo-add { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius-lg); padding: 10px 12px 10px 16px; box-shadow: var(--shadow-sm); margin-bottom: 18px; color: var(--primary); transition: border-color .2s, box-shadow .2s; }
+.todo-add:focus-within { border-color: var(--primary); box-shadow: 0 0 0 4px hsl(var(--h) var(--s) var(--l) / .14); }
+.todo-add > input { flex: 1 1 220px; border: 0; outline: none; background: none; font-size: 16px; padding: 8px 0; color: var(--text); min-width: 0; }
+.todo-add .chips { margin: 0; }
+.todo-section { margin-bottom: 18px; }
+.todo-section h4 { display: flex; align-items: center; gap: 8px; margin: 0 0 6px 4px; }
+.todo-section h4 span { background: var(--surface-3); color: var(--text-2); border-radius: 20px; padding: 0 8px; font-size: 11px; }
+.todo-list { list-style: none; margin: 0; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+.todo-list li { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 14px; animation: rise .35s var(--ease) backwards; }
+.todo-list li + li { border-top: 1px solid var(--line); border-radius: 0; }
+.todo-list li:hover { background: var(--surface-2); }
+.todo-list .task-check { margin-top: 1px; }
+.todo-text { flex: 1; min-width: 0; border: 0; background: none; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 0; font-size: 15px; }
+.todo-text small { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12.5px; color: var(--muted); }
+.todo-text small b { font-weight: 600; color: var(--primary); }
+.todo-text small b.warn-text { color: var(--warn); }
+.todo-text small em { font-style: normal; background: var(--surface-3); border-radius: 20px; padding: 0 8px; }
+.todo-text small i { font-style: normal; }
+.todo-list li.done .todo-text > span { text-decoration: line-through; color: var(--muted); }
+.today-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }

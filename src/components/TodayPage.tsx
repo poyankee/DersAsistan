@@ -5,6 +5,7 @@ import type { CalEvent, Task } from '../lib/types'
 import { eventColor, eventTitle, useData } from '../lib/store'
 import { addDays, formatLong, nowHM, toMinutes, todayISO } from '../lib/date'
 import TasksCard from './TasksCard'
+import BillsCard from './BillsCard'
 
 function greeting(min: number) {
   if (min < 12 * 60) return { text: 'Günaydın', Icon: Sunrise }
@@ -20,7 +21,9 @@ function relative(mins: number) {
 }
 
 /** Sade Bugün ekranı: sıradaki ders, bugünün programı, görevler */
-export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch, openTask }: {
+export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch, openTask, goBills, goTasks }: {
+  goBills: () => void
+  goTasks: () => void
   openEvent: OpenEvent
   goCalendar: (date?: string) => void
   goSettings: () => void
@@ -95,7 +98,10 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
             </>
           )}
         </section>
-        <TasksCard onOpen={openTask} />
+        <div className="today-side">
+          <TasksCard onOpen={openTask} onAll={goTasks} />
+          <BillsCard onOpen={goBills} />
+        </div>
       </div>
     </div>
   )

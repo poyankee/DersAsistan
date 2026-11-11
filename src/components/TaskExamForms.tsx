@@ -72,6 +72,7 @@ export function TaskForm({ initial, onClose }: { initial: Task; onClose: () => v
         </div>
       </div>
       <label className="field"><span>İlgili</span><LinkSelect groupCode={t.groupCode} studentId={t.studentId} categoryId={t.categoryId} onChange={(g, s, c) => setT({ ...t, groupCode: g, studentId: s, categoryId: c })} /></label>
+      <label className="field"><span>Not (opsiyonel)</span><textarea rows={2} value={t.note ?? ''} onChange={(e) => setT({ ...t, note: e.target.value || undefined })} /></label>
       {!isNew && <label className="check"><input type="checkbox" checked={t.done} onChange={(e) => setT({ ...t, done: e.target.checked, doneAt: e.target.checked ? today : undefined })} /> Tamamlandı</label>}
     </Modal>
   )

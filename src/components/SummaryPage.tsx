@@ -6,13 +6,14 @@ import FinanceKpis from './FinanceKpis'
 import { payNoteText, studentFinance } from '../lib/finance'
 import IncomePanel from './IncomePanel'
 import PuantajPanel from './PuantajPanel'
+import BillsPanel from './BillsPanel'
 import { addMonths, formatDMY, monthLabel, startOfMonth, todayISO } from '../lib/date'
 import { money } from '../lib/util'
 
-type STab = 'ozet' | 'alacak' | 'gelir' | 'puantaj'
+type STab = 'ozet' | 'alacak' | 'gelir' | 'puantaj' | 'odemelerim'
 
-export default function SummaryPage({ openStudent }: { openStudent: (id: string) => void }) {
-  const [tab, setTab] = useState<STab>('ozet')
+export default function SummaryPage({ openStudent, initial }: { openStudent: (id: string) => void; initial?: STab }) {
+  const [tab, setTab] = useState<STab>(initial ?? 'ozet')
   return (
     <div className="page">
       <div className="page-head"><h2>Raporlar</h2></div>
@@ -21,11 +22,13 @@ export default function SummaryPage({ openStudent }: { openStudent: (id: string)
         <button className={tab === 'alacak' ? 'active' : ''} onClick={() => setTab('alacak')}>Alacaklar</button>
         <button className={tab === 'gelir' ? 'active' : ''} onClick={() => setTab('gelir')}>Gelir</button>
         <button className={tab === 'puantaj' ? 'active' : ''} onClick={() => setTab('puantaj')}>Puantaj</button>
+        <button className={tab === 'odemelerim' ? 'active' : ''} onClick={() => setTab('odemelerim')}>Ödemelerim</button>
       </div>
       {tab === 'ozet' && <MonthlySummary />}
       {tab === 'alacak' && <Receivables openStudent={openStudent} />}
       {tab === 'gelir' && <IncomePanel />}
       {tab === 'puantaj' && <PuantajPanel />}
+      {tab === 'odemelerim' && <BillsPanel />}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import CalendarPage from './components/CalendarPage'
 import PeoplePage, { type PeopleView } from './components/PeoplePage'
 import TodayPage from './components/TodayPage'
+import TasksPage from './components/TasksPage'
 import EventModal from './components/EventModal'
 import EventPeek from './components/EventPeek'
 import Toasts from './components/Toasts'
@@ -24,11 +25,12 @@ import { syncNotifications } from './lib/notify'
 const SummaryPage = lazy(() => import('./components/SummaryPage'))
 const SettingsPage = lazy(() => import('./components/SettingsPage'))
 
-export type Tab = 'bugun' | 'takvim' | 'ozel' | 'ozet' | 'ayarlar'
+export type Tab = 'bugun' | 'takvim' | 'gorevler' | 'ozel' | 'ozet' | 'ayarlar'
 
 const TABS: { id: Tab; label: string; short: string; icon: LucideIcon }[] = [
   { id: 'bugun', label: 'Bugün', short: 'Bugün', icon: Home },
   { id: 'takvim', label: 'Takvim', short: 'Takvim', icon: CalendarDays },
+  { id: 'gorevler', label: 'Görevler', short: 'Görevler', icon: ListTodo },
   { id: 'ozel', label: 'Öğrenciler', short: 'Öğrenciler', icon: Users },
   { id: 'ozet', label: 'Raporlar', short: 'Raporlar', icon: BarChart3 },
 ]
@@ -49,6 +51,7 @@ export default function App() {
   const [studentId, setStudentId] = useState<string | null>(null)
   const [classCode, setClassCode] = useState<string | null>(null)
   const [payPick, setPayPick] = useState(false)
+  const [reportTab, setReportTab] = useState<{ tab: 'odemelerim'; n: number } | null>(null)
   const [calDate, setCalDate] = useState<{ date: string; n: number } | null>(null)
 
   const openEvent: OpenEvent = (ev) => {
@@ -167,7 +170,8 @@ export default function App() {
 
       <main className="content">
         <div key={tab} className="page-anim">
-        {tab === 'bugun' && <TodayPage openEvent={openEvent} goCalendar={goCalendar} goSettings={() => go('ayarlar')} onSearch={() => setSearching(true)} openTask={setTask} />}
+        {tab === 'bugun' && <TodayPage openEvent={openEvent} goCalendar={goCalendar} goSettings={() => go('ayarlar')} onSearch={() => setSearching(true)} openTask={setTask} goBills={() => { setReportTab({ tab: 'odemelerim', n: Date.now() }); go('ozet') }} goTasks={() => go('gorevler')} />}
+        {tab === 'gorevler' && <TasksPage onOpen={setTask} />}
         {tab === 'takvim' && (
           <CalendarPage
             key={calDate?.n ?? 0}
@@ -195,7 +199,7 @@ export default function App() {
           />
         )}
         <Suspense fallback={<p className="muted pad">Yükleniyor…</p>}>
-          {tab === 'ozet' && <SummaryPage openStudent={openStudent} />}
+          {tab === 'ozet' && <SummaryPage key={reportTab?.n ?? 0} initial={reportTab?.tab} openStudent={openStudent} />}
           {tab === 'ayarlar' && <SettingsPage />}
         </Suspense>
         </div>

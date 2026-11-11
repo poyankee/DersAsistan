@@ -10,6 +10,7 @@ import { formatDMY, formatDMYDay, todayISO } from '../lib/date'
 import { money } from '../lib/util'
 import { openExternal, waLink } from '../lib/native'
 import LessonLog from './LessonLog'
+import CustomFields from './CustomFields'
 import ReportModal from './ReportModal'
 import { lessonReport, paymentStatement } from '../lib/report'
 import ScheduleTab from './ScheduleTab'
@@ -159,6 +160,7 @@ function InfoTab({ student, onEdit }: { student: Student; onEdit: () => void }) 
           {phone && <button className="btn small" onClick={() => openExternal(waLink(phone, reportText()))}><MessageCircle size={14} /> Veliye ders özeti</button>}
         </div>
       </div>
+      <CustomFields student={student} />
       <div className="seg small inline-seg" style={{ margin: '14px 0 10px' }}>
         <button className={sub === 'duzen' ? 'active' : ''} onClick={() => setSub('duzen')}><CalendarRange size={14} /> Ders düzeni</button>
         <button className={sub === 'kitap' ? 'active' : ''} onClick={() => setSub('kitap')}><BookOpen size={14} /> Kitaplar</button>

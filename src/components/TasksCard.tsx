@@ -7,7 +7,7 @@ import { showToast } from '../lib/toast'
 import { newTask } from './TaskExamForms'
 
 /** Bugün ekranındaki görev listesi: hızlı ekleme + tamamla */
-export default function TasksCard({ onOpen, limit = 8 }: { onOpen: (t: Task) => void; limit?: number }) {
+export default function TasksCard({ onOpen, onAll, limit = 8 }: { onOpen: (t: Task) => void; onAll?: () => void; limit?: number }) {
   const data = useData()
   const today = todayISO()
   const [title, setTitle] = useState('')
@@ -34,7 +34,7 @@ export default function TasksCard({ onOpen, limit = 8 }: { onOpen: (t: Task) => 
 
   return (
     <section className="surface">
-      <div className="surface-head"><h3 className="row-title"><ListTodo size={18} /> Görevler</h3>{open.length > 0 && <span className="muted small">{open.length} açık</span>}</div>
+      <div className="surface-head"><h3 className="row-title"><ListTodo size={18} /> Görevler</h3>{onAll ? <button className="btn ghost small" onClick={onAll}>{open.length > 0 ? `${open.length} açık · ` : ''}Tümü</button> : open.length > 0 && <span className="muted small">{open.length} açık</span>}</div>
       <div className="task-add">
         <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Yeni görev… (ör. yazılıları oku)" />
         <button className="icon-btn" onClick={add} disabled={!title.trim()} aria-label="Görev ekle"><Plus size={20} /></button>

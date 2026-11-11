@@ -31,3 +31,29 @@
 .puantaj-table tfoot td { border-top: 2px solid var(--line-strong); background: var(--surface-2); }
 @media (max-width: 720px) { .hbar-row { grid-template-columns: 96px 1fr 76px; font-size: 13px; } .tooltip { font-size: 12px; } }
 
+
+/* Kişisel muhasebe: Ödemelerim */
+.bill-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.bill-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+.bill-row.st-late { border-color: var(--warn); background: var(--warn-soft); }
+.bill-row.st-paid .bill-name { color: var(--muted); }
+.bill-check { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--line-strong); background: none; color: transparent; display: grid; place-items: center; cursor: pointer; transition: all .2s; }
+.bill-check:hover { border-color: var(--primary); color: var(--primary); }
+.bill-check.on { background: var(--ok, #16a34a); border-color: var(--ok, #16a34a); color: #fff; }
+.bill-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; font: inherit; }
+.bill-name { font-weight: 650; display: flex; align-items: center; gap: 7px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bill-main small { color: var(--muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.bill-amount { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bills .dot, .task-text .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: none; margin-right: 6px; }
+.bill-name .dot { margin-right: 0; }
+.bills .ok { color: var(--ok, #16a34a); }
+.bill-bars { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; height: 150px; margin: 6px 0 18px; padding: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); }
+.bill-bar { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.bill-bar .bar { flex: 1; width: 100%; max-width: 30px; display: flex; align-items: flex-end; background: var(--surface-2); border-radius: 8px; overflow: hidden; }
+.bill-bar .bar i { display: block; width: 100%; background: var(--grad); border-radius: 8px 8px 0 0; min-height: 0; transition: height .5s var(--spring, ease); }
+.bill-bar small { font-size: 10.5px; color: var(--muted); }
+.bill-table td, .bill-table th { text-align: right; font-variant-numeric: tabular-nums; }
+.bill-table td:first-child, .bill-table th:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); }
+@media (max-width: 640px) {
+  .bill-row { flex-wrap: wrap; }
+}

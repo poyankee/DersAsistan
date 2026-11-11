@@ -33,27 +33,35 @@ jobs:
           npm run e2e
       - run: npx cap sync android
       # Güncellemelerin eskisinin üzerine kurulabilmesi için imza anahtarı derlemeler arasında saklanır.
-      # (Depoya konmaz. Önbellek 7 gün hiç kullanılmazsa GitHub tarafından silinir; o zaman yeni anahtar üretilir.)
+      # (Depoya konmaz. keystore-keepalive.yml önbelleği canlı tutar.)
       - name: İmza anahtarını önbellekten al
         id: keystore
         uses: actions/cache@v4
         with:
-          path: ~/.android/debug.keystore
-          key: debug-keystore-v1
+          path: ~/da-signing/app.keystore
+          key: app-keystore-v2
       - name: İmza anahtarı yoksa üret
         if: steps.keystore.outputs.cache-hit != 'true'
         run: |
-          mkdir -p ~/.android
-          rm -f ~/.android/debug.keystore
-          keytool -genkeypair -keystore ~/.android/debug.keystore -storepass android -keypass android \
-            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          mkdir -p ~/da-signing
+          rm -f ~/da-signing/app.keystore
+          keytool -genkeypair -keystore ~/da-signing/app.keystore -storetype JKS -storepass android -keypass android \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 18250 -dname "CN=Ders Asistani,O=DersAsistani,C=TR"
           echo "::warning::Yeni imza anahtarı üretildi: bu sürüm öncekinin üzerine kurulamaz (bir kerelik yedek al / sil / kur gerekir)."
       - name: APK derle
         working-directory: android
         run: |
+          export DA_KEYSTORE="$HOME/da-signing/app.keystore"
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
           cp app/build/outputs/apk/release/app-release.apk ../DersAsistani.apk
+      - name: APK'nın saklanan anahtarla imzalandığını doğrula
+        run: |
+          want=$(keytool -list -v -keystore ~/da-signing/app.keystore -storepass android -alias androiddebugkey | grep -m1 'SHA256:' | awk '{print $2}')
+          got=$(keytool -printcert -jarfile DersAsistani.apk | grep -m1 'SHA256:' | awk '{print $2}')
+          echo "Anahtar: $want"
+          echo "APK:     $got"
+          if [ -z "$want" ] || [ "$want" != "$got" ]; then echo "::error::APK saklanan anahtarla imzalanmamış"; exit 1; fi
       - uses: actions/upload-artifact@v4
         with:
           name: DersAsistani-apk

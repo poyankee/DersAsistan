@@ -21,10 +21,23 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // İmza anahtarı depoda tutulmaz. GitHub Actions onu önbellekten alır ve yolunu DA_KEYSTORE ile verir;
+    // böylece her APK aynı anahtarla imzalanır ve güncelleme eskisinin üzerine kurulur.
+    def caKeystore = System.getenv("DA_KEYSTORE")
+    signingConfigs {
+        if (caKeystore) {
+            ci {
+                storeFile file(caKeystore)
+                storePassword "android"
+                keyAlias "androiddebugkey"
+                keyPassword "android"
+            }
+        }
+    }
     buildTypes {
         release {
-            // Deneme aşaması: hata ayıklama anahtarıyla imzalanır
-            signingConfig signingConfigs.debug
+            // CI'da sabit anahtar; yerel derlemede hata ayıklama anahtarı
+            signingConfig caKeystore ? signingConfigs.ci : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { isNative } from '../lib/native'
 import { isOff } from '../lib/status'
 import { Download, Printer } from 'lucide-react'
 import { useData } from '../lib/store'
@@ -59,7 +60,7 @@ export default function PuantajPanel() {
         </span>
         <div className="spacer" />
         <button className="btn" onClick={exportCSV}><Download size={16} /> Excel (CSV)</button>
-        <button className="btn" onClick={() => window.print()}><Printer size={16} /> Yazdır</button>
+        {!isNative && <button className="btn" onClick={() => window.print()}><Printer size={16} /> Yazdır</button>}
       </div>
       <div className="kpis">
         <div className="kpi"><span>Toplam ek ders saati</span><b>{total}</b>{total !== done && <small className="muted">{done} saati girildi, {total - done} ileri tarihli</small>}</div>

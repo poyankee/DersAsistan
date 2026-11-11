@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { isOff } from '../lib/status'
 import { BookOpen, CalendarClock, FileText, CalendarRange, ChevronLeft, Eye, History as HistoryIcon, MessageCircle, Pencil, Phone, User, Wallet, X } from 'lucide-react'
 import type { OpenEvent } from '../App'
@@ -182,8 +183,14 @@ function StudentView({ student, onClose }: { student: Student; onClose: () => vo
   const books = data.books.filter((b) => b.studentId === student.id && b.status !== 'planli')
   const lastProgress = (bookId: string) =>
     data.events.filter((e) => e.bookId === bookId && e.bookProgress).sort((a, b) => b.date.localeCompare(a.date))[0]?.bookProgress
-  return (
-    <div className="student-view">
+  // Geri tuşu / Esc ile kapanır
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [onClose])
+  return createPortal(
+    <div className="student-view modal">
       <div className="sv-head">
         <i className="avatar lg" style={{ background: student.color }}>{student.name.slice(0, 1).toLocaleUpperCase('tr')}</i>
         <div className="grow">
@@ -215,6 +222,7 @@ function StudentView({ student, onClose }: { student: Student; onClose: () => vo
           </ul>
         </section>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }

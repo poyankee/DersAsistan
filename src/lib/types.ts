@@ -66,6 +66,8 @@ export interface Student {
   parentPhone?: string
   /** Ders başı ücret (paket öğrencilerinde paket fiyatı / ders sayısı) */
   fee: number
+  /** Öğrenciye özel serbest alanlar (ör. Okul, Hedef, Adres) */
+  custom?: { id: string; label: string; value: string }[]
   /** Ne zaman öder: her ders / ay sonu / peşin */
   payWhen?: PayWhen
   /** Bekleyen ödeme notu (tarih bilinmiyor olabilir) */
@@ -133,6 +135,33 @@ export interface StudentNote {
   createdAt: number
 }
 
+/** Kişisel muhasebe: düzenli (aylık) ya da tek seferlik ödeme kalemi — kredi kartı, kira, fatura vb. */
+export interface Bill {
+  id: string
+  name: string
+  /** Ayın kaçında ödenir (1–31; ay kısa ise son gün) */
+  day: number
+  /** Beklenen tutar (değişkense boş bırakılır) */
+  amount?: number
+  color: string
+  note?: string
+  /** İlk ve (varsa) son ay: YYYY-MM. Tek seferlik ödemede ikisi aynıdır. */
+  from: string
+  until?: string
+  createdAt: number
+}
+
+/** Bir kalemin belirli bir ayda yapılan ödemesi */
+export interface BillPayment {
+  id: string
+  billId: string
+  /** YYYY-MM */
+  month: string
+  amount: number
+  paidOn: string
+  note?: string
+}
+
 /** Kişisel etkinlik kategorisi */
 export interface Category {
   id: string
@@ -146,6 +175,7 @@ export interface Task {
   title: string
   /** Son tarih (opsiyonel) */
   due?: string
+  note?: string
   done: boolean
   doneAt?: string
   groupCode?: string
@@ -176,7 +206,7 @@ export interface ClassNote {
   createdAt: number
 }
 
-export type TrashKind = 'event' | 'student' | 'payment' | 'note' | 'book' | 'task' | 'exam' | 'classNote'
+export type TrashKind = 'event' | 'student' | 'payment' | 'note' | 'book' | 'task' | 'exam' | 'classNote' | 'bill'
 
 /** Silinen kayıt: 30 gün geri alınabilir */
 export interface TrashItem {
@@ -185,7 +215,7 @@ export interface TrashItem {
   label: string
   deletedAt: number
   /** Geri yüklenecek kayıtlar (öğrenci silinince dersleri/ödemeleri de) */
-  payload: Partial<Pick<AppData, 'events' | 'students' | 'payments' | 'notes' | 'books' | 'tasks' | 'exams' | 'classNotes'>>
+  payload: Partial<Pick<AppData, 'events' | 'students' | 'payments' | 'notes' | 'books' | 'tasks' | 'exams' | 'classNotes' | 'bills' | 'billPayments'>>
 }
 
 export interface NotifySettings {
@@ -236,6 +266,8 @@ export interface AppData {
   tasks: Task[]
   exams: Exam[]
   categories: Category[]
+  bills: Bill[]
+  billPayments: BillPayment[]
   classNotes: ClassNote[]
   trash: TrashItem[]
   /** Kullanıcının sildiği kurum ders saatleri: yeniden içe aktarılmaz */

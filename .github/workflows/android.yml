@@ -69,8 +69,7 @@ jobs:
             Telefona/tablete kurmak için aşağıdaki **DersAsistani.apk** dosyasını indirip açın.
             İlk kurulumda "Bilinmeyen kaynaklardan yüklemeye izin ver" demeniz gerekebilir.
 
-            **Güncellerken:** Bu sürümden itibaren APK'lar aynı anahtarla imzalanır ve eskisinin üzerine kurulur.
-            "Uygulama yüklenmedi" uyarısı alırsanız (ilk geçişte bir kez olur): Ayarlar → Yedek indir,
-            eski uygulamayı silip yenisini kurun, sonra Ayarlar → Gelişmiş → Yedekten geri yükle.
+            **Güncellerken:** APK'lar aynı anahtarla imzalanır; yeni sürüm eskisinin üzerine doğrudan kurulur, veriler silinmez.
+            (Çok nadiren "Uygulama yüklenmedi" uyarısı çıkarsa: Ayarlar → Yedek al, sil, kur, Yedekten geri yükle.)
 
             Dal: `${{ github.ref_name }}` · Commit: ${{ github.sha }}

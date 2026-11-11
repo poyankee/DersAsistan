@@ -13,6 +13,7 @@ import {
 import ImportModal from './ImportModal'
 import { gestureActive, startGesture } from '../lib/gesture'
 import { moveEvent } from '../lib/eventOps'
+import { findFreeGaps } from '../lib/freeSlots'
 import Modal from './Modal'
 
 type View = 'day' | '3day' | 'week' | 'month' | 'agenda'
@@ -84,6 +85,8 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
     store('cal-layers', JSON.stringify(l))
   }
   const [monthSel, setMonthSel] = useState<string | null>(null)
+  // Ay görünümünde seçili gün: seçim yoksa (ya da başka aydaysa) bugün / ayın ilk günü
+  const monthDay = monthSel && monthSel.slice(0, 7) === cursor.slice(0, 7) ? monthSel : todayISO().slice(0, 7) === cursor.slice(0, 7) ? todayISO() : startOfMonth(cursor)
   const [menuOpen, setMenuOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [freeOpen, setFreeOpen] = useState(false)
@@ -166,22 +169,22 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
         />
       )}
       {view === 'month' && (
-        <>
-          <MonthGrid data={shown} cursor={cursor} selected={monthSel} openEvent={openEvent} onSelect={setMonthSel} onSwipe={step} />
-          {monthSel && (
-            <DayPanel
-              data={shown}
-              date={monthSel}
-              openEvent={openEvent}
-              onAdd={() => newAt(monthSel)}
-              onAddExam={onAddExam}
-              onDayView={() => {
-                setCursor(monthSel)
-                setView('day')
-              }}
-            />
-          )}
-        </>
+        <div className="month-wrap">
+          <MonthGrid data={shown} cursor={cursor} selected={monthDay} openEvent={openEvent} onSelect={setMonthSel} onSwipe={step} />
+          <DayPanel
+            key={monthDay}
+            data={shown}
+            date={monthDay}
+            openEvent={openEvent}
+            onAdd={() => newAt(monthDay)}
+            onAddExam={onAddExam}
+            onOpenTask={onOpenTask}
+            onDayView={() => {
+              setCursor(monthDay)
+              setView('day')
+            }}
+          />
+        </div>
       )}
 
       {menuOpen && (
@@ -719,36 +722,47 @@ function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
 }
 
 /** Ay görünümünde seçilen günün listesi */
-function DayPanel({ data, date, openEvent, onAdd, onDayView, onAddExam }: {
+function DayPanel({ data, date, openEvent, onAdd, onDayView, onAddExam, onOpenTask }: {
   data: AppData
   date: string
   openEvent: OpenEvent
   onAdd: () => void
   onDayView: () => void
   onAddExam?: (date: string) => void
+  onOpenTask?: (t: Task) => void
 }) {
   const list = data.events.filter((e) => e.date === date).sort((a, b) => a.start.localeCompare(b.start))
   const exams = data.exams.filter((x) => x.date === date)
   const tasks = data.tasks.filter((t) => !t.done && t.due === date)
+  const hol = holidayMap(data).get(date)
+  // Günün boş aralıkları: hızlıca yer ararken işe yarar
+  const gaps = findFreeGaps(data, date, 1, 40, { dayStart: data.settings.dayStart, dayEnd: data.settings.dayEnd })
   return (
-    <div className="day-panel">
-      <div className="row middle">
-        <b className="grow">{formatLong(date)}</b>
-        <button className="btn small ghost" onClick={onDayView}>Gün görünümü</button>
-        {onAddExam && <button className="btn small" onClick={() => onAddExam(date)}><GraduationCap size={14} /> Sınav</button>}
-        <button className="btn small primary" onClick={onAdd}><Plus size={14} /> Ders</button>
+    <aside className="day-panel">
+      <div className="dp-head">
+        <b>{formatLong(date)}</b>
+        {hol && <span className="hol-tag">{hol.name}</span>}
       </div>
-      {exams.map((x) => <div key={x.id} className="dp-item exam"><GraduationCap size={14} /> {x.title}{x.start ? ` · ${x.start}` : ''}</div>)}
-      {tasks.map((t) => <div key={t.id} className="dp-item task"><ListTodo size={14} /> {t.title}</div>)}
-      {list.length === 0 && !exams.length && !tasks.length && <p className="muted small">Bu gün boş.</p>}
-      {list.map((e) => (
-        <button key={e.id} className={`ag-ev ev-${e.status}`} onClick={() => openEvent(e)}>
-          <i style={{ background: eventColor(data, e) }} />
-          <span className="ag-time">{e.start}–{e.end}</span>
-          <span className="ag-title"><StatusMark e={e} />{eventTitle(data, e)}</span>
-          {e.topic && <span className="ag-topic">{e.topic}</span>}
-        </button>
-      ))}
-    </div>
+      <div className="dp-list">
+        {exams.map((x) => <div key={x.id} className="dp-item exam"><GraduationCap size={14} /> {x.title}{x.start ? ` · ${x.start}` : ''}</div>)}
+        {tasks.map((t) => <div key={t.id} className="dp-item task" onClick={() => onOpenTask?.(t)}><ListTodo size={14} /> {t.title}</div>)}
+        {list.length === 0 && !exams.length && !tasks.length && <p className="muted small">Bu gün boş.</p>}
+        {list.map((e) => (
+          <button key={e.id} className={`ag-ev ev-${e.status}`} onClick={() => openEvent(e)}>
+            <i style={{ background: eventColor(data, e) }} />
+            <span className="ag-time">{e.start}–{e.end}</span>
+            <span className="ag-title"><StatusMark e={e} />{eventTitle(data, e)}</span>
+          </button>
+        ))}
+        {list.length > 0 && gaps.length > 0 && (
+          <p className="muted small dp-gaps">Boş: {gaps.map((g) => `${g.start}–${g.end}`).join(' · ')}</p>
+        )}
+      </div>
+      <div className="dp-foot">
+        <button className="btn small" onClick={onAdd}><Plus size={14} /> Etkinlik</button>
+        {onAddExam && <button className="btn small" onClick={() => onAddExam(date)}><GraduationCap size={14} /> Sınav</button>}
+        <button className="btn primary dp-go" onClick={onDayView}>Güne git <ChevronRight size={16} /></button>
+      </div>
+    </aside>
   )
 }

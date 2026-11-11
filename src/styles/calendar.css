@@ -133,7 +133,6 @@ body.dragging-now, body.dragging-now * { cursor: grabbing !important; user-selec
 .mg-exam { position: absolute; top: 1px; right: -3px; width: 6px; height: 6px; border-radius: 50%; background: #ef4444; }
 .mg-dots { display: none; gap: 2px; justify-content: center; flex-wrap: wrap; }
 .mg-dots i { width: 5px; height: 5px; border-radius: 50%; }
-.day-panel { border-top: 1px solid var(--line); padding: 10px 16px 90px; display: flex; flex-direction: column; gap: 2px; max-height: 45%; overflow-y: auto; background: var(--surface); }
 .dp-item { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 550; padding: 5px 8px; border-radius: 8px; }
 .dp-item.exam { background: #fee2e2; color: #b91c1c; }
 .dp-item.task { background: var(--primary-soft); color: var(--primary); }
@@ -141,7 +140,23 @@ body.dragging-now, body.dragging-now * { cursor: grabbing !important; user-selec
   .monthgrid { grid-auto-rows: minmax(54px, 1fr); flex: 0 0 auto; }
   .mg-ev, .mg-more, .mg-cell .hol-tag { display: none; }
   .mg-dots { display: flex; }
-  .day-panel { max-height: none; flex: 1; }
   .view-seg button { padding: 6px 10px; min-width: 34px; }
 }
 
+
+/* Ay görünümü: solda ay, sağda seçilen günün listesi (telefonda altta) */
+.month-wrap { flex: 1; min-height: 0; display: flex; }
+.month-wrap .monthgrid { flex: 1; min-width: 0; overflow-y: auto; }
+.day-panel { width: 320px; flex: none; border-left: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; min-height: 0; }
+.dp-head { padding: 14px 16px 8px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; font-family: var(--display); font-size: 17px; }
+.dp-list { flex: 1; overflow-y: auto; padding: 0 10px 10px; display: flex; flex-direction: column; gap: 2px; }
+.dp-list .ag-time { width: auto; }
+.dp-gaps { margin: 10px 6px 0; }
+.dp-foot { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px 14px; border-top: 1px solid var(--line); }
+.dp-go { flex: 1 1 100%; justify-content: center; }
+@media (max-width: 900px) {
+  .month-wrap { flex-direction: column; overflow-y: auto; }
+  .month-wrap .monthgrid { flex: 0 0 auto; overflow: visible; }
+  .day-panel { width: auto; border-left: 0; border-top: 1px solid var(--line); flex: 1 0 auto; }
+  .dp-list { overflow: visible; }
+}

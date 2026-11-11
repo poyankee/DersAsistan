@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { AppData, Book, CalEvent, ClassNote, Exam, Group, Holiday, Payment, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
+import type { AppData, Bill, BillPayment, Book, CalEvent, ClassNote, Exam, Group, Holiday, Payment, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
 import { PALETTE, colorFor, uid } from './util'
 import type { Category } from './types'
 import { isNative } from './native'
@@ -332,6 +332,29 @@ export function deleteClassNote(id: string) {
   })
 }
 
+// ---- Kişisel muhasebe ----
+
+export function saveBill(b: Bill) {
+  setData((d) => ({ ...d, bills: upsert(d.bills, b) }))
+}
+
+export function deleteBill(id: string) {
+  setData((d) => {
+    const b = d.bills.find((x) => x.id === id)
+    if (!b) return d
+    const pays = d.billPayments.filter((p) => p.billId === id)
+    return toTrash({ ...d, bills: d.bills.filter((x) => x.id !== id), billPayments: d.billPayments.filter((p) => p.billId !== id) }, 'bill', `Ödeme kalemi: ${b.name} (${pays.length} ödeme)`, { bills: [b], billPayments: pays })
+  })
+}
+
+export function saveBillPayment(p: BillPayment) {
+  setData((d) => ({ ...d, billPayments: upsert(d.billPayments, p) }))
+}
+
+export function deleteBillPayment(id: string) {
+  setData((d) => ({ ...d, billPayments: d.billPayments.filter((p) => p.id !== id) }))
+}
+
 // ---- Çöp kutusu ----
 
 function toTrash(d: AppData, kind: TrashKind, label: string, payload: TrashItem['payload']): AppData {
@@ -339,7 +362,7 @@ function toTrash(d: AppData, kind: TrashKind, label: string, payload: TrashItem[
   return { ...d, trash: [item, ...d.trash].slice(0, 300) }
 }
 
-type Restorable = 'events' | 'students' | 'payments' | 'notes' | 'books' | 'tasks' | 'exams' | 'classNotes'
+type Restorable = 'events' | 'students' | 'payments' | 'notes' | 'books' | 'tasks' | 'exams' | 'classNotes' | 'bills' | 'billPayments'
 
 /** Silinen kaydı geri getirir */
 export function restoreTrash(id: string) {

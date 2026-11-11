@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 export default function Modal({ title, onClose, children, footer, wide }: {
   title: ReactNode
@@ -20,7 +21,9 @@ export default function Modal({ title, onClose, children, footer, wide }: {
     window.addEventListener('keydown', h)
     return () => window.removeEventListener('keydown', h)
   }, [onClose])
-  return (
+  // Pencere doğrudan sayfanın köküne eklenir: animasyonlu ya da kaydırılan bir bölümün içinde kalıp
+  // ekranı kaplayamama / arkada kalma sorunu yaşanmaz
+  return createPortal(
     <div
       ref={ref}
       className="modal-backdrop"
@@ -47,6 +50,7 @@ export default function Modal({ title, onClose, children, footer, wide }: {
         >{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -1,7 +1,7 @@
 import type { AppData, Category, Student } from './types'
 
 /** Verinin güncel şema sürümü. Yapı değiştikçe MIGRATIONS'a bir adım eklenir. */
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'yl', name: 'Yüksek lisans', color: '#8e24aa' },
@@ -21,6 +21,8 @@ export function emptyData(): AppData {
     tasks: [],
     exams: [],
     categories: DEFAULT_CATEGORIES,
+    bills: [],
+    billPayments: [],
     classNotes: [],
     trash: [],
     ignoredImportKeys: [],
@@ -61,6 +63,8 @@ const MIGRATIONS: ((d: Loose) => Loose)[] = [
     events: (d.events ?? []).map((e) => (e.status === 'postponed' ? { ...e, status: 'cancelled' as const } : e)),
     categories: d.categories?.length ? d.categories : DEFAULT_CATEGORIES,
   }),
+  // 3 → 4: kişisel muhasebe (aylık ödemeler) eklendi
+  (d) => ({ ...d, bills: d.bills ?? [], billPayments: d.billPayments ?? [] }),
 ]
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
@@ -107,6 +111,8 @@ export function parseData(raw: unknown): { data: AppData; report: LoadReport } {
     tasks: list(d.tasks, any),
     exams: list(d.exams, (x) => DATE.test(String(x.date))),
     categories: list<Category>(d.categories, any).length ? list<Category>(d.categories, any) : DEFAULT_CATEGORIES,
+    bills: list(d.bills, (b) => typeof b.name === 'string' && typeof b.day === 'number' && /^\d{4}-\d{2}$/.test(String(b.from))),
+    billPayments: list(d.billPayments, (p) => typeof p.amount === 'number' && /^\d{4}-\d{2}$/.test(String(p.month))),
     classNotes: list(d.classNotes, any),
     // 30 günden eski silinenler kalıcı olarak temizlenir
     trash: list<AppData['trash'][number]>(d.trash, any).filter((t) => Date.now() - t.deletedAt < 30 * 86400000),

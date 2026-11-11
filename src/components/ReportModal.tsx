@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { MessageCircle, Printer, Share2 } from 'lucide-react'
 import { addMonths, startOfMonth, todayISO } from '../lib/date'
-import { downloadFile, openExternal, waLink } from '../lib/native'
+import { downloadFile, isNative, openExternal, waLink } from '../lib/native'
 import DateInput from './DateInput'
 import Modal from './Modal'
 
@@ -23,12 +23,16 @@ export default function ReportModal({ title, fileName, build, phone, onClose }: 
     if (r === 'gecen') { const s = addMonths(startOfMonth(today), -1); setFrom(s); setTo(new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, 0, 12).toLocaleDateString('sv')) }
   }
   const text = range === 'hepsi' ? build() : build(from, to)
+  // Yeni pencere açılmaz (telefonda uygulamayı boş sayfada bırakıyordu): yalnızca döküm metni yazdırılır
   const print = () => {
-    const w = window.open('', '_blank')
-    if (!w) return window.print()
-    w.document.write(`<pre style="font:14px/1.6 system-ui,sans-serif;white-space:pre-wrap;padding:24px">${text.replace(/[&<]/g, (c) => (c === '&' ? '&amp;' : '&lt;'))}</pre>`)
-    w.document.close()
-    w.print()
+    document.body.classList.add('print-report')
+    const done = () => {
+      document.body.classList.remove('print-report')
+      window.removeEventListener('afterprint', done)
+    }
+    window.addEventListener('afterprint', done)
+    window.print()
+    setTimeout(done, 60_000)
   }
   return (
     <Modal
@@ -38,7 +42,7 @@ export default function ReportModal({ title, fileName, build, phone, onClose }: 
       footer={
         <>
           <div className="spacer" />
-          <button className="btn" onClick={print}><Printer size={15} /> Yazdır</button>
+          {!isNative && <button className="btn" onClick={print}><Printer size={15} /> Yazdır</button>}
           {phone && <button className="btn" onClick={() => openExternal(waLink(phone, text))}><MessageCircle size={15} /> WhatsApp</button>}
           <button className="btn primary" onClick={() => downloadFile(fileName, text, 'text/plain')}><Share2 size={15} /> Paylaş</button>
         </>

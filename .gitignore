@@ -6,3 +6,5 @@ dist
 # İmza anahtarları depoya eklenmez (GitHub Secrets kullanılır)
 *.keystore
 *.jks
+*.p12
+android/signing/

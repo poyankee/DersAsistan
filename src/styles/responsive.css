@@ -72,3 +72,11 @@
   .fab { bottom: calc(92px + env(safe-area-inset-bottom)); right: 18px; }
 }
 
+
+@media print {
+  body.print-report > *:not(.modal-backdrop) { display: none !important; }
+  body.print-report .modal-backdrop { position: static; background: none; padding: 0; backdrop-filter: none; }
+  body.print-report .modal { box-shadow: none; border: 0; max-width: none; max-height: none; }
+  body.print-report .modal-foot, body.print-report .modal-head .icon-btn, body.print-report .chips, body.print-report .date-input { display: none !important; }
+  body.print-report .report { max-height: none; overflow: visible; background: none; font-size: 12pt; }
+}

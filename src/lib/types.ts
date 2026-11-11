@@ -1,4 +1,5 @@
 export type EventKind = 'kurum' | 'ozel' | 'diger'
+/** 'postponed' eski sürümlerden kalmadır; yüklenirken 'cancelled' yapılır */
 export type LessonStatus = 'planned' | 'done' | 'cancelled' | 'postponed'
 
 export interface CalEvent {
@@ -92,16 +93,6 @@ export interface Payment {
   note?: string
   /** Belirli bir dersin ücreti olarak alındıysa */
   eventId?: string
-}
-
-/** İleri tarihli ödeme sözü: "15 Aralık'ta ödeyeceğim" */
-export interface PaymentPromise {
-  id: string
-  studentId: string
-  dueDate: string
-  amount: number
-  note?: string
-  createdAt: number
 }
 
 /** Resmi tatil veya okul tatili (bitiş dahil) */
@@ -222,17 +213,24 @@ export interface Settings {
   /** Yazı boyutu çarpanı (1 = normal) */
   fontScale?: number
   notify?: NotifySettings
+  /** Uygulama kilidi (PIN özeti) */
+  lock?: { salt: string; hash: string }
+  /** Ana renk (tema vurgusu) */
+  accent?: string
+  /** İlk açılış tanıtımı görüldü mü */
+  introSeen?: boolean
 }
 
 export interface AppData {
-  version: 1
+  version: number
+  /** Son kayıt zamanı (hangi kopyanın daha yeni olduğunu anlamak için) */
+  savedAt?: number
   events: CalEvent[]
   groups: Record<string, Group>
   students: Student[]
   payments: Payment[]
   books: Book[]
   notes: StudentNote[]
-  promises: PaymentPromise[]
   /** Kullanıcının eklediği tatiller (ara tatil, yarıyıl vb.) */
   holidays: Holiday[]
   tasks: Task[]

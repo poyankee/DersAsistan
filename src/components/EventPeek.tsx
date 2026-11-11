@@ -1,7 +1,11 @@
-import { Ban, Clock, FolderOpen, Pencil, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
+import { Ban, CalendarSearch, Clock, FolderOpen, Pencil, RotateCcw } from 'lucide-react'
 import type { CalEvent } from '../lib/types'
-import { eventColor, eventTitle, saveEvents, useData } from '../lib/store'
-import { formatDMYDay } from '../lib/date'
+import { deleteEvents, eventColor, eventTitle, saveEvents, useData } from '../lib/store'
+import { isOff } from '../lib/status'
+import { uid } from '../lib/util'
+import FreeSlotsModal from './FreeSlotsModal'
+import { formatDMYDay, toMinutes } from '../lib/date'
 import { showToast } from '../lib/toast'
 import Modal from './Modal'
 
@@ -13,6 +17,7 @@ export default function EventPeek({ ev, onClose, onEdit, onOpenFile }: {
   onOpenFile: (e: CalEvent) => void
 }) {
   const data = useData()
+  const [makeup, setMakeup] = useState(false)
   const e = data.events.find((x) => x.id === ev.id) ?? ev
   const category = e.categoryId ? data.categories.find((c) => c.id === e.categoryId) : undefined
   const hasFile = !!(e.studentId || e.groupCode)
@@ -22,13 +27,23 @@ export default function EventPeek({ ev, onClose, onEdit, onOpenFile }: {
         .filter((x) => x.topic && ((e.groupCode && x.groupCode === e.groupCode) || (e.studentId && x.studentId === e.studentId)) && x.date + x.start <= e.date + e.start)
         .sort((a, b) => (b.date + b.start).localeCompare(a.date + a.start))[0]
     : undefined
-  const cancelled = e.status === 'cancelled' || e.status === 'postponed'
+  const cancelled = isOff(e)
+
+  const makeups = data.events.filter((x) => x.makeupOf === e.id && !isOff(x))
+  const original = e.makeupOf ? data.events.find((x) => x.id === e.makeupOf) : undefined
+  const planMakeup = (date: string, start: string, end: string) => {
+    const copy: CalEvent = { ...e, id: uid(), date, start, end, status: 'planned', makeupOf: e.id, topic: undefined, homework: undefined, notes: undefined, bookId: undefined, bookProgress: undefined, importKeys: undefined, seriesId: undefined, createdAt: Date.now() }
+    saveEvents([copy])
+    showToast(`Telafi eklendi: ${formatDMYDay(date)} ${start}–${end}`, [{ label: 'Geri al', run: () => deleteEvents([copy.id], { trash: false }) }])
+    onClose()
+  }
 
   const toggleCancel = () => {
     const before = { ...e }
     saveEvents([{ ...e, status: cancelled ? 'planned' : 'cancelled' }])
     showToast(cancelled ? `${eventTitle(data, e)} geri açıldı` : `${eventTitle(data, e)} iptal edildi`, [{ label: 'Geri al', run: () => saveEvents([before]) }])
-    onClose()
+    // İptalden sonra kart açık kalır: telafi planlanabilir
+    if (cancelled || e.kind === 'diger') onClose()
   }
 
   return (
@@ -39,10 +54,12 @@ export default function EventPeek({ ev, onClose, onEdit, onOpenFile }: {
           <div className="grow">
             <h3>{eventTitle(data, e)}</h3>
             <div className="muted small"><Clock size={13} /> {formatDMYDay(e.date)} · {e.start}–{e.end}</div>
-            {(category || cancelled) && (
+            {(category || cancelled || original) && (
               <div className="peek-tags">
                 {category && <span className="pill">{category.name}</span>}
                 {cancelled && <span className="pill st-cancelled">İptal edildi</span>}
+                {original && <span className="pill">Telafi · asıl ders {formatDMYDay(original.date)}</span>}
+                {makeups.map((m) => <span key={m.id} className="pill st-done">Telafisi: {formatDMYDay(m.date)} {m.start}</span>)}
               </div>
             )}
           </div>
@@ -54,11 +71,13 @@ export default function EventPeek({ ev, onClose, onEdit, onOpenFile }: {
           </p>
         )}
         <div className="peek-actions">
+          {cancelled && e.kind !== 'diger' && makeups.length === 0 && <button className="peek-btn primary" onClick={() => setMakeup(true)}><CalendarSearch size={18} /><span>Telafi planla</span></button>}
           {hasFile && <button className="peek-btn primary" onClick={() => onOpenFile(e)}><FolderOpen size={18} /><span>{e.studentId ? 'Öğrenci dosyası' : 'Sınıf dosyası'}</span></button>}
           <button className="peek-btn" onClick={() => onEdit(e)}><Pencil size={18} /><span>Düzenle</span></button>
           <button className="peek-btn" onClick={toggleCancel}>{cancelled ? <RotateCcw size={18} /> : <Ban size={18} />}<span>{cancelled ? 'Geri aç' : e.kind === 'diger' ? 'İptal / katılmadım' : 'İptal et'}</span></button>
         </div>
       </div>
+      {makeup && <FreeSlotsModal title="Telafi için boş saat seç" initialDuration={toMinutes(e.end) - toMinutes(e.start)} ignoreId={e.id} onClose={() => setMakeup(false)} onPick={planMakeup} />}
     </Modal>
   )
 }

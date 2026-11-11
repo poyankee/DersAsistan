@@ -29,7 +29,7 @@ import java.util.Map;
 public class TodayWidget extends AppWidgetProvider {
 
     private static final String PREFS = "CapacitorStorage";
-    private static final String KEY = "ders-asistan-v1";
+    private static final String KEY = "widget-v1";
     private static final String[] MONTHS = {"Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"};
     private static final String[] DAYS = {"Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"};
 

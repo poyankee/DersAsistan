@@ -81,6 +81,6 @@ describe('sade ödeme modeli', () => {
     })
     expect(d.students[0]).toMatchObject({ payWhen: 'aysonu', payNote: { due: '2026-12-01', since: '2026-11-05' } })
     expect(d.students[1].payWhen).toBe('pesin')
-    expect(d.promises).toHaveLength(0)
+    expect('promises' in d).toBe(false)
   })
 })

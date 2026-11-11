@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
 import { CalendarSearch, ChevronLeft, ChevronRight, GraduationCap, ListTodo, MoreHorizontal, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import FreeSlotsModal from './FreeSlotsModal'
@@ -267,6 +267,7 @@ interface DragState {
   date: string
   start: string
   end: string
+  orig: CalEvent
 }
 
 interface CreateState {
@@ -318,16 +319,23 @@ function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, openEvent, onEmpty
   const [animating, setAnimating] = useState(false)
   const touch = useRef<{ x: number; y: number; t: number; mode: 'none' | 'h' | 'v' | 'pinch'; dist?: number; basePx?: number; anchorMin?: number; anchorY?: number } | null>(null)
 
+  // Sürüklemeden bağımsız gün listeleri: sürükleme sırasında değişmez, böylece diğer günler yeniden çizilmez
+  const dayKey = days.join()
   const byDay = useMemo(() => {
     const m = new Map<string, CalEvent[]>()
     for (const e of data.events) {
-      const shown = drag && e.id === drag.id ? { ...e, date: drag.date, start: drag.start, end: drag.end } : e
-      if (!days.includes(shown.date)) continue
-      if (!m.has(shown.date)) m.set(shown.date, [])
-      m.get(shown.date)!.push(shown)
+      if (!days.includes(e.date)) continue
+      if (!m.has(e.date)) m.set(e.date, [])
+      m.get(e.date)!.push(e)
     }
     return m
-  }, [data.events, days, drag])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.events, dayKey])
+  const downRef = useRef<(ev: React.PointerEvent, e: CalEvent, mode: 'move' | 'resize') => void>(() => undefined)
+  const openRef = useRef(openEvent)
+  openRef.current = openEvent
+  const stableDown = useCallback((ev: React.PointerEvent, e: CalEvent, mode: 'move' | 'resize') => downRef.current(ev, e, mode), [])
+  const stableOpen = useCallback((e: CalEvent) => openRef.current(e), [])
 
   // Takvim günün tamamını gösterir
   const startH = 0
@@ -387,7 +395,7 @@ function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, openEvent, onEmpty
     ev.stopPropagation()
     const dur = toMinutes(e.end) - toMinutes(e.start)
     const grab = locate(ev.clientX, ev.clientY, e.date).min - toMinutes(e.start)
-    let cur: DragState = { id: e.id, mode, date: e.date, start: e.start, end: e.end }
+    let cur: DragState = { id: e.id, mode, date: e.date, start: e.start, end: e.end, orig: e }
     startGesture(ev, {
       onStart: () => setDrag(cur),
       onMove: (p) => {
@@ -411,6 +419,8 @@ function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, openEvent, onEmpty
       onTap: () => openEvent(e),
     })
   }
+
+  downRef.current = onEventDown
 
   const onColDown = (ev: React.PointerEvent, d: string) => {
     if (ev.target !== ev.currentTarget) return
@@ -548,31 +558,15 @@ function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, openEvent, onEmpty
                   {fromMinutes(create.a)}–{fromMinutes(create.b)}
                 </div>
               )}
-              {layoutDay(byDay.get(d) ?? []).map(({ e, col, cols }) => {
-                const top = ((toMinutes(e.start) - startH * 60) / 60) * HOUR_PX
-                const h = Math.max(22, ((toMinutes(e.end) - toMinutes(e.start)) / 60) * HOUR_PX - 2)
-                const color = eventColor(data, e)
-                const isDragging = drag?.id === e.id
-                return (
-                  <div
-                    key={e.id}
-                    role="button"
-                    tabIndex={0}
-                    className={`ev ev-${e.status}` + (isPast(e.date, e.end) ? ' past' : '') + (isDragging ? ' dragging' : '') + (h < 34 ? ' compact' : '')}
-                    style={{ top, height: h, left: isDragging ? 1 : `calc(${(col / cols) * 100}% + 1px)`, width: isDragging ? 'calc(100% - 3px)' : `calc(${100 / cols}% - 3px)`, ['--ev' as string]: color }}
-                    onPointerDown={(ev) => onEventDown(ev, e, 'move')}
-                    onKeyDown={(ev) => ev.key === 'Enter' && openEvent(e)}
-                    onContextMenu={(ev) => ev.preventDefault()}
-                    title={`${eventTitle(data, e)}\n${e.start}–${e.end}${e.topic ? '\nKonu: ' + e.topic : ''}`}
-                  >
-                    <div className="ev-title"><StatusMark e={e} />{eventTitle(data, e)}</div>
-                    <div className="ev-time">{e.start}–{e.end}{e.hours && e.hours > 1 ? ` · ${e.hours} saat` : ''}</div>
-                    {e.topic && h > 54 && <div className="ev-topic">{e.topic}</div>}
-                    {isDragging && <div className="ev-drag-time">{e.start}–{e.end}</div>}
-                    <div className="ev-resize" onPointerDown={(ev) => onEventDown(ev, e, 'resize')} />
-                  </div>
-                )
-              })}
+              <DayEvents
+                data={data}
+                date={d}
+                events={byDay.get(d) ?? EMPTY}
+                drag={drag && (drag.date === d || drag.orig.date === d) ? drag : null}
+                hourPx={HOUR_PX}
+                onDown={stableDown}
+                onOpen={stableOpen}
+              />
             </div>
           ))}
         </div>
@@ -580,6 +574,53 @@ function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, openEvent, onEmpty
     </div>
   )
 }
+
+const EMPTY: CalEvent[] = []
+
+/** Bir günün etkinlikleri. Yalnızca kendi verisi ya da o günle ilgili sürükleme değişince yeniden çizilir. */
+const DayEvents = memo(function DayEvents({ data, date, events, drag, hourPx, onDown, onOpen }: {
+  data: AppData
+  date: string
+  events: CalEvent[]
+  drag: DragState | null
+  hourPx: number
+  onDown: (ev: React.PointerEvent, e: CalEvent, mode: 'move' | 'resize') => void
+  onOpen: (e: CalEvent) => void
+}) {
+  let list = events
+  if (drag) {
+    list = events.filter((e) => e.id !== drag.id)
+    if (drag.date === date) list = [...list, { ...drag.orig, date: drag.date, start: drag.start, end: drag.end }]
+  }
+  return (
+    <>
+      {layoutDay(list).map(({ e, col, cols }) => {
+        const top = (toMinutes(e.start) / 60) * hourPx
+        const h = Math.max(22, ((toMinutes(e.end) - toMinutes(e.start)) / 60) * hourPx - 2)
+        const isDragging = drag?.id === e.id
+        const orig = isDragging ? drag!.orig : e
+        return (
+          <div
+            key={e.id}
+            role="button"
+            tabIndex={0}
+            className={`ev ev-${e.status}` + (isPast(e.date, e.end) ? ' past' : '') + (isDragging ? ' dragging' : '') + (h < 34 ? ' compact' : '')}
+            style={{ top, height: h, left: isDragging ? 1 : `calc(${(col / cols) * 100}% + 1px)`, width: isDragging ? 'calc(100% - 3px)' : `calc(${100 / cols}% - 3px)`, ['--ev' as string]: eventColor(data, e) }}
+            onPointerDown={(ev) => onDown(ev, orig, 'move')}
+            onKeyDown={(ev) => ev.key === 'Enter' && onOpen(orig)}
+            onContextMenu={(ev) => ev.preventDefault()}
+            title={`${eventTitle(data, e)}\n${e.start}–${e.end}`}
+          >
+            <div className="ev-title"><StatusMark e={e} />{eventTitle(data, e)}</div>
+            <div className="ev-time">{e.start}–{e.end}{e.hours && e.hours > 1 ? ` · ${e.hours} saat` : ''}</div>
+            {isDragging && <div className="ev-drag-time">{e.start}–{e.end}</div>}
+            <div className="ev-resize" onPointerDown={(ev) => onDown(ev, orig, 'resize')} />
+          </div>
+        )
+      })}
+    </>
+  )
+})
 
 function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
   data: AppData

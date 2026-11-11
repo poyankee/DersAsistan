@@ -1,5 +1,6 @@
 import type { AppData, CalEvent, PayNote, PayWhen, Student } from './types'
 import { happened } from './status'
+import { nowHM } from './date'
 
 /**
  * Sade ödeme modeli ("veresiye defteri"):
@@ -43,7 +44,19 @@ export function payWhenOf(s: Student): PayWhen {
 
 const dayDiff = (a: string, b: string) => Math.round((Date.parse(b + 'T12:00:00') - Date.parse(a + 'T12:00:00')) / 86400000)
 
-export function studentFinance(d: AppData, s: Student, today: string, now?: string): StudentFinance {
+// Aynı veri ve aynı an için sonuç saklanır: listeler her çizimde tüm dersleri yeniden taramaz
+const cache = new WeakMap<AppData, Map<string, StudentFinance>>()
+
+export function studentFinance(d: AppData, s: Student, today: string, now: string = nowHM()): StudentFinance {
+  let m = cache.get(d)
+  if (!m) cache.set(d, (m = new Map()))
+  const key = `${s.id}|${today}|${now}`
+  let r = m.get(key)
+  if (!r) m.set(key, (r = compute(d, s, today, now)))
+  return r
+}
+
+function compute(d: AppData, s: Student, today: string, now: string): StudentFinance {
   const payWhen = payWhenOf(s)
   const lessons: CalEvent[] = []
   for (const e of d.events) {

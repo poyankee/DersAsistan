@@ -30,18 +30,15 @@ export function openExternal(url: string) {
   else window.open(url, '_blank', 'noopener')
 }
 
-/** Android'de verinin kalıcı kopyası (localStorage temizlenirse geri yüklemek için) */
 interface WidgetBridgePlugin {
   refresh(): Promise<void>
 }
 let widgetBridge: WidgetBridgePlugin | null = null
 let widgetTimer: ReturnType<typeof setTimeout> | undefined
 
-export async function nativeSave(key: string, value: string) {
+/** Ana ekran widget'ını kısa bir gecikmeyle yeniler (art arda kayıtlarda tek sefer) */
+export function refreshWidget() {
   if (!isNative) return
-  const { Preferences } = await import('@capacitor/preferences')
-  await Preferences.set({ key, value })
-  // Ana ekran widget'ını kısa bir gecikmeyle yenile (art arda kayıtlarda tek sefer)
   clearTimeout(widgetTimer)
   widgetTimer = setTimeout(() => {
     try {
@@ -53,16 +50,14 @@ export async function nativeSave(key: string, value: string) {
   }, 800)
 }
 
-export async function nativeLoad(key: string): Promise<string | null> {
-  if (!isNative) return null
-  const { Preferences } = await import('@capacitor/preferences')
-  return (await Preferences.get({ key })).value
-}
-
 /** Geri tuşu: açık pencere varsa kapat, yoksa uygulamayı arka plana al */
 export async function setupBackButton() {
   if (!isNative) return
   const { App } = await import('@capacitor/app')
+  // Arka plana geçerken bekleyen kaydı hemen yaz
+  App.addListener('pause', () => {
+    import('./persist').then((m) => m.flush())
+  })
   App.addListener('backButton', () => {
     if (document.querySelector('.modal')) {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))

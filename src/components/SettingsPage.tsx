@@ -1,6 +1,11 @@
 import { useRef, useState } from 'react'
 import DateInput from './DateInput'
-import { Bell, CalendarDays, Download, Palette, RotateCcw, Trash2, Upload } from 'lucide-react'
+import { Bell, BookOpen, Bug, CalendarDays, Download, KeyRound, Lock, Sparkles, Palette, RotateCcw, ShieldCheck, Trash2, Upload } from 'lucide-react'
+import { decryptText, encryptText, isEncrypted } from '../lib/crypto'
+import { autoBackupInfo, readSnapshots } from '../lib/persist'
+import { makeLock } from '../lib/lock'
+import { APP_VERSION, CHANGELOG } from '../lib/version'
+import { clearErrors, errorReport, readErrors } from '../lib/errlog'
 import { deleteCategory, deleteHoliday, emptyData, emptyTrash, normalize, restoreTrash, saveCategory, saveGroup, saveHoliday, setData, useData } from '../lib/store'
 import { notifySettings, requestNotifyPermission, testNotification } from '../lib/notify'
 import { isNative } from '../lib/native'
@@ -19,13 +24,29 @@ export default function SettingsPage() {
   const setSetting = <K extends keyof typeof data.settings>(k: K, v: (typeof data.settings)[K]) =>
     setData((d) => ({ ...d, settings: { ...d.settings, [k]: v } }))
 
-  const backup = () => downloadFile(`ders-asistani-yedek-${todayISO()}.json`, JSON.stringify(data, null, 2), 'application/json')
+  const backup = async (withPassword: boolean) => {
+    let text = JSON.stringify(data)
+    let name = `ders-asistani-yedek-${todayISO()}.json`
+    if (withPassword) {
+      const pw = prompt('Yedek için parola belirleyin (geri yüklerken sorulacak; unutursanız yedek açılamaz):')
+      if (!pw) return
+      if (pw !== prompt('Parolayı tekrar yazın:')) return alert('Parolalar aynı değil.')
+      text = await encryptText(text, pw)
+      name = `ders-asistani-sifreli-yedek-${todayISO()}.json`
+    }
+    await downloadFile(name, text, 'application/json')
+  }
 
   const restore = async (f?: File) => {
     if (!f) return
     try {
-      const parsed = normalize(JSON.parse(await f.text()))
-      if (!Array.isArray(parsed.events)) throw new Error('Geçersiz dosya')
+      let obj: unknown = JSON.parse(await f.text())
+      if (isEncrypted(obj)) {
+        const pw = prompt('Bu yedek parolalı. Parolayı yazın:')
+        if (!pw) return
+        obj = JSON.parse(await decryptText(obj, pw))
+      }
+      const parsed = normalize(obj)
       if (confirm(`Yedek yüklensin mi? (${parsed.events.length} etkinlik, ${parsed.students.length} öğrenci)\nMevcut verilerin yerini alacak.`)) {
         setData(() => parsed)
         alert('Yedek yüklendi.')
@@ -41,14 +62,17 @@ export default function SettingsPage() {
 
       <AppearancePanel />
       <NotifyPanel />
+      <LockPanel />
       <CategoriesPanel />
       <section className="panel">
         <h3>Yedekleme</h3>
         <p className="muted small">
-          Verileriniz sadece bu cihazda saklanır. Cihaz değiştirmeden, uygulamayı silmeden veya güncellemeden önce mutlaka yedek alın (yedeği Google Drive veya WhatsApp'a kaydedebilirsiniz).
+          Verileriniz sadece bu cihazda saklanır. Yedeği Google Drive'a ya da kendinize WhatsApp'tan gönderebilirsiniz; parolalı yedekte öğrenci adları ve ücretler okunamaz.
         </p>
+        <AutoBackupStatus />
         <div className="row wrap">
-          <button className="btn primary" onClick={backup}><Download size={16} /> Yedek indir (.json)</button>
+          <button className="btn primary" onClick={() => backup(false)}><Download size={16} /> Yedek al</button>
+          <button className="btn" onClick={() => backup(true)}><Lock size={16} /> Parolalı yedek al</button>
           <button className="btn" onClick={() => fileRef.current?.click()}><Upload size={16} /> Yedekten geri yükle</button>
           <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={(e) => restore(e.target.files?.[0])} />
         </div>
@@ -128,6 +152,7 @@ export default function SettingsPage() {
         </div>
       </section>
       <TrashPanel />
+      <ErrorPanel />
       <section className="panel danger-zone">
         <h3>Tehlikeli bölge</h3>
         <button
@@ -138,7 +163,9 @@ export default function SettingsPage() {
         >Tüm verileri sil</button>
       </section>
       </details>
-      <p className="muted small center">Ders Asistanı v0.7.1 · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
+      <HelpPanel />
+      <ChangelogPanel />
+      <p className="muted small center">Ders Asistanı v{APP_VERSION} · {data.events.length} etkinlik · {data.students.length} öğrenci</p>
     </div>
   )
 }
@@ -304,6 +331,119 @@ function CategoriesPanel() {
       <div className="task-add" style={{ marginTop: 10 }}>
         <input value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Yeni kategori (ör. Spor)" />
         <button className="btn small primary" disabled={!name.trim()} onClick={add}>Ekle</button>
+      </div>
+    </section>
+  )
+}
+
+/** Otomatik yedek durumu + günlük sağlam kopyalardan geri dönme */
+function AutoBackupStatus() {
+  const info = autoBackupInfo()
+  const [snaps, setSnaps] = useState<{ name: string; raw: string }[] | null>(null)
+  const restoreSnap = (s: { name: string; raw: string }) => {
+    try {
+      const d = normalize(JSON.parse(s.raw))
+      if (confirm(`${s.name} tarihli kopyaya dönülsün mü? (${d.events.length} etkinlik, ${d.students.length} öğrenci)\nŞu anki verilerin yerini alacak.`)) {
+        setData(() => d)
+        showToast('Kopya yüklendi')
+      }
+    } catch (e) {
+      alert('Kopya okunamadı: ' + (e as Error).message)
+    }
+  }
+  return (
+    <div className="backup-status">
+      <div className="row-title"><ShieldCheck size={16} />
+        {isNative
+          ? info?.ok ? <span>Otomatik yedek açık · son: {formatDMY(info.day)} · <b>{info.where}</b> klasörü (uygulama silinse de kalır)</span>
+            : info ? <span className="warn-text">Otomatik yedek alınamadı ({info.error}). Elle yedek almayı unutmayın.</span>
+            : <span>Otomatik yedek her gün ilk değişiklikte alınır.</span>
+          : <span>Otomatik yedek Android uygulamasında çalışır; tarayıcıda günde bir sağlam kopya tutulur.</span>}
+      </div>
+      {snaps === null ? (
+        <button className="btn small ghost" onClick={async () => setSnaps(await readSnapshots())}>Son günlerin kopyalarını göster</button>
+      ) : snaps.length === 0 ? <span className="muted small">Henüz kopya yok.</span> : (
+        <div className="chips">
+          {snaps.map((s) => <button key={s.name} className="chip" onClick={() => restoreSnap(s)}>{/^\d{4}-/.test(s.name) ? formatDMY(s.name) : s.name}</button>)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function LockPanel() {
+  const data = useData()
+  const on = !!data.settings.lock
+  const setPin = async () => {
+    const pin = prompt('4 haneli bir PIN belirleyin:')
+    if (pin === null) return
+    if (!/^\d{4}$/.test(pin)) return alert('PIN 4 rakamdan oluşmalı.')
+    if (pin !== prompt('PIN\'i tekrar yazın:')) return alert('PIN\'ler aynı değil.')
+    setSettings({ lock: await makeLock(pin) })
+    showToast('Uygulama kilidi açıldı')
+  }
+  return (
+    <section className="panel">
+      <h3 className="row-title"><KeyRound size={18} /> Uygulama kilidi</h3>
+      <p className="muted small">Uygulama açılırken ve bir dakikadan uzun arka planda kaldıktan sonra PIN sorulur. Telefonunuzu başkası eline aldığında öğrenci ve ücret bilgileri görünmez.</p>
+      <div className="row wrap">
+        <button className="btn" onClick={setPin}>{on ? 'PIN\'i değiştir' : 'PIN belirle'}</button>
+        {on && <button className="btn danger" onClick={() => confirm('Uygulama kilidi kapatılsın mı?') && setSettings({ lock: undefined })}>Kilidi kapat</button>}
+      </div>
+    </section>
+  )
+}
+
+const GUIDE: [string, string][] = [
+  ['Kurum programını yüklemek', 'Takvim → sağ üstteki ⋯ → "Kurum programını yükle". Aynı dosyayı tekrar yükleseniz de dersler çiftlenmez; değişen günler ayrıca gösterilir.'],
+  ['Ders eklemek', '"+" düğmesi → Etkinlik. Özel ders için öğrenciyi, kendi işleriniz için "Kişisel"i seçin. "Her hafta tekrarla" ile dönemlik ders oluşturulur.'],
+  ['Dersi taşımak', 'Takvimde derse basılı tutup sürükleyin. Alt kenarından çekerek süresini değiştirin. Her taşımadan sonra "Geri al" çıkar.'],
+  ['Ne yaptığınızı yazmak', 'Öğrenciler → öğrenciye (ya da Kurum sınıfları → sınıfa) dokunun → Dersler sekmesi. Tarih bugün gelir; değiştirebilirsiniz.'],
+  ['Ücret ve ödemeler', 'İptal edilmeyen her ders bitince öğrencinin hesabına yazılır. Öğrenci dosyası → Ödeme işlemleri\'nden ödeme alın. Yapılmayan dersi takvimden "İptal et" ile işaretleyin.'],
+  ['Telafi', 'İptal ettiğiniz derse dokunun → "Telafi planla". Boş saatleriniz listelenir.'],
+  ['Arama', 'Bugün ekranındaki büyüteç: öğrenci, sınıf, konu ve ödevlerde arar.'],
+  ['Yedek', 'Uygulama her gün otomatik yedek alır. Telefon değiştirirken Ayarlar → Yedek al ile dosyayı kendinize gönderin.'],
+]
+
+function HelpPanel() {
+  return (
+    <details className="advanced">
+      <summary><span className="row-title"><BookOpen size={18} /> Nasıl kullanılır?</span></summary>
+      <section className="panel">
+        <dl className="guide">
+          {GUIDE.map(([t, d]) => <div key={t}><dt>{t}</dt><dd>{d}</dd></div>)}
+        </dl>
+      </section>
+    </details>
+  )
+}
+
+function ChangelogPanel() {
+  return (
+    <details className="advanced">
+      <summary><span className="row-title"><Sparkles size={18} /> Yenilikler</span></summary>
+      <section className="panel">
+        {CHANGELOG.map((c) => (
+          <div key={c.version}>
+            <h4>Sürüm {c.version}</h4>
+            <ul className="mini-list">{c.items.map((i) => <li key={i}>{i}</li>)}</ul>
+          </div>
+        ))}
+      </section>
+    </details>
+  )
+}
+
+function ErrorPanel() {
+  const [n, setN] = useState(() => readErrors().length)
+  return (
+    <section className="panel">
+      <h3 className="row-title"><Bug size={18} /> Hata raporu</h3>
+      <p className="muted small">Uygulamada bir hata olursa burada kaydedilir. Raporda öğrenci ya da ücret bilgisi yoktur; yalnızca hata metni ve cihaz bilgisi bulunur.</p>
+      <div className="row wrap middle">
+        <span className="small">{n ? `${n} kayıtlı hata` : 'Kayıtlı hata yok'}</span>
+        <button className="btn small" onClick={() => downloadFile('ders-asistani-hata-raporu.txt', errorReport(APP_VERSION), 'text/plain')}>Raporu paylaş</button>
+        {n > 0 && <button className="btn small ghost" onClick={() => { clearErrors(); setN(0) }}>Temizle</button>}
       </div>
     </section>
   )

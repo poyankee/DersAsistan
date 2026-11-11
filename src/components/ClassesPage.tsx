@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
 import { happened, isOff } from '../lib/status'
-import { BookOpenText, ChevronLeft, GraduationCap, ListTodo, NotebookPen, Pencil, School } from 'lucide-react'
+import { BookOpenText, FileText, ChevronLeft, GraduationCap, ListTodo, NotebookPen, Pencil, School } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { ClassNote, Exam, Task } from '../lib/types'
 import { deleteClassNote, saveClassNote, saveGroup, useData } from '../lib/store'
 import { formatDMY, formatDMYDay, todayISO } from '../lib/date'
 import { PALETTE, uid } from '../lib/util'
 import LessonLog from './LessonLog'
+import ReportModal from './ReportModal'
+import { lessonReport } from '../lib/report'
 
 /** Kurum sınıfları listesi ve sınıf sayfası */
 export default function ClassesPage({ openEvent, open, setOpen, onAddExam, onAddTask, onOpenExam }: {
@@ -81,6 +83,7 @@ function ClassProfile({ code, onBack, openEvent, onAddExam, onAddTask, onOpenExa
   const [tab, setTab] = useState<'gecmis' | 'notlar' | 'sinav'>('gecmis')
   const [note, setNote] = useState('')
   const [editName, setEditName] = useState(false)
+  const [report, setReport] = useState(false)
   const evs = data.events.filter((e) => e.groupCode === code)
   const upcoming = evs.filter((e) => e.date >= today && e.status === 'planned').sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
   const notes = data.classNotes.filter((n) => n.groupCode === code).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt)
@@ -130,7 +133,13 @@ function ClassProfile({ code, onBack, openEvent, onAddExam, onAddTask, onOpenExa
         <button className={tab === 'sinav' ? 'active' : ''} onClick={() => setTab('sinav')}><GraduationCap size={15} /> Sınavlar ({exams.length})</button>
       </div>
 
-      {tab === 'gecmis' && <LessonLog groupCode={code} />}
+      {tab === 'gecmis' && (
+        <>
+          <LessonLog groupCode={code} />
+          <button className="btn small ghost report-btn" onClick={() => setReport(true)}><FileText size={14} /> Ders dökümü al</button>
+        </>
+      )}
+      {report && <ReportModal title={`${g.name ?? g.code} — ders dökümü`} fileName={`${g.name ?? g.code}-ders-dokumu.txt`} build={(f, t) => lessonReport(data, { groupCode: code }, f, t)} onClose={() => setReport(false)} />}
 
       {tab === 'notlar' && (
         <>

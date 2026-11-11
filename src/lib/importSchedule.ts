@@ -176,11 +176,13 @@ export async function rowsFromFile(file: File): Promise<string[][]> {
   if (head.startsWith('<') || head.includes('<html') || head.includes('<table')) {
     return rowsFromHtml(new TextDecoder('utf-8').decode(buf))
   }
-  const XLSX = await import('xlsx')
-  const wb = XLSX.read(buf, { type: 'array' })
-  const ws = wb.Sheets[wb.SheetNames[0]]
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: false, defval: '' })
-  return rows.map((r) => r.map((c) => String(c ?? '')))
+  const bytes = new Uint8Array(buf.slice(0, 4))
+  // Eski ikili .xls (Excel 97-2003) biçimi desteklenmiyor
+  if (bytes[0] === 0xd0 && bytes[1] === 0xcf) throw new Error('Bu dosya eski Excel (.xls) biçiminde. Lütfen Excel\'de "Farklı kaydet → .xlsx" yapıp tekrar deneyin.')
+  if (!(bytes[0] === 0x50 && bytes[1] === 0x4b)) throw new Error('Dosya biçimi tanınmadı (.xlsx ya da kurumun verdiği .xls bekleniyor).')
+  // .xlsx okuyucu yalnızca gerektiğinde yüklenir
+  const { rowsFromXlsx } = await import('./xlsx')
+  return rowsFromXlsx(buf)
 }
 
 /** Aynı gün aynı sınıfın arka arkaya (en fazla 20 dk ara) gelen saatlerini tek blokta toplar */

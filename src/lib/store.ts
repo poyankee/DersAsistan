@@ -1,87 +1,55 @@
 import { useSyncExternalStore } from 'react'
-import type { AppData, Book, CalEvent, Category, ClassNote, Exam, Group, Holiday, Payment, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
+import type { AppData, Book, CalEvent, ClassNote, Exam, Group, Holiday, Payment, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
 import { PALETTE, colorFor, uid } from './util'
-import { nativeLoad, nativeSave } from './native'
+import type { Category } from './types'
+import { isNative } from './native'
+import { dropLegacy, flush, persist, readCandidates, readSnapshots } from './persist'
+import { DEFAULT_CATEGORIES, emptyData, parseData } from './schema'
+import { addDays, todayISO } from './date'
 
 const KEY = 'ders-asistan-v1'
 
-export const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'yl', name: 'Yüksek lisans', color: '#8e24aa' },
-  { id: 'kisisel', name: 'Kişisel', color: '#616161' },
-]
+export { emptyData, DEFAULT_CATEGORIES }
 
-export function emptyData(): AppData {
-  return {
-    version: 1,
-    events: [],
-    groups: {},
-    students: [],
-    payments: [],
-    books: [],
-    notes: [],
-    promises: [],
-    holidays: [],
-    tasks: [],
-    exams: [],
-    categories: DEFAULT_CATEGORIES,
-    classNotes: [],
-    trash: [],
-    ignoredImportKeys: [],
-    settings: { dayStart: 8, dayEnd: 21, currency: '₺' },
-  }
+/** Yedek dosyası gibi dış kaynaklı veriyi doğrulayıp güncel şemaya getirir */
+export function normalize(d: unknown): AppData {
+  return parseData(d).data
 }
 
-function load(): AppData {
+/** Açılışta kullanıcıya gösterilecek bilgi (bozuk kayıt ayıklandı, sağlam kopyaya dönüldü vb.) */
+let loadNotice: string | null = null
+export function takeLoadNotice(): string | null {
+  const n = loadNotice
+  loadNotice = null
+  return n
+}
+
+function tryParse(raw: string | null): AppData | null {
+  if (!raw) return null
   try {
-    const raw = localStorage.getItem(KEY)
-    if (raw) return normalize(JSON.parse(raw))
+    const { data, report } = parseData(JSON.parse(raw))
+    if (report.dropped) loadNotice = `${report.dropped} bozuk kayıt ayıklandı.`
+    return data
   } catch (e) {
     console.error('Veri okunamadı', e)
+    return null
   }
-  return emptyData()
 }
 
-/** Eski ödeme düzeni ve ödeme sözlerini sade modele çevirir */
-function migrateStudents(d: Partial<AppData>): Student[] {
-  const promises = d.promises ?? []
-  return (d.students ?? []).map((s) => {
-    let out = s
-    if (!s.payWhen && s.billing) {
-      out = { ...out, payWhen: s.billing === 'toplu' ? 'aysonu' : s.billing === 'paket' ? 'pesin' : 'ders' }
-    }
-    if (!s.payNote) {
-      const pr = promises.filter((p) => p.studentId === s.id).sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0]
-      if (pr) out = { ...out, payNote: { due: pr.dueDate, note: pr.note, since: new Date(pr.createdAt || Date.now()).toISOString().slice(0, 10) } }
-    }
-    return out
-  })
+let hadCorruptLocal = false
+function loadLocal(): AppData {
+  let raw: string | null = null
+  try {
+    raw = localStorage.getItem(KEY)
+  } catch {
+    /* erişilemedi */
+  }
+  const d = tryParse(raw)
+  if (!d && raw) hadCorruptLocal = true
+  return d ?? emptyData()
 }
 
-export function normalize(d: Partial<AppData>): AppData {
-  const base = emptyData()
-  return {
-    ...base,
-    ...d,
-    settings: { ...base.settings, ...(d.settings ?? {}) },
-    events: d.events ?? [],
-    groups: d.groups ?? {},
-    students: migrateStudents(d),
-    payments: d.payments ?? [],
-    books: d.books ?? [],
-    notes: d.notes ?? [],
-    promises: [],
-    holidays: d.holidays ?? [],
-    tasks: d.tasks ?? [],
-    exams: d.exams ?? [],
-    categories: d.categories?.length ? d.categories : DEFAULT_CATEGORIES,
-    classNotes: d.classNotes ?? [],
-    // 30 günden eski silinenler kalıcı olarak temizlenir
-    trash: (d.trash ?? []).filter((t) => Date.now() - t.deletedAt < 30 * 86400000),
-    ignoredImportKeys: d.ignoredImportKeys ?? [],
-  } as AppData
-}
-
-let state: AppData = typeof localStorage !== 'undefined' ? load() : emptyData()
+let state: AppData = typeof localStorage !== 'undefined' ? loadLocal() : emptyData()
 const listeners = new Set<() => void>()
 
 function ensureGroups(d: AppData): AppData {
@@ -97,48 +65,82 @@ function ensureGroups(d: AppData): AppData {
   return groups === d.groups ? d : { ...d, groups }
 }
 
-export function setData(updater: (d: AppData) => AppData) {
-  state = ensureGroups(updater(state))
+/** Ana ekran widget'ı için küçük özet: önümüzdeki 14 günün etkinlikleri + adlar */
+function widgetPayload(d: AppData): string {
+  const from = todayISO()
+  const to = addDays(from, 14)
+  return JSON.stringify({
+    events: d.events.filter((e) => e.date >= from && e.date <= to).map((e) => ({ kind: e.kind, status: e.status, date: e.date, start: e.start, end: e.end, title: e.title, groupCode: e.groupCode, studentId: e.studentId })),
+    groups: Object.fromEntries(Object.values(d.groups).map((g) => [g.code, { name: g.name ?? '' }])),
+    students: d.students.map((s) => ({ id: s.id, name: s.name })),
+  })
+}
+
+let ready = false
+
+function writeAll() {
   const json = JSON.stringify(state)
   try {
     localStorage.setItem(KEY, json)
   } catch (e) {
-    alert('Veri kaydedilemedi! Depolama dolu olabilir. Lütfen yedek alın.')
+    // Android'de asıl kayıt dosyadadır; tarayıcı deposu dolarsa sorun değil
+    if (!isNative) alert('Veri kaydedilemedi! Tarayıcı deposu dolu olabilir. Lütfen yedek alın.')
     console.error(e)
   }
   // Kalıcı kopya ancak açılıştaki yükleme bittikten sonra yazılır
-  if (ready) nativeSave(KEY, json).catch((e) => console.error('Kalıcı kayıt hatası', e))
-  else dirtyBeforeReady = true
+  if (ready) persist(json, widgetPayload(state), todayISO())
+}
+
+export function setData(updater: (d: AppData) => AppData) {
+  state = { ...ensureGroups(updater(state)), savedAt: Date.now() }
+  writeAll()
   listeners.forEach((l) => l())
 }
 
-let ready = false
-let dirtyBeforeReady = false
-
-/** Android'de: tarayıcı deposu boşsa kalıcı kopyadan geri yükle */
+/**
+ * Açılış: kayıtlı tüm kopyalar okunur, sağlam ve en yeni olan seçilir.
+ * Hiçbiri sağlam değilse günlük sağlam kopyalara dönülür.
+ */
 export async function initStore() {
   try {
-    await initStoreInner()
-  } finally {
-    ready = true
-    if (dirtyBeforeReady) nativeSave(KEY, JSON.stringify(state)).catch(() => undefined)
-  }
-}
-
-async function initStoreInner() {
-  try {
-    const saved = await nativeLoad(KEY)
-    if (!saved) {
-      if (state.events.length || state.students.length) await nativeSave(KEY, JSON.stringify(state))
-      return
+    const candidates = await readCandidates(KEY)
+    let best: AppData | null = state.savedAt || state.events.length || state.students.length ? state : null
+    let corrupt = hadCorruptLocal
+    let hadLegacy = false
+    for (const c of candidates) {
+      if (c.source === 'eski-kayit') hadLegacy = true
+      const d = tryParse(c.raw)
+      if (!d) {
+        if (c.source !== 'gecici') corrupt = true
+        continue
+      }
+      if (!best || (d.savedAt ?? 0) > (best.savedAt ?? 0)) best = d
     }
-    if (!localStorage.getItem(KEY)) {
-      state = normalize(JSON.parse(saved))
-      localStorage.setItem(KEY, saved)
+    if (!best && corrupt) {
+      for (const snap of await readSnapshots()) {
+        const d = tryParse(snap.raw)
+        if (d) {
+          best = d
+          loadNotice = `Kayıtlı veri okunamadı; ${snap.name} tarihli sağlam kopya yüklendi.`
+          break
+        }
+      }
+      if (!best) loadNotice = 'Kayıtlı veri okunamadı ve sağlam kopya bulunamadı. Yedeğiniz varsa Ayarlar → Yedekten geri yükle ile yükleyin.'
+    }
+    if (best && best !== state) {
+      state = best
       listeners.forEach((l) => l())
     }
+    ready = true
+    if (best) {
+      writeAll()
+      await flush()
+      if (hadLegacy) await dropLegacy(KEY)
+    }
   } catch (e) {
-    console.error('Kalıcı veri okunamadı', e)
+    console.error('Açılışta veri yüklenemedi', e)
+  } finally {
+    ready = true
   }
 }
 

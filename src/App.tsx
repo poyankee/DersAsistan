@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { BarChart3, CalendarDays, CalendarPlus, GraduationCap, Home, ListTodo, Plus, Settings, Users, Wallet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import CalendarPage from './components/CalendarPage'
 import PeoplePage, { type PeopleView } from './components/PeoplePage'
-import SummaryPage from './components/SummaryPage'
-import SettingsPage from './components/SettingsPage'
 import TodayPage from './components/TodayPage'
 import EventModal from './components/EventModal'
 import EventPeek from './components/EventPeek'
@@ -12,10 +10,15 @@ import Toasts from './components/Toasts'
 import Modal from './components/Modal'
 import { ExamForm, TaskForm, newExam, newTask } from './components/TaskExamForms'
 import type { CalEvent, Exam, Task } from './lib/types'
-import { useData } from './lib/store'
+import { takeLoadNotice, useData } from './lib/store'
+import { showToast } from './lib/toast'
 import { fromMinutes, nowHM, toMinutes, todayISO } from './lib/date'
 import { onAppAction } from './lib/native'
 import { syncNotifications } from './lib/notify'
+
+// Raporlar ve Ayarlar yalnızca açıldıklarında yüklenir
+const SummaryPage = lazy(() => import('./components/SummaryPage'))
+const SettingsPage = lazy(() => import('./components/SettingsPage'))
 
 export type Tab = 'bugun' | 'takvim' | 'ozel' | 'ozet' | 'ayarlar'
 
@@ -48,6 +51,12 @@ export default function App() {
     if (existing) setPeek(existing)
     else setEditing(ev)
   }
+
+  // Açılışta veriyle ilgili bir durum olduysa bildir
+  useEffect(() => {
+    const n = takeLoadNotice()
+    if (n) showToast(n, [], 15000)
+  }, [])
 
   // Tema ve yazı boyutu
   useEffect(() => {
@@ -165,8 +174,10 @@ export default function App() {
             onOpenExam={setExam}
           />
         )}
-        {tab === 'ozet' && <SummaryPage openStudent={openStudent} />}
-        {tab === 'ayarlar' && <SettingsPage />}
+        <Suspense fallback={<p className="muted pad">Yükleniyor…</p>}>
+          {tab === 'ozet' && <SummaryPage openStudent={openStudent} />}
+          {tab === 'ayarlar' && <SettingsPage />}
+        </Suspense>
       </main>
 
       <nav className="bottom-nav">

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { isOff } from '../lib/status'
-import { BookOpen, CalendarClock, CalendarRange, ChevronLeft, Eye, History as HistoryIcon, MessageCircle, Pencil, Phone, User, Wallet, X } from 'lucide-react'
+import { BookOpen, CalendarClock, FileText, CalendarRange, ChevronLeft, Eye, History as HistoryIcon, MessageCircle, Pencil, Phone, User, Wallet, X } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { Payment, Student } from '../lib/types'
 import { useData } from '../lib/store'
@@ -9,6 +9,8 @@ import { formatDMY, formatDMYDay, todayISO } from '../lib/date'
 import { money } from '../lib/util'
 import { openExternal, waLink } from '../lib/native'
 import LessonLog from './LessonLog'
+import ReportModal from './ReportModal'
+import { lessonReport, paymentStatement } from '../lib/report'
 import ScheduleTab from './ScheduleTab'
 import BooksTab from './BooksTab'
 
@@ -28,6 +30,7 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onPayNo
   const today = todayISO()
   const [tab, setTab] = useState<Tab>('dersler')
   const [showView, setShowView] = useState(false)
+  const [report, setReport] = useState<'ders' | 'odeme' | null>(null)
   const next = data.events
     .filter((e) => e.studentId === student.id && e.date >= today && e.status === 'planned')
     .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))[0]
@@ -50,10 +53,21 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onPayNo
         <button className={tab === 'bilgi' ? 'active' : ''} onClick={() => setTab('bilgi')}><User size={15} /> Bilgiler</button>
       </div>
 
-      {tab === 'dersler' && <LessonLog studentId={student.id} />}
-      {tab === 'odeme' && <PaymentsTab student={student} onPay={onPay} onPayNote={onPayNote} onEditPayment={onEditPayment} />}
+      {tab === 'dersler' && (
+        <>
+          <LessonLog studentId={student.id} />
+          <button className="btn small ghost report-btn" onClick={() => setReport('ders')}><FileText size={14} /> Ders dökümü al</button>
+        </>
+      )}
+      {tab === 'odeme' && <PaymentsTab student={student} onPay={onPay} onPayNote={onPayNote} onEditPayment={onEditPayment} onReport={() => setReport('odeme')} />}
       {tab === 'bilgi' && <InfoTab student={student} onEdit={onEdit} />}
 
+      {report === 'ders' && (
+        <ReportModal title={`${student.name} — ders dökümü`} fileName={`${student.name}-ders-dokumu.txt`} phone={student.parentPhone || student.phone} build={(f, t) => lessonReport(data, { studentId: student.id }, f, t)} onClose={() => setReport(null)} />
+      )}
+      {report === 'odeme' && (
+        <ReportModal title={`${student.name} — hesap dökümü`} fileName={`${student.name}-hesap-dokumu.txt`} phone={student.parentPhone || student.phone} build={(f, t) => paymentStatement(data, student, today, f, t)} onClose={() => setReport(null)} />
+      )}
       {showView && <StudentView student={student} onClose={() => setShowView(false)} />}
     </div>
   )
@@ -61,7 +75,7 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onPayNo
 
 /* ---------------- Ödeme işlemleri (para sadece burada) ---------------- */
 
-function PaymentsTab({ student, onPay, onPayNote, onEditPayment }: { student: Student; onPay: () => void; onPayNote: () => void; onEditPayment: (p: Payment) => void }) {
+function PaymentsTab({ student, onPay, onPayNote, onEditPayment, onReport }: { student: Student; onPay: () => void; onPayNote: () => void; onEditPayment: (p: Payment) => void; onReport: () => void }) {
   const data = useData()
   const today = todayISO()
   const cur = data.settings.currency
@@ -87,6 +101,7 @@ function PaymentsTab({ student, onPay, onPayNote, onEditPayment }: { student: St
       <div className="row wrap" style={{ marginBottom: 12 }}>
         <button className="btn primary" onClick={onPay}><Wallet size={15} /> Ödeme al</button>
         {f.debt > 0 && <button className="btn" onClick={onPayNote}><CalendarClock size={15} /> Ne zaman ödeyecek?</button>}
+        <button className="btn" onClick={onReport}><FileText size={15} /> Hesap dökümü</button>
       </div>
       {unpaid.length > 0 && (
         <p className="small"><span className="muted">Ödenmemiş dersler:</span> {unpaid.map((e) => formatDMY(e.date)).join(', ')}</p>

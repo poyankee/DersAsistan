@@ -8,6 +8,9 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(WidgetBridge.class);
+        registerPlugin(UpdaterPlugin.class);
+        // Hatalı bir arayüz güncellemesi uygulamayı açılmaz hâle getirmesin
+        UpdaterPlugin.guardBundle(this);
         super.onCreate(savedInstanceState);
     }
 

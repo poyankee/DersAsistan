@@ -8,6 +8,7 @@ import TasksPage from './components/TasksPage'
 import EventModal from './components/EventModal'
 import EventPeek from './components/EventPeek'
 import Toasts from './components/Toasts'
+import { UpdateBanner } from './components/UpdatePanel'
 import Modal from './components/Modal'
 import { ExamForm, TaskForm, newExam, newTask } from './components/TaskExamForms'
 import type { CalEvent, Exam, Task } from './lib/types'
@@ -284,6 +285,7 @@ export default function App() {
       {exam && <ExamForm initial={exam} onClose={() => setExam(null)} />}
       {searching && <SearchModal onClose={() => setSearching(false)} onStudent={openStudent} onClass={openClass} onTask={setTask} onExam={setExam} />}
       <Toasts />
+      <UpdateBanner />
       {!data.settings.introSeen && data.events.length === 0 && data.students.length === 0 && (
         <Intro onDone={() => setData((d) => ({ ...d, settings: { ...d.settings, introSeen: true } }))} />
       )}

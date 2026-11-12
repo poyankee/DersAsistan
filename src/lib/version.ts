@@ -1,5 +1,15 @@
 /** Uygulama sürümü ve "bu sürümde neler değişti" listesi (Ayarlar → Yenilikler) */
-export const APP_VERSION = '0.10'
+export const APP_VERSION = '0.11'
+
+/** Bu arayüz paketinin derleme numarası (yerelde 0) */
+export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
+
+/**
+ * Bu arayüzün ihtiyaç duyduğu yerel (Android) kod düzeyi. Android tarafındaki
+ * UpdaterPlugin.NATIVE_LEVEL ile aynı tutulur; yalnızca android/ klasöründe değişiklik olunca artırılır.
+ * Telefondaki düzey daha düşükse güncelleme APK ile yapılır.
+ */
+export const NATIVE_LEVEL = 1
 
 export const CHANGELOG: { version: string; items: string[] }[] = [
   {

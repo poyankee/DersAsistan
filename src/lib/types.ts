@@ -254,6 +254,8 @@ export interface NotifySettings {
 }
 
 export interface Settings {
+  /** Uygulama içi güncellemeleri kendiliğinden indir (varsayılan açık) */
+  autoUpdate?: boolean
   /** Kurum ek ders saat ücreti (opsiyonel, özet hesabı için) */
   kurumHourlyRate?: number
   /** Kişisel muhasebe: sabit aylık gelir (maaş vb.), giren/çıkan hesabında kullanılır */

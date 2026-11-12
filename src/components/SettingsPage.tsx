@@ -17,6 +17,7 @@ import { TR_DAYS, addDays, formatDMY, todayISO } from '../lib/date'
 import { uid } from '../lib/util'
 import { buildICS } from '../lib/ics'
 import IcsImportModal from './IcsImportModal'
+import UpdatePanel from './UpdatePanel'
 import { PALETTE, downloadFile } from '../lib/util'
 
 export default function SettingsPage() {
@@ -63,6 +64,7 @@ export default function SettingsPage() {
     <div className="page">
       <div className="page-head"><h2>Ayarlar</h2></div>
 
+      <UpdatePanel />
       <AppearancePanel />
       <NotifyPanel />
       <LockPanel />

@@ -132,3 +132,9 @@
   body.print-cal .pc-grid.hafta .pc-cell { min-height: 150mm; }
   body.print-cal .pc-cell { min-height: 26mm; }
 }
+
+/* Güncelleme bildirimi */
+.update-banner { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 150; display: flex; align-items: center; gap: 10px; width: min(520px, calc(100% - 24px)); padding: 10px 10px 10px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-lg, 0 12px 40px rgba(0,0,0,.18)); color: var(--primary); animation: rise .35s var(--ease) both; }
+.update-banner .grow { display: flex; flex-direction: column; color: var(--text); min-width: 0; }
+.update-banner small { color: var(--muted); }
+@media (min-width: 721px) { .update-banner { bottom: 24px; } }

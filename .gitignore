@@ -8,3 +8,4 @@ dist
 *.jks
 *.p12
 android/signing/
+update/

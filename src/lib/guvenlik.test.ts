@@ -31,7 +31,7 @@ const fakeFetch = vi.fn(async (url: string, init?: { body?: string }) => {
 
 // Her cihazın kendi yerel deposu
 const devices: Record<string, Map<string, string>> = {}
-function use(name: string) {
+function switchDevice(name: string) {
   devices[name] ??= new Map()
   const m = devices[name]
   ;(globalThis as { localStorage?: unknown }).localStorage = {
@@ -50,7 +50,7 @@ function device(name: string, initial: AppData) {
     get: () => d,
     set: (fn: (x: AppData) => AppData) => void (d = fn(d)),
     sync: async () => {
-      use(name)
+      switchDevice(name)
       return syncOnce(() => d, (fn) => void (d = fn(d)))
     },
   }
@@ -66,11 +66,11 @@ beforeEach(() => {
 describe('eşitleme bütünlüğü', () => {
   it('silme iki cihaz arasında şifreli işaretle taşınır; sunucudaki silme işaretleri de şifreli', async () => {
     const phone = device('telefon', { ...emptyData(), tasks: [task('t1', 'Yazılıları oku'), task('t2', 'Fotokopi')] })
-    use('telefon')
+    switchDevice('telefon')
     await connect(cfg, 'push', phone.get, phone.set, emptyData)
     await phone.sync()
     const tablet = device('tablet', emptyData())
-    use('tablet')
+    switchDevice('tablet')
     await connect({ ...cfg, device: 'Tablet' }, 'replace', tablet.get, tablet.set, emptyData)
     await tablet.sync()
     expect(tablet.get().tasks.map((t) => t.title).sort()).toEqual(['Fotokopi', 'Yazılıları oku'])
@@ -87,7 +87,7 @@ describe('eşitleme bütünlüğü', () => {
 
   it('sunucuya erişen biri kayıt silemez ya da sahte kayıt ekleyemez', async () => {
     const phone = device('telefon', { ...emptyData(), tasks: [task('t1', 'Önemli görev')] })
-    use('telefon')
+    switchDevice('telefon')
     await connect(cfg, 'push', phone.get, phone.set, emptyData)
     await phone.sync()
     // Saldırgan: şifresiz silme ve sahte (anahtarsız) kayıt
@@ -102,11 +102,11 @@ describe('eşitleme bütünlüğü', () => {
 
   it('başka anahtarla şifrelenmiş veriler uygulanmaz ve uyarı verilir', async () => {
     const phone = device('telefon', { ...emptyData(), tasks: [task('t1', 'A')] })
-    use('telefon')
+    switchDevice('telefon')
     await connect(cfg, 'push', phone.get, phone.set, emptyData)
     await phone.sync()
     const other = device('diger', emptyData())
-    use('diger')
+    switchDevice('diger')
     await connect({ ...cfg, encKey: btoa('ffffffffffffffffffffffffffffffff') }, 'replace', other.get, other.set, emptyData)
     await expect(other.sync()).rejects.toThrow(/çözülemedi/)
     expect(other.get().tasks).toEqual([])

@@ -5,6 +5,7 @@ import type { CalEvent, Task } from '../lib/types'
 import { eventColor, eventTitle, useData } from '../lib/store'
 import { addDays, formatLong, nowHM, toMinutes, todayISO } from '../lib/date'
 import TasksCard from './TasksCard'
+import SyncBadge from './SyncBadge'
 import BillsCard from './BillsCard'
 
 function greeting(min: number) {
@@ -62,6 +63,7 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
           <p className="muted">{todaysAll.length ? (left ? `Bugün ${left} etkinlik kaldı` : 'Bugünkü programın bitti') : 'Bugün programın boş.'}</p>
         </div>
         <div className="head-actions">
+          <SyncBadge compact onClick={goSettings} />
           <button className="icon-btn" onClick={onSearch} aria-label="Ara"><Search size={22} /></button>
           <button className="icon-btn only-mobile" onClick={goSettings} aria-label="Ayarlar"><Settings size={22} /></button>
         </div>

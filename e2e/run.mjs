@@ -275,7 +275,7 @@ test('iki cihaz kendi sunucu üzerinden eşitlenir (şifreli)', async (browser) 
   const connectDevice = async (newAccount, name) => {
     const d = await open(browser)
     await d.nav('Ayarlar')
-    const panel = d.page.locator('.panel', { has: d.page.locator('h3', { hasText: 'Eşitleme (telefon' }) })
+    const panel = d.page.locator('.panel', { has: d.page.locator('h3', { hasText: 'eşitleme (telefon' }) })
     await panel.locator('input').first().fill(srv)
     await panel.getByRole('button', { name: 'Devam' }).click()
     await panel.locator('input[type=password]').first().waitFor()
@@ -298,7 +298,7 @@ test('iki cihaz kendi sunucu üzerinden eşitlenir (şifreli)', async (browser) 
   }
   const syncAndOpenTasks = async (d) => {
     await d.nav('Ayarlar')
-    const panel = d.page.locator('.panel', { has: d.page.locator('h3', { hasText: 'Eşitleme (telefon' }) })
+    const panel = d.page.locator('.panel', { has: d.page.locator('h3', { hasText: 'eşitleme (telefon' }) })
     await panel.getByRole('button', { name: 'Şimdi eşitle' }).click()
     await panel.locator('.sync-status', { hasText: 'Eşitlendi' }).waitFor({ timeout: 20000 })
     await d.nav('Görevler')

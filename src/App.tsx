@@ -20,6 +20,8 @@ import Intro from './components/Intro'
 import { showToast } from './lib/toast'
 import { fromMinutes, nowHM, toMinutes, todayISO } from './lib/date'
 import { onAppAction, setBackHandler } from './lib/native'
+import { syncSoon } from './lib/syncManager'
+import SyncBadge from './components/SyncBadge'
 import { syncNotifications } from './lib/notify'
 
 // Raporlar ve Ayarlar yalnızca açıldıklarında yüklenir
@@ -109,6 +111,8 @@ export default function App() {
     }
     setTab(t)
     document.querySelector('.content')?.scrollTo({ top: 0 })
+    // Açılan sayfa öteki cihazdaki son değişikliklerle güncel olsun
+    syncSoon()
   }
   // Android geri hareketi: açık dosyayı kapat → önceki sekme → Bugün → (en sonda) uygulamadan çık
   useEffect(() => {
@@ -186,6 +190,7 @@ export default function App() {
         </div>
         <button className="btn primary create-btn" onClick={() => setFabOpen(true)}><Plus size={18} /> Yeni</button>
         <button className="btn ghost side-search" onClick={() => setSearching(true)} title="Ara"><Search size={17} /> <span>Ara…</span></button>
+        <SyncBadge onClick={() => go('ayarlar')} />
         <nav className="side-nav">
           {TABS.map((t) => (
             <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => go(t.id)} title={t.label}>

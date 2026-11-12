@@ -48,7 +48,7 @@ Tarayıcıda `https://alanadiniz.com` açılabiliyorsa hazırdır.
 
 ## 4. Telefonda hesabı oluşturun (ilk cihaz)
 
-1. Uygulamada **Ayarlar → Eşitleme**.
+1. Uygulamada **Ayarlar → Hesap ve eşitleme**.
 2. Sunucu adresi: `alanadiniz.com/ders` → **Devam**.
 3. "Sunucu hazır; henüz hesap yok" yazar. **Kurulum kodunu**, bir **kullanıcı adını** ve **güçlü bir parolayı** girin
    (en az 10 karakter; ör. bir cümlenin kelimeleri: `MaviKalem-Sabah7-Defter`), cihaz adını "Telefon" bırakın
@@ -57,7 +57,7 @@ Tarayıcıda `https://alanadiniz.com` açılabiliyorsa hazırdır.
 
 ## 5. Tabletten bağlanın
 
-1. Tablette **Ayarlar → Eşitleme**, aynı adres → **Devam**.
+1. Tablette **Ayarlar → Hesap ve eşitleme**, aynı adres → **Devam**.
 2. Aynı kullanıcı adı ve parola, cihaz adı "Tablet" → **Giriş yap ve bağlan**.
 3. Tablette de veri varsa sorulur:
    - **Sunucudakini kullan (önerilen):** Tablet, telefondaki verilerle aynı olur. Tabletin eski verisi ayrıca saklanır.
@@ -79,11 +79,11 @@ bağlantı gelince eşitlenir.
 
 Ayrıntılı inceleme ve test sonuçları: [GUVENLIK.md](GUVENLIK.md).
 
-- **Telefon kaybolursa / çalınırsa:** Öteki cihazda Ayarlar → Eşitleme → Bağlı cihazlar → kaybolan cihazın yanındaki
+- **Telefon kaybolursa / çalınırsa:** Öteki cihazda Ayarlar → Hesap ve eşitleme → Bağlı cihazlar → kaybolan cihazın yanındaki
   **Kaldır**. O cihaz artık eşitleme yapamaz.
 - **GitHub hesabınızda iki adımlı doğrulamayı açın** (güncellemeler oradan geldiği için).
 - Sunucu adresi **https://** olmalı; uygulama şifresiz (http) internet adreslerini kabul etmez.
-- **Parolayı bir yere not edin.** Unutursanız: Ayarlar → Eşitleme → bağlantıyı kesin, sunucudaki `ders/veri`
+- **Parolayı bir yere not edin.** Unutursanız: Ayarlar → Hesap ve eşitleme → bağlantıyı kesin, sunucudaki `ders/veri`
   klasörünü silin ve hesabı yeniden oluşturun (veriler cihazlardan tekrar gönderilir).
 - Daha da güvenli olsun isterseniz veri klasörünü web kökünün dışına alın: `ayarlar.ornek.php` dosyasının adını
   `ayarlar.php` yapıp içindeki `$DATA_DIR` satırını açın (ör. `/home/kullaniciadi/ders-veri`).

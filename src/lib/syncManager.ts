@@ -86,9 +86,10 @@ export async function startSync() {
     if (!applying && status.kind !== 'off') schedule(4000)
   })
   setTimeout(() => syncNow(), 1500)
+  // Uygulama açıkken 15 sn'de bir öteki cihazın değişikliklerine bakılır
   setInterval(() => {
     if (document.visibilityState === 'visible' && status.kind !== 'off') syncNow()
-  }, 60_000)
+  }, 15_000)
   if (isNative) {
     import('@capacitor/app').then(({ App }) => {
       App.addListener('resume', () => syncNow())
@@ -103,6 +104,14 @@ export async function startSync() {
       if (document.visibilityState === 'visible') syncNow()
     })
   }
+}
+
+let lastSoon = 0
+/** Sayfa değişince: son birkaç saniyede eşitlenmediyse hemen güncelle */
+export function syncSoon() {
+  if (status.kind === 'off' || Date.now() - lastSoon < 5000) return
+  lastSoon = Date.now()
+  syncNow()
 }
 
 /** Ayarlar ekranından bağlantı kurulunca/kaldırılınca */

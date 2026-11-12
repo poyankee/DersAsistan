@@ -32,7 +32,7 @@ export default function SyncPanel() {
   if (!loaded) return null
   return (
     <section className="panel">
-      <h3 className="row-title">{cfg ? <Cloud size={18} /> : <CloudOff size={18} />} Eşitleme (telefon ↔ tablet)</h3>
+      <h3 className="row-title">{cfg ? <Cloud size={18} /> : <CloudOff size={18} />} Hesap ve eşitleme (telefon ↔ tablet)</h3>
       {cfg ? <Connected cfg={cfg} onOff={() => setCfg(null)} /> : <ConnectForm onDone={setCfg} />}
     </section>
   )

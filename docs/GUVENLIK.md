@@ -33,7 +33,7 @@ Saldırgan olarak şunlar düşünüldü:
   her hatalı denemede gecikme. Kurulum kodu denemeleri de sınırlıdır.
 - **Kullanıcı adı sızdırmama:** Bilinmeyen kullanıcı adına da tutarlı sahte bir tuz döner; hatalı girişte mesaj ve süre aynıdır.
 - **Oturumlar:** 256 bit rastgele anahtar; sunucuda yalnızca SHA-256 özeti tutulur. 180 gün kullanılmayan oturum kapanır.
-  **Kaybolan cihaz** Ayarlar → Eşitleme → Bağlı cihazlar → **Kaldır** ile anında devre dışı bırakılır.
+  **Kaybolan cihaz** Ayarlar → Hesap ve eşitleme → Bağlı cihazlar → **Kaldır** ile anında devre dışı bırakılır.
 - **SQL enjeksiyonu:** Tüm sorgular parametreli; koleksiyon adı yalnızca harf, kayıt verisi yalnızca base64 kabul edilir.
 - **İstek sınırları:** İstek en fazla 20 MB, kayıt en fazla 2 MB, istekte en fazla 5000 değişiklik; JSON derinliği sınırlı.
 - **Saat sapması:** Saati ileride olan bir cihaz kayıtları "kilitleyemez" (en fazla 2 dk ileri kabul edilir).

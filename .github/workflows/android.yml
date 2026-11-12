@@ -35,6 +35,7 @@ jobs:
         id: upd
         run: |
           node scripts/make-update.mjs update
+          (cd server && zip -qr ../update/ders-sunucu.zip . -x 'veri/*' 'ayarlar.php')
           echo "tag=$(node -p "require('./update/surum.json').tag")" >> "$GITHUB_OUTPUT"
           echo "version=$(node -p "require('./update/surum.json').version")" >> "$GITHUB_OUTPUT"
       - run: npx cap sync android
@@ -85,9 +86,12 @@ jobs:
             DersAsistani.apk
             update/web-*.zip
             update/surum.json
+            update/ders-sunucu.zip
           body: |
             Telefona/tablete kurmak için aşağıdaki **DersAsistani.apk** dosyasını indirip açın.
             İlk kurulumda "Bilinmeyen kaynaklardan yüklemeye izin ver" demeniz gerekebilir.
+
+            **Telefon ↔ tablet eşitleme:** `ders-sunucu.zip` dosyasını hostinginize yükleyin; adım adım kılavuz: docs/ESITLEME-KURULUM.md
 
             **Güncellemeler:** v0.11 ve sonrası kuruluysa yenilikler uygulamanın içinden kendiliğinden gelir; bu sayfaya gelmeniz gerekmez.
             APK'lar aynı anahtarla imzalanır; elle kurarsanız da eskisinin üzerine kurulur, veriler silinmez.

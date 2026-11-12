@@ -166,6 +166,12 @@ export function isReady(): boolean {
   return ready
 }
 
+/** Veri değişikliklerini dinle (eşitleme için) */
+export function subscribe(cb: () => void): () => void {
+  listeners.add(cb)
+  return () => listeners.delete(cb)
+}
+
 export function getData(): AppData {
   return state
 }

@@ -1,0 +1,15 @@
+# Ders Asistanı sunucusu
+Options -Indexes
+# Authorization başlığını PHP'ye ilet (bazı hostinglerde gerekli)
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP:Authorization} .
+  RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+  # HTTPS'e yönlendir (SSL kurulduktan sonra)
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+<FilesMatch "^(ayarlar\.php|.*\.sqlite.*)$">
+  Require all denied
+</FilesMatch>

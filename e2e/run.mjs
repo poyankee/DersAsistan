@@ -3,6 +3,10 @@ import { chromium } from 'playwright'
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
+import { cpSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { execSync } from 'node:child_process'
 
 const PORT = 4188
 const BASE = `http://localhost:${PORT}/`
@@ -23,6 +27,22 @@ async function waitForServer() {
     await new Promise((r) => setTimeout(r, 250))
   }
   throw new Error('Önizleme sunucusu başlamadı')
+}
+
+// Eşitleme testi için gerçek PHP sunucusu (PHP yoksa o test atlanır)
+const SYNC_PORT = 4189
+let php = null
+let SYNC_DIR = ''
+try {
+  execSync('php -r "exit(in_array(\'sqlite\', PDO::getAvailableDrivers()) ? 0 : 1);"', { stdio: 'ignore' })
+  const dir = mkdtempSync(join(tmpdir(), 'ders-sunucu-'))
+  SYNC_DIR = dir
+  cpSync(fileURLToPath(new URL('../server', import.meta.url)), dir, { recursive: true })
+  writeFileSync(join(dir, 'ayarlar.php'), `<?php\n$DATA_DIR = ${JSON.stringify(join(dir, 'veri'))};\n$ALLOWED_ORIGINS[] = 'http://localhost:${PORT}';\n`)
+  php = spawn('php', ['-S', `127.0.0.1:${SYNC_PORT}`, '-t', dir], { stdio: 'ignore' })
+  process.on('exit', () => php?.kill())
+} catch {
+  php = null
 }
 
 const tests = []
@@ -244,6 +264,68 @@ test('takvimi yazdırma / PDF ekranı haftanın derslerini gösterir', async (br
   await page.keyboard.press('Escape')
   assert.equal(await page.locator('.print-sheet').count(), 0)
   assert.deepEqual(errors, [])
+})
+
+test('iki cihaz kendi sunucu üzerinden eşitlenir (şifreli)', async (browser) => {
+  if (!php) {
+    console.log('  (PHP yok, eşitleme testi atlandı)')
+    return
+  }
+  const srv = `http://127.0.0.1:${SYNC_PORT}`
+  const connectDevice = async (newAccount, name) => {
+    const d = await open(browser)
+    await d.nav('Ayarlar')
+    const panel = d.page.locator('.panel', { has: d.page.locator('h3', { hasText: 'Eşitleme (telefon' }) })
+    await panel.locator('input').first().fill(srv)
+    await panel.getByRole('button', { name: 'Devam' }).click()
+    await panel.locator('input[type=password]').first().waitFor()
+    await panel.locator('.field', { hasText: 'Bu cihazın adı' }).locator('input').fill(name)
+    const pw = panel.locator('input[type=password]')
+    await pw.nth(0).fill('cok-gizli-parola')
+    if (newAccount) await pw.nth(1).fill('cok-gizli-parola')
+    await panel.getByRole('button', { name: newAccount ? /Hesap oluştur/ : /Giriş yap/ }).click()
+    await panel.locator('.sync-status', { hasText: 'Eşitlendi' }).waitFor({ timeout: 20000 })
+    return d
+  }
+  const addTask = async (d, title) => {
+    await d.nav('Görevler')
+    await d.page.locator('.todo-add input').first().fill(title)
+    await d.page.keyboard.press('Enter')
+  }
+  const syncAndOpenTasks = async (d) => {
+    await d.nav('Ayarlar')
+    const panel = d.page.locator('.panel', { has: d.page.locator('h3', { hasText: 'Eşitleme (telefon' }) })
+    await panel.getByRole('button', { name: 'Şimdi eşitle' }).click()
+    await panel.locator('.sync-status', { hasText: 'Eşitlendi' }).waitFor({ timeout: 20000 })
+    await d.nav('Görevler')
+    return d.page.locator('.todo-list').innerText().catch(() => '')
+  }
+
+  const phone = await connectDevice(true, 'Telefon')
+  await addTask(phone, 'Telefondan görev')
+  await syncAndOpenTasks(phone)
+
+  const tablet = await connectDevice(false, 'Tablet')
+  assert.match(await syncAndOpenTasks(tablet), /Telefondan görev/)
+  await addTask(tablet, 'Tabletten görev')
+  await syncAndOpenTasks(tablet)
+  assert.match(await syncAndOpenTasks(phone), /Tabletten görev[\s\S]*Telefondan görev/)
+
+  // Silme de eşitlenir
+  await phone.page.locator('.todo-text', { hasText: 'Telefondan görev' }).click()
+  await phone.page.locator('.modal-foot .btn.danger').click()
+  await syncAndOpenTasks(phone)
+  const t = await syncAndOpenTasks(tablet)
+  assert.doesNotMatch(t, /Telefondan görev/)
+  assert.match(t, /Tabletten görev/)
+
+  // Sunucuda içerik şifreli durur: görev adları veritabanı dosyalarında geçmez
+  const vdir = join(SYNC_DIR, 'veri')
+  const blob = readdirSync(vdir).filter((f) => f.startsWith('ders-')).map((f) => readFileSync(join(vdir, f)).toString('latin1')).join('')
+  assert.ok(blob.length > 0)
+  assert.ok(!blob.includes('Tabletten') && !blob.includes('Telefondan'), 'sunucuda düz metin bulundu')
+  assert.deepEqual(phone.errors, [])
+  assert.deepEqual(tablet.errors, [])
 })
 
 await waitForServer()

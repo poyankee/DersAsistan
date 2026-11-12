@@ -76,7 +76,9 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
 
 ### Veri ve güvenlik (sonraya bırakıldı)
 - [ ] Gerçek kullanıma geçerken sabit APK imza anahtarı (güncellemeler veri silinmeden üstüne kurulsun)
-- [ ] ⭐ Bulut eşitleme (telefon + tablet)
+- [x] ⭐ Bulut eşitleme (telefon + tablet) — v0.11
+- [ ] Görev eklerini (dosya/fotoğraf) de eşitlemek
+- [ ] Bilgisayardan tarayıcıyla kullanım (web sürümünü aynı hostinge koymak)
 - [ ] Google Drive'a otomatik haftalık yedek
 - [ ] Parmak izi / PIN kilidi
 - [ ] Google Takvim ile otomatik eşitleme
@@ -116,10 +118,12 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
 - v0.10 Android geri hareketi, görev kategorileri / sıralama / önemli işareti / alt adımlar / ekler,
   takvimde sade kutular, takvimin PDF çıktısı, arama kutusu; Ödemelerim hatırlatma, takvimde ödeme günleri,
   aylık giren / çıkan; yeni ana ekran widget'ı; kalıcı APK imzası
+- v0.11 Telefon ↔ tablet eşitleme (kendi PHP sunucusu, uçtan uca şifreli), uygulama içi otomatik güncelleme
+  (arayüz paketi APK'sız; gerekirse APK uygulama içinden), hatalı güncellemede kendiliğinden geri dönüş
 
 ## Bekleyenler (kullanıcı tarafında)
 - [ ] Kalıcı imza anahtarı (GitHub Secrets) ya da Google Play kapalı test
 - [ ] Depoyu gizli yapma (GitHub → Settings → Danger zone → Change visibility)
 - [ ] Gerçek telefonda deneme: otomatik yedek, bildirimler, widget, kısayollar, animasyon akıcılığı
-- [ ] Bulut eşitleme, uygulama içi güncelleme bildirimi (istenirse)
+- [ ] Hosting + alan adı alıp eşitleme sunucusunu kurmak (docs/ESITLEME-KURULUM.md)
 - [ ] Barındırma (hosting) planı: telefon + bilgisayar eşitleme ve kişisel web sitesi (sadece plan yapıldı)

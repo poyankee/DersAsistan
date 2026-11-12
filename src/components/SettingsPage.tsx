@@ -18,6 +18,7 @@ import { uid } from '../lib/util'
 import { buildICS } from '../lib/ics'
 import IcsImportModal from './IcsImportModal'
 import UpdatePanel from './UpdatePanel'
+import SyncPanel from './SyncPanel'
 import { PALETTE, downloadFile } from '../lib/util'
 
 export default function SettingsPage() {
@@ -64,6 +65,7 @@ export default function SettingsPage() {
     <div className="page">
       <div className="page-head"><h2>Ayarlar</h2></div>
 
+      <SyncPanel />
       <UpdatePanel />
       <AppearancePanel />
       <NotifyPanel />
@@ -422,6 +424,8 @@ function LockPanel() {
 }
 
 const GUIDE: [string, string][] = [
+  ['Telefon ve tableti eşitlemek', 'Ayarlar → Eşitleme. Önce telefonda sunucu adresini girip hesap oluşturun, sonra tablette aynı bilgilerle giriş yapın. Değişiklikler birkaç saniyede öteki cihaza geçer; veriler cihazda şifrelenir.'],
+  ['Güncellemeler', 'Yeni sürümler kendiliğinden indirilir; ekranın altında "Yeni sürüm hazır" çıkınca "Yeniden başlat"a dokunun. APK aramanıza gerek yok.'],
   ['Kurum programını yüklemek', 'Takvim → sağ üstteki ⋯ → "Kurum programını yükle". Aynı dosyayı tekrar yükleseniz de dersler çiftlenmez; değişen günler ayrıca gösterilir.'],
   ['Ders eklemek', '"+" düğmesi → Etkinlik. Özel ders için öğrenciyi, kendi işleriniz için "Kişisel"i seçin. "Her hafta tekrarla" ile dönemlik ders oluşturulur.'],
   ['Dersi taşımak', 'Takvimde derse basılı tutup sürükleyin. Alt kenarından çekerek süresini değiştirin. Her taşımadan sonra "Geri al" çıkar.'],

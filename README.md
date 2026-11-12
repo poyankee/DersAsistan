@@ -53,6 +53,16 @@ Depoda gerçek kurum dosyası **tutulmaz**; testlerde yalnızca küçük, uydurm
   2 yıl ileriye kadar açılır; iptal edilenler alınmaz. Anahtar `gcal|UID|tarih-saat`; tekrar yüklemede kopya oluşmaz.
 - Her takvim kişisel etkinlik olarak kendi kategorisine girer; tüm gün etkinlikleri isteğe bağlıdır.
 
+## Telefon ↔ tablet eşitleme ve güncellemeler
+
+- **Eşitleme:** `server/` klasöründeki küçük PHP sunucusu paylaşımlı hostinge yüklenir (PHP 7.4+, PDO SQLite).
+  Veriler kayıt kayıt eşitlenir ve cihazda AES-256-GCM ile şifrelenir; sunucu yalnızca şifreli veri görür.
+  Adım adım kurulum: [docs/ESITLEME-KURULUM.md](docs/ESITLEME-KURULUM.md). Her sürümde `ders-sunucu.zip` olarak da yayınlanır.
+- **Uygulama içi güncelleme:** Her derleme sürüm sayfasına `web-N.zip` ve `surum.json` ekler. Uygulama bunları denetler;
+  yalnızca arayüz değiştiyse paketi indirip doğrular ve APK kurmadan açar. Android kodu değiştiyse
+  (`UpdaterPlugin.NATIVE_LEVEL` ve `src/lib/version.ts` → `NATIVE_LEVEL` birlikte artırılır) APK uygulama içinden indirilip
+  kurulum ekranı açılır. Açılamayan güncellemede üç denemeden sonra önceki pakete dönülür.
+
 ## Geliştirme
 
 ```bash

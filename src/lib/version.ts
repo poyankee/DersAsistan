@@ -13,6 +13,14 @@ export const NATIVE_LEVEL = 1
 
 export const CHANGELOG: { version: string; items: string[] }[] = [
   {
+    version: '0.11',
+    items: [
+      'Telefon ↔ tablet eşitleme: kendi hostinginize kurduğunuz sunucu ile; veriler cihazda şifrelenir',
+      'Uygulama içi güncelleme: yenilikler kendiliğinden iner, APK kurmanız gerekmez',
+      'Ayarlar\'da Eşitleme ve Güncellemeler bölümleri',
+    ],
+  },
+  {
     version: '0.10',
     items: [
       'Android geri hareketi artık önceki ekrana döner (en sonda uygulamadan çıkar)',

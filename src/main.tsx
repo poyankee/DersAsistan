@@ -8,6 +8,7 @@ import { setupBackButton } from './lib/native'
 import { installErrorLogging } from './lib/errlog'
 import ErrorBoundary from './components/ErrorBoundary'
 import { confirmRunning, startAutoUpdate } from './lib/updater'
+import { startSync } from './lib/syncManager'
 
 setupBackButton()
 applyAccent(getData().settings.accent)
@@ -28,6 +29,7 @@ Promise.race([initStore(), new Promise((r) => setTimeout(r, 3000))]).finally(() 
   setTimeout(() => {
     confirmRunning()
     startAutoUpdate()
+    startSync()
   }, 4000)
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

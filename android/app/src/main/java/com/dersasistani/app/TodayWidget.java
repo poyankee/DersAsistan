@@ -218,7 +218,7 @@ public class TodayWidget extends AppWidgetProvider {
 
         // Şu an / sıradaki kartı
         if (current != null) {
-            v.setTextViewText(R.id.w_hero_label, "ŞU AN · " + current.end + "'de bitiyor");
+            v.setTextViewText(R.id.w_hero_label, "ŞU AN · BİTİŞ " + current.end);
             v.setTextViewText(R.id.w_hero_title, current.title);
             v.setTextViewText(R.id.w_hero_sub, current.start + " – " + current.end + (next != null ? "   ·   Sonra: " + next.start + " " + next.title : ""));
         } else if (next != null) {

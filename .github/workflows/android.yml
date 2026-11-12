@@ -22,6 +22,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          # Gradle bağımlılıkları önbellekte tutulur: Maven sunucusundaki anlık kesintilerden etkilenmez
+          cache: gradle
       - run: npm ci
       - run: npm run lint
       - run: npm test
@@ -62,7 +64,8 @@ jobs:
         run: |
           export DA_KEYSTORE="$HOME/da-signing/app.keystore"
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          # Bağımlılık indirme anlık hata verirse birkaç kez dene
+          for i in 1 2 3; do ./gradlew assembleRelease --no-daemon && break; [ "$i" = 3 ] && exit 1; echo "Yeniden deneniyor ($i)"; sleep 30; done
           cp app/build/outputs/apk/release/app-release.apk ../DersAsistani.apk
       - name: APK'nın saklanan anahtarla imzalandığını doğrula
         run: |

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { BarChart3, CalendarDays, CalendarPlus, GraduationCap, Home, ListTodo, Plus, Search, Settings, Users, Wallet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import CalendarPage from './components/CalendarPage'
@@ -11,14 +11,14 @@ import Toasts from './components/Toasts'
 import Modal from './components/Modal'
 import { ExamForm, TaskForm, newExam, newTask } from './components/TaskExamForms'
 import type { CalEvent, Exam, Task } from './lib/types'
-import { getData, setData, takeLoadNotice, useData } from './lib/store'
+import { getData, isReady, setData, takeLoadNotice, useData } from './lib/store'
 import { applyAccent } from './lib/accent'
 import SearchModal from './components/SearchModal'
 import LockScreen from './components/LockScreen'
 import Intro from './components/Intro'
 import { showToast } from './lib/toast'
 import { fromMinutes, nowHM, toMinutes, todayISO } from './lib/date'
-import { onAppAction } from './lib/native'
+import { onAppAction, setBackHandler } from './lib/native'
 import { syncNotifications } from './lib/notify'
 
 // Raporlar ve Ayarlar yalnızca açıldıklarında yüklenir
@@ -64,6 +64,12 @@ export default function App() {
   useEffect(() => {
     const n = takeLoadNotice()
     if (n) showToast(n, [], 15000)
+    // Hiçbir görevin kullanmadığı ek dosyalarını sessizce temizle (veri yüklendikten sonra, yalnızca görev varken)
+    const t = setTimeout(() => {
+      const d = getData()
+      if (isReady() && !n && d.tasks.length) import('./lib/attachments').then((m) => m.cleanupAttachments(d))
+    }, 20000)
+    return () => clearTimeout(t)
   }, [])
 
   // Tema ve yazı boyutu
@@ -94,10 +100,36 @@ export default function App() {
     return () => clearTimeout(t)
   }, [data])
 
+  // Geri hareketi için gezilen sekmeler
+  const tabHistory = useRef<Tab[]>([])
   const go = (t: Tab) => {
+    if (t !== tab) {
+      tabHistory.current = [...tabHistory.current.filter((x) => x !== t), tab].slice(-10)
+    }
     setTab(t)
     document.querySelector('.content')?.scrollTo({ top: 0 })
   }
+  // Android geri hareketi: açık dosyayı kapat → önceki sekme → Bugün → (en sonda) uygulamadan çık
+  useEffect(() => {
+    setBackHandler(() => {
+      if (tab === 'ozel' && (studentId || classCode || payPick)) {
+        setStudentId(null)
+        setClassCode(null)
+        setPayPick(false)
+        return true
+      }
+      const prev = tabHistory.current.pop()
+      if (prev && prev !== tab) {
+        setTab(prev)
+        return true
+      }
+      if (tab !== 'bugun') {
+        setTab('bugun')
+        return true
+      }
+      return false
+    })
+  })
   const newEvent = () => {
     const s = Math.ceil(toMinutes(nowHM()) / 30) * 30
     setEditing({ date: todayISO(), start: fromMinutes(Math.min(s, 22 * 60)), end: fromMinutes(Math.min(s + 60, 23 * 60)) })

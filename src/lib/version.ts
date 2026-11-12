@@ -1,7 +1,19 @@
 /** Uygulama sürümü ve "bu sürümde neler değişti" listesi (Ayarlar → Yenilikler) */
-export const APP_VERSION = '0.9'
+export const APP_VERSION = '0.10'
 
 export const CHANGELOG: { version: string; items: string[] }[] = [
+  {
+    version: '0.10',
+    items: [
+      'Android geri hareketi artık önceki ekrana döner (en sonda uygulamadan çıkar)',
+      'Görevler: kategoriler ve kategoriye göre süzme, sıralama (en yeni üstte), önemli işareti',
+      'Görev ayrıntıları: alt adımlar, fotoğraf / dosya ekleme',
+      'Yeni görev yazarken listenin titremesi giderildi',
+      'Takvimde kutularda yalnızca ad; saat dokununca görünür',
+      'Takvimi haftalık / aylık PDF olarak alma ve yazdırma; ders dökümü de telefonda PDF olabilir',
+      'Arama kutusu yenilendi',
+    ],
+  },
   {
     version: '0.9',
     items: [

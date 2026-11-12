@@ -181,7 +181,29 @@ export interface Task {
   groupCode?: string
   studentId?: string
   categoryId?: string
+  /** Önemli olarak işaretli */
+  starred?: boolean
+  /** Alt adımlar */
+  steps?: TaskStep[]
+  /** Ekli dosya ve resimler (içerikleri cihazda ayrı saklanır) */
+  files?: Attachment[]
   createdAt: number
+}
+
+export interface TaskStep {
+  id: string
+  text: string
+  done: boolean
+}
+
+export interface Attachment {
+  id: string
+  name: string
+  /** MIME türü (image/jpeg, application/pdf…) */
+  type: string
+  size: number
+  /** Resimler için küçük önizleme (data URL, ~10 KB) */
+  thumb?: string
 }
 
 /** Sınav / yazılı / deneme */

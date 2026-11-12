@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MessageCircle, Printer, Share2 } from 'lucide-react'
 import { addMonths, startOfMonth, todayISO } from '../lib/date'
-import { downloadFile, isNative, openExternal, waLink } from '../lib/native'
+import { downloadFile, isNative, openExternal, printPage, waLink } from '../lib/native'
 import DateInput from './DateInput'
 import Modal from './Modal'
 
@@ -24,8 +24,14 @@ export default function ReportModal({ title, fileName, build, phone, onClose }: 
   }
   const text = range === 'hepsi' ? build() : build(from, to)
   // Yeni pencere açılmaz (telefonda uygulamayı boş sayfada bırakıyordu): yalnızca döküm metni yazdırılır
+  // Telefonda Android yazdırma hizmeti açılır ("PDF olarak kaydet"); yazdırma görünümü pencere kapanana kadar kalır
+  useEffect(() => () => document.body.classList.remove('print-report'), [])
   const print = () => {
     document.body.classList.add('print-report')
+    if (isNative) {
+      printPage(`Ders Asistani - ${title}`).catch((e) => alert('Yazdırma açılamadı: ' + (e as Error).message))
+      return
+    }
     const done = () => {
       document.body.classList.remove('print-report')
       window.removeEventListener('afterprint', done)
@@ -42,7 +48,7 @@ export default function ReportModal({ title, fileName, build, phone, onClose }: 
       footer={
         <>
           <div className="spacer" />
-          {!isNative && <button className="btn" onClick={print}><Printer size={15} /> Yazdır</button>}
+          <button className="btn" onClick={print}><Printer size={15} /> {isNative ? 'PDF / Yazdır' : 'Yazdır'}</button>
           {phone && <button className="btn" onClick={() => openExternal(waLink(phone, text))}><MessageCircle size={15} /> WhatsApp</button>}
           <button className="btn primary" onClick={() => downloadFile(fileName, text, 'text/plain')}><Share2 size={15} /> Paylaş</button>
         </>

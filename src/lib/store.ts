@@ -161,6 +161,11 @@ export async function initStore() {
   }
 }
 
+/** Açılıştaki veri yükleme tamamlandı mı */
+export function isReady(): boolean {
+  return ready
+}
+
 export function getData(): AppData {
   return state
 }
@@ -310,7 +315,7 @@ export function saveCategory(c: Category) {
 }
 
 export function deleteCategory(id: string) {
-  setData((d) => ({ ...d, categories: d.categories.filter((c) => c.id !== id), events: d.events.map((e) => (e.categoryId === id ? { ...e, categoryId: undefined } : e)) }))
+  setData((d) => ({ ...d, categories: d.categories.filter((c) => c.id !== id), tasks: d.tasks.map((t) => (t.categoryId === id ? { ...t, categoryId: undefined } : t)), events: d.events.map((e) => (e.categoryId === id ? { ...e, categoryId: undefined } : e)) }))
 }
 
 export function saveTask(t: Task) {

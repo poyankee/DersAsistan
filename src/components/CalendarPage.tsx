@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
-import { CalendarDays, CalendarSearch, Receipt, ChevronLeft, ChevronRight, GraduationCap, ListTodo, MoreHorizontal, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
+import { CalendarDays, CalendarSearch, Printer, Receipt, ChevronLeft, ChevronRight, GraduationCap, ListTodo, MoreHorizontal, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import FreeSlotsModal from './FreeSlotsModal'
 import { holidayMap } from '../lib/holidays'
 import type { OpenEvent } from '../App'
@@ -13,6 +13,7 @@ import {
 import ImportModal from './ImportModal'
 import { billsForMonth, type BillRow } from '../lib/bills'
 import IcsImportModal from './IcsImportModal'
+import CalendarPrint from './CalendarPrint'
 import { gestureActive, startGesture } from '../lib/gesture'
 import { moveEvent } from '../lib/eventOps'
 import { findFreeGaps } from '../lib/freeSlots'
@@ -93,6 +94,7 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
   const [menuOpen, setMenuOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [icsOpen, setIcsOpen] = useState(false)
+  const [printOpen, setPrintOpen] = useState(false)
   const [freeOpen, setFreeOpen] = useState(false)
   const [, tick] = useState(0)
 
@@ -192,6 +194,7 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
             <button onClick={() => { setMenuOpen(false); setImportOpen(true) }}><Upload size={18} /> Kurum programını yükle</button>
             <button onClick={() => { setMenuOpen(false); setIcsOpen(true) }}><CalendarDays size={18} /> Google Takvim'den içe aktar</button>
             <button onClick={() => { setMenuOpen(false); setFreeOpen(true) }}><CalendarSearch size={18} /> Boş saat bul</button>
+            <button onClick={() => { setMenuOpen(false); setPrintOpen(true) }}><Printer size={18} /> Takvimi PDF olarak al / yazdır</button>
           </div>
           <h4>Göster</h4>
           <div className="layer-list">
@@ -221,6 +224,7 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
           }}
         />
       )}
+      {printOpen && <CalendarPrint date={cursor} initialMode={view === 'month' ? 'ay' : 'hafta'} onClose={() => setPrintOpen(false)} />}
       {icsOpen && <IcsImportModal onClose={() => setIcsOpen(false)} onDone={(d) => d && setCursor(d)} />}
       {importOpen && <ImportModal onClose={() => setImportOpen(false)} onDone={(d) => d && setCursor(d)} />}
     </div>
@@ -615,8 +619,8 @@ const DayEvents = memo(function DayEvents({ data, date, events, drag, hourPx, on
             onContextMenu={(ev) => ev.preventDefault()}
             title={`${eventTitle(data, e)}\n${e.start}–${e.end}`}
           >
-            <div className="ev-title"><StatusMark e={e} />{eventTitle(data, e)}</div>
-            <div className="ev-time">{e.start}–{e.end}{e.hours && e.hours > 1 ? ` · ${e.hours} saat` : ''}</div>
+            {/* Sade görünüm: yalnızca ad; saat dokununca açılan kartta ve sürüklerken görünür */}
+            <div className="ev-title"><StatusMark e={e} />{shortTitle(data, e)}</div>
             {isDragging && <div className="ev-drag-time">{e.start}–{e.end}</div>}
             <div className="ev-resize" onPointerDown={(ev) => onDown(ev, orig, 'resize')} />
           </div>
@@ -716,7 +720,7 @@ function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
                 onContextMenu={(ev) => ev.preventDefault()}
               >
                 <i style={{ background: eventColor(data, e) }} />
-                <span className="mg-time">{e.start}</span> {eventTitle(data, e)}
+                {shortTitle(data, e)}
               </div>
             ))}
             {list.length > max && <span className="mg-more">+{list.length - max}</span>}
@@ -726,6 +730,13 @@ function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
       })}
     </div>
   )
+}
+
+/** Takvim kutuları için kısa ad: sınıfın adı (yoksa kodu), öğrencinin adı ya da etkinlik başlığı */
+function shortTitle(data: AppData, e: CalEvent): string {
+  if (e.kind === 'kurum' && e.groupCode) return data.groups[e.groupCode]?.name || e.groupCode
+  if (e.kind === 'ozel' && e.studentId) return data.students.find((s) => s.id === e.studentId)?.name ?? e.title
+  return e.title
 }
 
 /** Ödemelerim kalemlerinin son günleri: tarih → kalemler (verilen aylar için) */

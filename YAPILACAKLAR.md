@@ -113,6 +113,9 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
 - v0.9 Görevler sekmesi (yapılacaklar listesi), Ödemelerim (kişisel aylık ödeme takibi, 12 aylık toplu görünüm,
   Bugün'de yaklaşan ödemeler), Google Takvim yedeğini (.zip/.ics) içe aktarma, ay görünümünde gün paneli ve "Güne git",
   öğrenciye özel bilgi alanları, döküm ekranındaki beyaz ekran hatası
+- v0.10 Android geri hareketi, görev kategorileri / sıralama / önemli işareti / alt adımlar / ekler,
+  takvimde sade kutular, takvimin PDF çıktısı, arama kutusu; Ödemelerim hatırlatma, takvimde ödeme günleri,
+  aylık giren / çıkan; yeni ana ekran widget'ı; kalıcı APK imzası
 
 ## Bekleyenler (kullanıcı tarafında)
 - [ ] Kalıcı imza anahtarı (GitHub Secrets) ya da Google Play kapalı test

@@ -32,9 +32,23 @@ export function openExternal(url: string) {
 
 interface WidgetBridgePlugin {
   refresh(): Promise<void>
+  print(o: { name: string; landscape?: boolean }): Promise<void>
 }
 let widgetBridge: WidgetBridgePlugin | null = null
 let widgetTimer: ReturnType<typeof setTimeout> | undefined
+
+/**
+ * Sayfanın yazdırma görünümünü yazdırır / PDF yapar. Android'de sistemin yazdırma ekranı açılır
+ * ("PDF olarak kaydet" seçilebilir); tarayıcıda normal yazdırma penceresi.
+ */
+export async function printPage(name: string, landscape = false) {
+  if (!isNative) {
+    window.print()
+    return
+  }
+  if (!widgetBridge) widgetBridge = registerPlugin<WidgetBridgePlugin>('WidgetBridge')
+  await widgetBridge.print({ name, landscape })
+}
 
 /** Ana ekran widget'ını kısa bir gecikmeyle yeniler (art arda kayıtlarda tek sefer) */
 export function refreshWidget() {
@@ -50,7 +64,14 @@ export function refreshWidget() {
   }, 800)
 }
 
-/** Geri tuşu: açık pencere varsa kapat, yoksa uygulamayı arka plana al */
+let backHandler: (() => boolean) | null = null
+
+/** Uygulama içi geri: işlediyse true döner (ör. önceki sekmeye dönüldü) */
+export function setBackHandler(fn: (() => boolean) | null) {
+  backHandler = fn
+}
+
+/** Geri tuşu / hareketi: açık pencere varsa kapat, sonra önceki ekrana dön, en sonda uygulamayı arka plana al */
 export async function setupBackButton() {
   if (!isNative) return
   const { App } = await import('@capacitor/app')
@@ -61,7 +82,7 @@ export async function setupBackButton() {
   App.addListener('backButton', () => {
     if (document.querySelector('.modal')) {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
-    } else {
+    } else if (!backHandler?.()) {
       App.minimizeApp()
     }
   })

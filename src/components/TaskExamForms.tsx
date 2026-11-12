@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import TaskExtras from './TaskExtras'
+import { Star } from 'lucide-react'
 import DateInput from './DateInput'
 import type { Exam, Task } from '../lib/types'
 import { deleteExam, deleteTask, saveExam, saveTask, useData } from '../lib/store'
@@ -62,7 +64,10 @@ export function TaskForm({ initial, onClose }: { initial: Task; onClose: () => v
         </>
       }
     >
-      <label className="field"><span>Ne yapılacak?</span><input autoFocus value={t.title} onChange={(e) => setT({ ...t, title: e.target.value })} placeholder="ör. 8-H yazılı kağıtlarını oku" /></label>
+      <div className="row task-title-row">
+        <label className="field grow"><span>Ne yapılacak?</span><input autoFocus={isNew} value={t.title} onChange={(e) => setT({ ...t, title: e.target.value })} placeholder="ör. 8-H yazılı kağıtlarını oku" /></label>
+        <button className={'todo-star big' + (t.starred ? ' on' : '')} onClick={() => setT({ ...t, starred: !t.starred })} aria-label="Önemli" title="Önemli"><Star size={20} /></button>
+      </div>
       <div className="field">
         <span>Son tarih (opsiyonel)</span>
         <div className="chips">
@@ -71,8 +76,9 @@ export function TaskForm({ initial, onClose }: { initial: Task; onClose: () => v
           <DateInput className="mini-date" allowEmpty value={t.due ?? ''} onChange={(v) => setT({ ...t, due: v || undefined })} />
         </div>
       </div>
-      <label className="field"><span>İlgili</span><LinkSelect groupCode={t.groupCode} studentId={t.studentId} categoryId={t.categoryId} onChange={(g, s, c) => setT({ ...t, groupCode: g, studentId: s, categoryId: c })} /></label>
-      <label className="field"><span>Not (opsiyonel)</span><textarea rows={2} value={t.note ?? ''} onChange={(e) => setT({ ...t, note: e.target.value || undefined })} /></label>
+      <label className="field"><span>Kategori / ilgili</span><LinkSelect groupCode={t.groupCode} studentId={t.studentId} categoryId={t.categoryId} onChange={(g, s, c) => setT({ ...t, groupCode: g, studentId: s, categoryId: c })} /></label>
+      <label className="field"><span>Not (opsiyonel)</span><textarea rows={3} value={t.note ?? ''} onChange={(e) => setT({ ...t, note: e.target.value || undefined })} /></label>
+      <TaskExtras task={t} onChange={setT} />
       {!isNew && <label className="check"><input type="checkbox" checked={t.done} onChange={(e) => setT({ ...t, done: e.target.checked, doneAt: e.target.checked ? today : undefined })} /> Tamamlandı</label>}
     </Modal>
   )

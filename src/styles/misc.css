@@ -92,3 +92,43 @@
 .student-view.modal { max-width: none; max-height: none; border-radius: 0; border: 0; display: block; }
 .ics-cals { list-style: none; padding: 0; margin: 0 0 10px; display: flex; flex-direction: column; gap: 6px; }
 .ics-cals li { padding: 8px 12px; background: var(--surface-2); border-radius: 12px; }
+/* Arama kutusu: içteki alan tüm genişliği kaplar, odak çerçevesi kutunun kendisinde */
+.search-box { transition: border-color .15s, box-shadow .15s; }
+.search-box input.search { flex: 1; min-width: 0; width: 100%; outline: none !important; color: var(--text); font: inherit; }
+.search-box:focus-within { border-color: var(--primary); box-shadow: 0 0 0 4px hsl(var(--h) var(--s) var(--l) / .14); color: var(--primary); }
+.search-box.big { padding: 6px 16px; border-radius: 16px; border-width: 1.5px; background: var(--surface-2); }
+.search-box.big:focus-within { background: var(--surface); }
+.search-box.big input.search { font-size: 17px; padding: 10px 0 !important; }
+
+/* Takvim yazdırma / PDF */
+.print-sheet { position: fixed; inset: 0; z-index: 200; background: var(--bg, #f4f3fb); overflow: auto; padding: 0 16px 24px; animation: fade .2s ease; }
+.ps-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 0; padding-top: calc(12px + env(safe-area-inset-top)); background: var(--bg, #f4f3fb); }
+.ps-hint { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
+.print-page { background: #fff; color: #111; border-radius: 12px; box-shadow: var(--shadow-md, 0 6px 24px rgba(0,0,0,.12)); padding: 18px; max-width: 1200px; margin: 0 auto; font-family: var(--sans, system-ui); }
+.pp-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #111; padding-bottom: 6px; margin-bottom: 8px; }
+.pp-head b { font-size: 18px; }
+.pp-foot { margin-top: 6px; font-size: 10px; color: #888; text-align: right; }
+.pc-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-left: 1px solid #ccc; border-top: 1px solid #ccc; }
+.pc-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: 5px 6px; background: #f2f2f6; border-right: 1px solid #ccc; border-bottom: 1px solid #ccc; }
+.pc-cell { border-right: 1px solid #ccc; border-bottom: 1px solid #ccc; padding: 4px 5px; min-height: 92px; font-size: 11px; overflow: hidden; break-inside: avoid; }
+.pc-grid.hafta .pc-cell { min-height: 420px; font-size: 12px; }
+.pc-cell.other { background: #fafafa; color: #aaa; }
+.pc-num { display: block; font-weight: 700; font-size: 12px; margin-bottom: 2px; }
+.pc-hol { font-size: 10px; color: #b91c1c; font-weight: 600; margin-bottom: 2px; }
+.pc-ev { display: flex; gap: 4px; align-items: baseline; border-left: 3px solid var(--ev); padding: 1px 0 1px 4px; margin: 2px 0; line-height: 1.25; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.pc-grid.hafta .pc-ev { padding: 3px 0 3px 6px; margin: 4px 0; background: color-mix(in srgb, var(--ev) 10%, #fff); border-radius: 0 4px 4px 0; }
+.pc-ev.off { text-decoration: line-through; color: #999; }
+.pc-t { font-variant-numeric: tabular-nums; color: #555; flex: none; }
+.pc-n { font-weight: 600; word-break: break-word; }
+@media (max-width: 720px) { .print-page { padding: 10px; overflow-x: auto; } .pc-grid { min-width: 680px; } }
+@page cal { size: A4 landscape; margin: 10mm; }
+@media print {
+  body.print-cal > *:not(.print-sheet) { display: none !important; }
+  body.print-cal { background: #fff !important; }
+  body.print-cal .print-sheet { position: static; overflow: visible; padding: 0; background: #fff; animation: none; }
+  body.print-cal .no-print { display: none !important; }
+  body.print-cal .print-page { page: cal; box-shadow: none; border-radius: 0; padding: 0; max-width: none; }
+  body.print-cal .pc-grid { min-width: 0; }
+  body.print-cal .pc-grid.hafta .pc-cell { min-height: 150mm; }
+  body.print-cal .pc-cell { min-height: 26mm; }
+}

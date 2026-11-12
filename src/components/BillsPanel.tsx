@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
-import { AlertTriangle, CalendarClock, Check, CheckCircle2, Plus, Receipt } from 'lucide-react'
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, CalendarClock, Check, CheckCircle2, Pencil, Plus, Receipt } from 'lucide-react'
 import type { Bill, BillPayment } from '../lib/types'
-import { deleteBill, deleteBillPayment, saveBill, saveBillPayment, useData } from '../lib/store'
-import { billsForMonth, lastMonths, monthTotals, paidMatrix, type BillRow } from '../lib/bills'
+import { deleteBill, deleteBillPayment, saveBill, saveBillPayment, setData, useData } from '../lib/store'
+import { billsForMonth, cashFlow, lastMonths, monthTotals, paidMatrix, type BillRow } from '../lib/bills'
 import { TR_MONTHS, addMonths, formatDMY, monthLabel, startOfMonth, todayISO } from '../lib/date'
 import { PALETTE, money, uid } from '../lib/util'
 import { showToast } from '../lib/toast'
@@ -67,6 +67,7 @@ export default function BillsPanel() {
             <div className="kpi"><span>Ödenen</span><b className="ok">{m(totals.paid)}</b></div>
             <div className="kpi"><span>Kalan</span><b className={totals.late ? 'warn-text' : ''}>{m(totals.remaining)}</b>{totals.late > 0 && <small className="warn-text"><AlertTriangle size={12} /> {totals.late} ödeme gecikti</small>}</div>
           </div>
+          <FlowCard month={ym} />
           {rows.length === 0 ? <p className="muted pad center">Bu ay için ödeme kalemi yok.</p> : (
             <ul className="bill-list">
               {rows.map((r) => (
@@ -103,6 +104,56 @@ export default function BillsPanel() {
   )
 }
 
+/** Bu ay giren / çıkan / kalan */
+function FlowCard({ month }: { month: string }) {
+  const data = useData()
+  const cur = data.settings.currency
+  const f = cashFlow(data, month)
+  const [editing, setEditing] = useState(false)
+  const [fixed, setFixed] = useState<number | ''>(data.settings.fixedIncome ?? '')
+  const m = (n: number) => money(Math.round(n), cur)
+  const saveFixed = () => {
+    setData((d) => ({ ...d, settings: { ...d.settings, fixedIncome: fixed === '' || fixed <= 0 ? undefined : Number(fixed) } }))
+    setEditing(false)
+  }
+  const max = Math.max(f.income, f.out, 1)
+  const parts = [
+    f.ozel ? `Özel ders tahsilatı ${m(f.ozel)}` : '',
+    f.kurum ? `Kurum ek ders ${f.kurumHours} saat · ${m(f.kurum)}` : '',
+    f.fixed ? `Sabit gelir ${m(f.fixed)}` : '',
+  ].filter(Boolean)
+  return (
+    <section className="flow-card">
+      <div className="flow-row in">
+        <span className="flow-ico"><ArrowDownLeft size={16} /></span>
+        <span className="flow-lbl">Giren<small>{parts.join(' · ') || 'Bu ay kayıtlı gelir yok'}</small></span>
+        <b>{m(f.income)}</b>
+      </div>
+      <span className="flow-bar in"><i style={{ width: `${(f.income / max) * 100}%` }} /></span>
+      <div className="flow-row out">
+        <span className="flow-ico"><ArrowUpRight size={16} /></span>
+        <span className="flow-lbl">Çıkan<small>Bu ayın ödemelerinden ödenenler</small></span>
+        <b>{m(f.out)}</b>
+      </div>
+      <span className="flow-bar out"><i style={{ width: `${(f.out / max) * 100}%` }} /></span>
+      <div className="flow-net">
+        <span>Kalan</span>
+        <b className={f.net < 0 ? 'warn-text' : 'ok'}>{f.net < 0 ? '−' : ''}{m(Math.abs(f.net))}</b>
+      </div>
+      {editing ? (
+        <div className="row middle flow-edit">
+          <label className="field grow"><span>Sabit aylık gelir (maaş vb.) — her aya eklenir</span><input type="number" inputMode="decimal" min={0} autoFocus value={fixed} onChange={(e) => setFixed(e.target.value === '' ? '' : Number(e.target.value))} onKeyDown={(e) => e.key === 'Enter' && saveFixed()} placeholder="ör. 45000" /></label>
+          <button className="btn small" onClick={() => setEditing(false)}>Vazgeç</button>
+          <button className="btn small primary" onClick={saveFixed}>Kaydet</button>
+        </div>
+      ) : (
+        <button className="btn ghost small" onClick={() => setEditing(true)}><Pencil size={13} /> {data.settings.fixedIncome ? 'Sabit geliri düzenle' : 'Sabit aylık gelir ekle (maaş)'}</button>
+      )}
+      {!data.settings.kurumHourlyRate && <p className="muted small" style={{ margin: '4px 0 0' }}>Kurum ek ders ücretini Ayarlar'da girerseniz ek ders geliri de eklenir.</p>}
+    </section>
+  )
+}
+
 function Overview() {
   const data = useData()
   const cur = data.settings.currency
@@ -110,8 +161,10 @@ function Overview() {
   const matrix = paidMatrix(data, months)
   const colTotals = months.map((_, i) => matrix.reduce((a, r) => a + r.cells[i], 0))
   const grand = colTotals.reduce((a, b) => a + b, 0)
-  const max = Math.max(1, ...colTotals)
+  const flows = months.map((mo) => cashFlow(data, mo))
+  const maxAll = Math.max(1, ...colTotals, ...flows.map((f) => f.income))
   const n = (v: number) => (v ? Math.round(v).toLocaleString('tr-TR') : '')
+  const signed = (v: number) => (v ? (v < 0 ? '−' : '') + Math.round(Math.abs(v)).toLocaleString('tr-TR') : '')
   if (!matrix.length) return <p className="muted pad center">Son 12 ayda kayıtlı ödeme yok.</p>
   return (
     <>
@@ -122,12 +175,16 @@ function Overview() {
       </div>
       <div className="bill-bars" role="img" aria-label="Aylara göre toplam ödeme">
         {months.map((mo, i) => (
-          <div key={mo} className="bill-bar" title={`${TR_MONTHS[Number(mo.slice(5)) - 1]} ${mo.slice(0, 4)}: ${money(Math.round(colTotals[i]), cur)}`}>
-            <span className="bar"><i style={{ height: `${(colTotals[i] / max) * 100}%` }} /></span>
+          <div key={mo} className="bill-bar" title={`${TR_MONTHS[Number(mo.slice(5)) - 1]} ${mo.slice(0, 4)} · giren ${money(Math.round(flows[i].income), cur)} · çıkan ${money(Math.round(colTotals[i]), cur)}`}>
+            <span className="bars2">
+              <span className="bar in"><i style={{ height: `${(flows[i].income / maxAll) * 100}%` }} /></span>
+              <span className="bar"><i style={{ height: `${(colTotals[i] / maxAll) * 100}%` }} /></span>
+            </span>
             <small>{TR_MONTHS[Number(mo.slice(5)) - 1].slice(0, 3)}</small>
           </div>
         ))}
       </div>
+      <p className="bill-legend muted small"><i className="lg in" /> Giren <i className="lg out" /> Çıkan</p>
       <div className="table-wrap">
         <table className="table bill-table">
           <thead><tr><th>Kalem</th>{months.map((mo) => <th key={mo}>{TR_MONTHS[Number(mo.slice(5)) - 1].slice(0, 3)}</th>)}<th>Toplam</th></tr></thead>
@@ -140,7 +197,11 @@ function Overview() {
               </tr>
             ))}
           </tbody>
-          <tfoot><tr><td><b>Toplam</b></td>{colTotals.map((c, i) => <td key={i}><b>{n(c)}</b></td>)}<td><b>{n(grand)}</b></td></tr></tfoot>
+          <tfoot>
+            <tr><td><b>Toplam çıkan</b></td>{colTotals.map((c, i) => <td key={i}><b>{n(c)}</b></td>)}<td><b>{n(grand)}</b></td></tr>
+            <tr className="flow-in"><td><b>Giren</b></td>{flows.map((f, i) => <td key={i}>{n(f.income)}</td>)}<td><b>{n(flows.reduce((a, f) => a + f.income, 0))}</b></td></tr>
+            <tr className="flow-net-row"><td><b>Kalan</b></td>{flows.map((f, i) => <td key={i} className={f.income - colTotals[i] < 0 ? 'warn-text' : ''}>{signed(f.income - colTotals[i])}</td>)}<td><b>{signed(flows.reduce((a, f) => a + f.income, 0) - grand)}</b></td></tr>
+          </tfoot>
         </table>
       </div>
     </>

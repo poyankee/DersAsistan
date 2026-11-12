@@ -1,4 +1,6 @@
 import type { AppData, Bill, BillPayment } from './types'
+import { happened } from './status'
+import { todayISO } from './date'
 
 export type BillState = 'paid' | 'partial' | 'late' | 'due'
 
@@ -96,4 +98,34 @@ export function upcomingBills(d: AppData, today: string, days: number): BillRow[
   const limit = new Date(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, Number(today.slice(8)) + days)
   const lim = `${limit.getFullYear()}-${pad(limit.getMonth() + 1)}-${pad(limit.getDate())}`
   return [...billsForMonth(d, month, today), ...billsForMonth(d, next, today)].filter((r) => r.state !== 'paid' && r.due <= lim)
+}
+
+export interface CashFlow {
+  month: string
+  /** Öğrencilerden o ay alınan ödemeler (tahsilat tarihine göre) */
+  ozel: number
+  /** Yapılmış kurum ek ders saati × saat ücreti (ücret girilmişse) */
+  kurum: number
+  kurumHours: number
+  /** Ayarlardaki sabit aylık gelir (maaş vb.) */
+  fixed: number
+  income: number
+  /** O ayın kalemleri için yapılan ödemeler */
+  out: number
+  net: number
+}
+
+/** Aylık giren / çıkan: özel ders tahsilatı + kurum ek dersi + sabit gelir − ödemelerim */
+export function cashFlow(d: AppData, month: string, today = todayISO()): CashFlow {
+  const rate = d.settings.kurumHourlyRate ?? 0
+  const fixed = d.settings.fixedIncome ?? 0
+  let ozel = 0
+  for (const p of d.payments) if (p.date.slice(0, 7) === month) ozel += p.amount
+  let kurumHours = 0
+  if (rate) for (const e of d.events) if (e.kind === 'kurum' && e.date.slice(0, 7) === month && happened(e, today)) kurumHours += e.hours ?? 1
+  let out = 0
+  for (const p of d.billPayments) if (p.month === month) out += p.amount
+  const kurum = kurumHours * rate
+  const income = ozel + kurum + fixed
+  return { month, ozel, kurum, kurumHours, fixed, income, out, net: income - out }
 }

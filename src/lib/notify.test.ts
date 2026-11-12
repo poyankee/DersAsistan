@@ -30,3 +30,25 @@ describe('bildirim planı', () => {
     expect(before.at.getHours() * 60 + before.at.getMinutes()).toBe(16 * 60 + 45)
   })
 })
+
+describe('Ödemelerim hatırlatması', () => {
+  it('son günden önce ve son gün hatırlatır; ödenince kalkar', () => {
+    const today = todayISO()
+    const due = addDays(today, 2)
+    const base = emptyData()
+    const d = {
+      ...base,
+      bills: [{ id: 'b1', name: 'Kart', day: Number(due.slice(8)), amount: 1000, color: '#000', from: due.slice(0, 7), until: due.slice(0, 7), createdAt: 0 }],
+      settings: { ...base.settings, notify: { enabled: true, before: 0, after: false, payments: false, tasks: false, exams: false, billDays: 1 } },
+    }
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    const list = planNotifications(d, now)
+    expect(list.map((p) => p.title)).toEqual(['Yarın son gün: Kart', 'Bugün son gün: Kart'])
+    expect(list[0].body).toContain('1.000')
+    const paid = { ...d, billPayments: [{ id: 'p', billId: 'b1', month: due.slice(0, 7), amount: 1000, paidOn: today }] }
+    expect(planNotifications(paid, now)).toHaveLength(0)
+    const off = { ...d, settings: { ...d.settings, notify: { ...d.settings.notify, billDays: -1 } } }
+    expect(planNotifications(off, now)).toHaveLength(0)
+  })
+})

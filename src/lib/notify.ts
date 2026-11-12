@@ -4,8 +4,9 @@ import { eventTitle } from './store'
 import { studentFinance } from './finance'
 import { isNative } from './native'
 import { money } from './util'
+import { billsForMonth } from './bills'
 
-export const DEFAULT_NOTIFY: NotifySettings = { enabled: false, before: 15, after: true, payments: true, tasks: true, exams: true }
+export const DEFAULT_NOTIFY: NotifySettings = { enabled: false, before: 15, after: true, payments: true, tasks: true, exams: true, billDays: 1 }
 
 export function notifySettings(d: AppData): NotifySettings {
   return { ...DEFAULT_NOTIFY, ...(d.settings.notify ?? {}) }
@@ -52,6 +53,25 @@ export function planNotifications(d: AppData, now = new Date()): Planned[] {
       const due = f.payNote?.due
       if (!due || due < today || due > until) continue
       out.push({ id: hashId('p' + s.id + due), at: at(due, '09:00'), title: `Ödeme günü: ${s.name}`, body: `${money(Math.round(f.debt), d.settings.currency)} ödeme bekleniyor`, extra: { type: 'student', id: s.id } })
+    }
+  }
+  const billDays = o.billDays ?? 1
+  if (billDays >= 0) {
+    // Bu ay ve gelecek ayın ödenmemiş kalemleri; ödendi işaretlenince bildirim kendiliğinden kalkar
+    const months = [today.slice(0, 7), addDays(today.slice(0, 7) + '-28', 7).slice(0, 7)]
+    for (const m of months) {
+      for (const r of billsForMonth(d, m, today)) {
+        if (r.state === 'paid' || r.due < today) continue
+        const left = r.bill.amount ? r.bill.amount - r.paid : 0
+        const amount = left > 0 ? ` · ${money(Math.round(left), d.settings.currency)}` : ''
+        const remind = addDays(r.due, -billDays)
+        if (remind >= today && remind <= until && billDays > 0) {
+          out.push({ id: hashId('bl' + r.bill.id + r.due), at: at(remind, '09:00'), title: `${billDays === 1 ? 'Yarın' : billDays + ' gün sonra'} son gün: ${r.bill.name}`, body: `Son ödeme ${r.due.split('-').reverse().join('.')}${amount}`, extra: { type: 'bills' } })
+        }
+        if (r.due <= until) {
+          out.push({ id: hashId('bd' + r.bill.id + r.due), at: at(r.due, '09:00'), title: `Bugün son gün: ${r.bill.name}`, body: `Ödendiyse uygulamada işaretleyin${amount}`, extra: { type: 'bills' } })
+        }
+      }
     }
   }
   if (o.tasks) {

@@ -1,4 +1,4 @@
-import { billsForMonth, dueDate, lastMonths, monthTotals, paidMatrix, upcomingBills } from './bills'
+import { billsForMonth, cashFlow, dueDate, lastMonths, monthTotals, paidMatrix, upcomingBills } from './bills'
 import { emptyData } from './schema'
 import type { Bill } from './types'
 
@@ -40,5 +40,22 @@ describe('kişisel muhasebe', () => {
     // 16 Kasım'dan 7 gün: kart (20 Kas) yaklaşıyor; kira bu ay ödendi, gelecek ayın kirası (1 Ara) aralık dışında
     expect(upcomingBills(d, '2026-11-16', 7).map((r) => r.due)).toEqual(['2026-11-20'])
     expect(upcomingBills(d, '2026-11-26', 7).map((r) => r.due)).toEqual(['2026-11-20', '2026-12-01'])
+  })
+})
+
+describe('giren / çıkan', () => {
+  it('özel ders tahsilatı + kurum ek ders + sabit gelir − ödemeler', () => {
+    const base = emptyData()
+    const d = {
+      ...base,
+      settings: { ...base.settings, kurumHourlyRate: 200, fixedIncome: 30000 },
+      payments: [{ id: 'p1', studentId: 's', date: '2026-03-10', amount: 1500 }, { id: 'p2', studentId: 's', date: '2026-04-01', amount: 999 }],
+      events: [
+        { id: 'e1', kind: 'kurum' as const, date: '2026-03-02', start: '09:00', end: '10:30', title: 'A', groupCode: 'A', hours: 2, status: 'planned' as const, createdAt: 0 },
+        { id: 'e2', kind: 'kurum' as const, date: '2026-03-03', start: '09:00', end: '10:00', title: 'A', groupCode: 'A', status: 'cancelled' as const, createdAt: 0 },
+      ],
+      billPayments: [{ id: 'b', billId: 'x', month: '2026-03', amount: 12000, paidOn: '2026-03-04' }],
+    }
+    expect(cashFlow(d, '2026-03', '2026-04-01')).toMatchObject({ ozel: 1500, kurumHours: 2, kurum: 400, fixed: 30000, income: 31900, out: 12000, net: 19900 })
   })
 })

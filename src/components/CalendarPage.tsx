@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
-import { CalendarDays, CalendarSearch, ChevronLeft, ChevronRight, GraduationCap, ListTodo, MoreHorizontal, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
+import { CalendarDays, CalendarSearch, Receipt, ChevronLeft, ChevronRight, GraduationCap, ListTodo, MoreHorizontal, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import FreeSlotsModal from './FreeSlotsModal'
 import { holidayMap } from '../lib/holidays'
 import type { OpenEvent } from '../App'
@@ -11,6 +11,7 @@ import {
   monthLabel, nowHM, startOfMonth, startOfWeek, toMinutes, todayISO, weekdayIndex,
 } from '../lib/date'
 import ImportModal from './ImportModal'
+import { billsForMonth, type BillRow } from '../lib/bills'
 import IcsImportModal from './IcsImportModal'
 import { gestureActive, startGesture } from '../lib/gesture'
 import { moveEvent } from '../lib/eventOps'
@@ -51,8 +52,9 @@ function store(key: string, v: string | number) {
   }
 }
 
-export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initialDate }: {
+export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initialDate, onOpenBills }: {
   initialDate?: string
+  onOpenBills?: () => void
   openEvent: OpenEvent
   onAddExam?: (date: string) => void
   onOpenTask?: (t: Task) => void
@@ -168,6 +170,7 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
         <div className="month-wrap">
           <MonthGrid data={shown} cursor={cursor} selected={monthDay} openEvent={openEvent} onSelect={setMonthSel} onSwipe={step} />
           <DayPanel
+            onOpenBills={onOpenBills}
             key={monthDay}
             data={shown}
             date={monthDay}
@@ -649,6 +652,7 @@ function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
     return m
   }, [data.events, drag])
   const examDays = useMemo(() => new Set(data.exams.map((x) => x.date)), [data.exams])
+  const billDays = useMemo(() => billDayMap(data, [cells[0].slice(0, 7), month, cells[41].slice(0, 7)]), [data, month]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const onEvDown = (ev: React.PointerEvent, e: CalEvent) => {
     ev.stopPropagation()
@@ -697,6 +701,11 @@ function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
           >
             <span className={'mg-num' + (d === today ? ' today' : '')}>{fromISO(d).getDate()}{examDays.has(d) && <i className="mg-exam" title="Sınav" />}</span>
             {hol.get(d) && <span className="hol-tag" title={hol.get(d)!.name}>{hol.get(d)!.name}</span>}
+            {billDays.get(d)?.map((r) => (
+              <span key={r.bill.id} className={'mg-bill st-' + r.state} title={`${r.bill.name}: ${billLabel(r)}`} style={{ ['--bc' as string]: r.bill.color }}>
+                <Receipt size={10} /> {r.bill.name}
+              </span>
+            ))}
             {list.slice(0, max).map((e) => (
               <div
                 key={e.id}
@@ -719,8 +728,24 @@ function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
   )
 }
 
+/** Ödemelerim kalemlerinin son günleri: tarih → kalemler (verilen aylar için) */
+function billDayMap(data: AppData, months: string[]): Map<string, BillRow[]> {
+  const m = new Map<string, BillRow[]>()
+  const today = todayISO()
+  for (const mo of new Set(months)) {
+    for (const r of billsForMonth(data, mo, today)) {
+      if (!m.has(r.due)) m.set(r.due, [])
+      m.get(r.due)!.push(r)
+    }
+  }
+  return m
+}
+
+const billLabel = (r: BillRow) => (r.state === 'paid' ? 'ödendi' : r.state === 'late' ? 'gecikti' : r.state === 'partial' ? 'kısmen ödendi' : 'son gün')
+
 /** Ay görünümünde seçilen günün listesi */
-function DayPanel({ data, date, openEvent, onAdd, onDayView, onAddExam, onOpenTask }: {
+function DayPanel({ data, date, openEvent, onAdd, onDayView, onAddExam, onOpenTask, onOpenBills }: {
+  onOpenBills?: () => void
   data: AppData
   date: string
   openEvent: OpenEvent
@@ -733,6 +758,7 @@ function DayPanel({ data, date, openEvent, onAdd, onDayView, onAddExam, onOpenTa
   const exams = data.exams.filter((x) => x.date === date)
   const tasks = data.tasks.filter((t) => !t.done && t.due === date)
   const hol = holidayMap(data).get(date)
+  const bills = billDayMap(data, [date.slice(0, 7)]).get(date) ?? []
   // Günün boş aralıkları: hızlıca yer ararken işe yarar
   const gaps = findFreeGaps(data, date, 1, 40, { dayStart: data.settings.dayStart, dayEnd: data.settings.dayEnd })
   return (
@@ -744,7 +770,12 @@ function DayPanel({ data, date, openEvent, onAdd, onDayView, onAddExam, onOpenTa
       <div className="dp-list">
         {exams.map((x) => <div key={x.id} className="dp-item exam"><GraduationCap size={14} /> {x.title}{x.start ? ` · ${x.start}` : ''}</div>)}
         {tasks.map((t) => <div key={t.id} className="dp-item task" onClick={() => onOpenTask?.(t)}><ListTodo size={14} /> {t.title}</div>)}
-        {list.length === 0 && !exams.length && !tasks.length && <p className="muted small">Bu gün boş.</p>}
+        {bills.map((r) => (
+          <div key={r.bill.id} role="button" className={'dp-item bill st-' + r.state} onClick={() => onOpenBills?.()}>
+            <Receipt size={14} /> {r.bill.name} <small>· {billLabel(r)}</small>
+          </div>
+        ))}
+        {list.length === 0 && !exams.length && !tasks.length && !bills.length && <p className="muted small">Bu gün boş.</p>}
         {list.map((e) => (
           <button key={e.id} className={`ag-ev ev-${e.status}`} onClick={() => openEvent(e)}>
             <i style={{ background: eventColor(data, e) }} />

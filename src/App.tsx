@@ -130,6 +130,7 @@ export default function App() {
         } else if (a.type === 'today') go('bugun')
         else if (a.type === 'task') setTask(newTask())
         else if (a.type === 'tasks') go('gorevler')
+        else if (a.type === 'bills') { setReportTab({ tab: 'odemelerim', n: Date.now() }); go('ozet') }
         else if (a.type === 'student' && a.id) openStudent(a.id)
         else if ((a.type === 'wrap' || a.type === 'event') && a.id) {
           const ev = data.events.find((e) => e.id === a.id)
@@ -180,6 +181,7 @@ export default function App() {
             openEvent={openEvent}
             onAddExam={(date) => setExam(newExam({ date }))}
             onOpenTask={setTask}
+            onOpenBills={() => { setReportTab({ tab: 'odemelerim', n: Date.now() }); go('ozet') }}
           />
         )}
         {tab === 'ozel' && (

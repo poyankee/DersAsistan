@@ -227,11 +227,15 @@ export interface NotifySettings {
   payments: boolean
   tasks: boolean
   exams: boolean
+  /** Ödemelerim: son günden kaç gün önce hatırlat (-1 = kapalı) */
+  billDays?: number
 }
 
 export interface Settings {
   /** Kurum ek ders saat ücreti (opsiyonel, özet hesabı için) */
   kurumHourlyRate?: number
+  /** Kişisel muhasebe: sabit aylık gelir (maaş vb.), giren/çıkan hesabında kullanılır */
+  fixedIncome?: number
   dayStart: number
   dayEnd: number
   currency: string

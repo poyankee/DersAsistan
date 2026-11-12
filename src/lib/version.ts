@@ -7,6 +7,7 @@ export const CHANGELOG: { version: string; items: string[] }[] = [
     items: [
       'Görevler artık ayrı bir sekme: yapılacaklar listesi (gecikenler, bugün, bu hafta, daha sonra)',
       'Ödemelerim (Raporlar): kredi kartı, kira, fatura gibi aylık ödemeler; ödendi işareti, aylık ve 12 aylık toplu görünüm',
+      'Ödemelerim: son günden önce bildirim, takvimin ay görünümünde ödeme günleri, aylık giren / çıkan / kalan',
       'Google Takvim yedeğini (.zip / .ics) içe aktarma; tekrar yüklemede kopya oluşmaz',
       'Takvim ay görünümünde güne dokununca yan panelde o günün listesi ve "Güne git"',
       'Öğrenci dosyası → Bilgiler: kendi alanlarınızı ekleyin (okul, veli adı, hedef…)',

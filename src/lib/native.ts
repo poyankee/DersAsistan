@@ -75,13 +75,13 @@ export function waLink(phone: string, text?: string) {
   return `https://wa.me/${p}${text ? '?text=' + encodeURIComponent(text) : ''}`
 }
 
-export type AppAction = { type: 'new-lesson' | 'payment' | 'today' | 'task' | 'tasks' | 'wrap' | 'student' | 'event'; id?: string }
+export type AppAction = { type: 'new-lesson' | 'payment' | 'today' | 'task' | 'tasks' | 'bills' | 'wrap' | 'student' | 'event'; id?: string }
 
 /** dersasistani://yeni-ders gibi bağlantıları eyleme çevirir */
 export function parseActionUrl(url: string): AppAction | null {
   const m = url.match(/^dersasistani:\/\/([a-z-]+)(?:\/([^?#]+))?/i)
   if (!m) return null
-  const map: Record<string, AppAction['type']> = { 'yeni-ders': 'new-lesson', odeme: 'payment', bugun: 'today', gorev: 'task', gorevler: 'tasks', ders: 'wrap', ogrenci: 'student' }
+  const map: Record<string, AppAction['type']> = { 'yeni-ders': 'new-lesson', odeme: 'payment', bugun: 'today', gorev: 'task', gorevler: 'tasks', odemelerim: 'bills', ders: 'wrap', ogrenci: 'student' }
   const type = map[m[1].toLowerCase()]
   return type ? { type, id: m[2] ? decodeURIComponent(m[2]) : undefined } : null
 }

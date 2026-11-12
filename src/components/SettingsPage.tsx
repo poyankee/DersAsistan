@@ -290,6 +290,12 @@ function NotifyPanel() {
             </div>
           </div>
           <label className="check"><input type="checkbox" checked={n.payments} onChange={(e) => set({ payments: e.target.checked })} /> Ödeme günü gelen öğrenciler (saat 09:00)</label>
+          <div className="field">
+            <span>Ödemelerim (kredi kartı, kira…): son günden önce hatırlat, 09:00</span>
+            <div className="chips">
+              {[[-1, 'Kapalı'], [0, 'Sadece son gün'], [1, '1 gün önce'], [2, '2 gün önce'], [3, '3 gün önce']].map(([v, l]) => <button key={v} className={'chip' + ((n.billDays ?? 1) === v ? ' sel' : '')} onClick={() => set({ billDays: v as number })}>{l}</button>)}
+            </div>
+          </div>
           <label className="check"><input type="checkbox" checked={n.tasks} onChange={(e) => set({ tasks: e.target.checked })} /> Görevler (son gün, 08:30)</label>
           <label className="check"><input type="checkbox" checked={n.exams} onChange={(e) => set({ exams: e.target.checked })} /> Sınavlar (bir gün önce, 19:00)</label>
           {isNative && <button className="btn small" onClick={() => testNotification()}>Deneme bildirimi gönder</button>}

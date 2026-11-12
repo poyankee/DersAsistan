@@ -129,6 +129,7 @@ export default function App() {
           setPayPick(true)
         } else if (a.type === 'today') go('bugun')
         else if (a.type === 'task') setTask(newTask())
+        else if (a.type === 'tasks') go('gorevler')
         else if (a.type === 'student' && a.id) openStudent(a.id)
         else if ((a.type === 'wrap' || a.type === 'event') && a.id) {
           const ev = data.events.find((e) => e.id === a.id)

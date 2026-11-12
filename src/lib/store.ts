@@ -65,15 +65,32 @@ function ensureGroups(d: AppData): AppData {
   return groups === d.groups ? d : { ...d, groups }
 }
 
-/** Ana ekran widget'ı için küçük özet: önümüzdeki 14 günün etkinlikleri + adlar */
+/** Ana ekran widget'ı için küçük özet: önümüzdeki 14 günün etkinlikleri (başlık, alt satır, renk), ana renk, bugünün görevleri */
 function widgetPayload(d: AppData): string {
   const from = todayISO()
   const to = addDays(from, 14)
-  return JSON.stringify({
-    events: d.events.filter((e) => e.date >= from && e.date <= to).map((e) => ({ kind: e.kind, status: e.status, date: e.date, start: e.start, end: e.end, title: e.title, groupCode: e.groupCode, studentId: e.studentId })),
-    groups: Object.fromEntries(Object.values(d.groups).map((g) => [g.code, { name: g.name ?? '' }])),
-    students: d.students.map((s) => ({ id: s.id, name: s.name })),
-  })
+  const items = d.events
+    .filter((e) => e.date >= from && e.date <= to)
+    .map((e) => {
+      const g = e.groupCode ? d.groups[e.groupCode] : undefined
+      const cat = e.categoryId ? d.categories.find((c) => c.id === e.categoryId)?.name : undefined
+      let title = e.title
+      let sub = cat ?? 'Etkinlik'
+      if (e.kind === 'kurum' && e.groupCode) {
+        title = g?.name || e.groupCode
+        sub = (g?.name ? e.groupCode + ' · ' : '') + 'Kurum' + (e.hours && e.hours > 1 ? ` · ${e.hours} saat` : '')
+      } else if (e.kind === 'ozel') {
+        title = d.students.find((s) => s.id === e.studentId)?.name ?? e.title
+        sub = 'Özel ders'
+      }
+      if (e.status === 'cancelled') sub = 'İptal'
+      return { date: e.date, start: e.start, end: e.end, status: e.status, title, sub, color: eventColor(d, e) }
+    })
+  const tasks = d.tasks
+    .filter((t) => !t.done && (!t.due || t.due <= from))
+    .sort((a, b) => (a.due ?? '9999').localeCompare(b.due ?? '9999'))
+    .map((t) => ({ title: t.title, late: !!t.due && t.due < from }))
+  return JSON.stringify({ v: 2, accent: d.settings.accent ?? 'mor', items, tasks: tasks.slice(0, 5), taskCount: tasks.length })
 }
 
 let ready = false

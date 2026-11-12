@@ -10,6 +10,7 @@ export const CHANGELOG: { version: string; items: string[] }[] = [
       'Google Takvim yedeğini (.zip / .ics) içe aktarma; tekrar yüklemede kopya oluşmaz',
       'Takvim ay görünümünde güne dokununca yan panelde o günün listesi ve "Güne git"',
       'Öğrenci dosyası → Bilgiler: kendi alanlarınızı ekleyin (okul, veli adı, hedef…)',
+      'Yeni ana ekran widget\'ı: ana renkte başlık, şu an / sıradaki ders, renkli ders listesi, görevler, hızlı ekleme, koyu tema',
       'Ders dökümünden geri dönememe (beyaz ekran) hatası giderildi',
     ],
   },

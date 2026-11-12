@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget başlığı: turuncu ana rengi -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="315" android:startColor="#F36716" android:endColor="#F3164E" android:type="linear" />
+    <corners android:radius="18dp" />
+</shape>

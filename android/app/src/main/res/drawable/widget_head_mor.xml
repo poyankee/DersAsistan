@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget başlığı: mor ana rengi -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <gradient android:angle="315" android:startColor="#6542F0" android:endColor="#D942F0" android:type="linear" />
+    <corners android:radius="18dp" />
+</shape>

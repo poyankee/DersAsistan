@@ -1,15 +1,26 @@
 # Ders Asistanı sunucusu
 Options -Indexes
-# Authorization başlığını PHP'ye ilet (bazı hostinglerde gerekli)
+# Arama motorları dizinlemesin
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow"
+</IfModule>
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  # Authorization başlığını PHP'ye ilet (bazı hostinglerde gerekli)
   RewriteCond %{HTTP:Authorization} .
   RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
-  # HTTPS'e yönlendir (SSL kurulduktan sonra)
+  # HTTPS'e yönlendir
   RewriteCond %{HTTPS} off
   RewriteCond %{HTTP:X-Forwarded-Proto} !https
   RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 </IfModule>
-<FilesMatch "^(ayarlar\.php|.*\.sqlite.*)$">
-  Require all denied
+# Ayar ve veri dosyaları web'den okunamaz (Apache 2.4 ve 2.2)
+<FilesMatch "^(ayarlar\.php|ayarlar\.ornek\.php|.*\.sqlite.*|.*\.txt|\.ht.*)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
 </FilesMatch>

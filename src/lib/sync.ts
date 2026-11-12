@@ -91,8 +91,17 @@ export function digest(s: string): string {
 // ---------------------------------------------------------------------------
 // Şifreleme
 
-const KDF = 'pbkdf2-sha256-210000'
-const ITER = 210_000
+/** PBKDF2-SHA256 tekrar sayısı (OWASP 2023 önerisi: 600.000) */
+const ITER = 600_000
+const KDF = `pbkdf2-sha256-${ITER}`
+const iterOf = (kdf: string) => {
+  const m = /^pbkdf2-sha256-(\d{6,7})$/.exec(kdf)
+  const n = m ? Number(m[1]) : 0
+  if (n < 200_000 || n > 5_000_000) throw new SyncError('Sunucudaki hesap bu uygulama sürümüyle uyumsuz', 0)
+  return n
+}
+/** Silinen kayıtlar da şifreli bir işaretle gönderilir: sunucu ya da araya giren biri kayıt silemez */
+const TOMBSTONE = '{"__silindi":1}'
 
 const b64 = (u: Uint8Array) => {
   let s = ''
@@ -103,10 +112,10 @@ const unb64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0))
 const hex = (u: Uint8Array) => Array.from(u, (b) => b.toString(16).padStart(2, '0')).join('')
 
 /** Paroladan iki ayrı değer: şifreleme anahtarı (cihazda kalır) ve giriş doğrulaması (sunucuya gider) */
-export async function deriveKeys(password: string, saltB64: string, user: string) {
+export async function deriveKeys(password: string, saltB64: string, user: string, iterations = ITER) {
   const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits'])
   const salt = new Uint8Array([...unb64(saltB64), ...new TextEncoder().encode(user.toLocaleLowerCase('tr'))])
-  const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: ITER, hash: 'SHA-256' }, base, 512))
+  const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, base, 512))
   return { encKey: b64(bits.slice(0, 32)), auth: hex(bits.slice(32)) }
 }
 
@@ -136,13 +145,28 @@ export async function open(data: string, raw: string, key: string): Promise<stri
 // ---------------------------------------------------------------------------
 // Sunucu ile konuşma
 
+/** Yerel ağ / test adresleri dışında yalnızca HTTPS kabul edilir */
+export function isLocalHost(host: string) {
+  return /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(host)
+}
+
 export function normalizeServer(input: string): string {
   let s = input.trim()
   if (!s) return s
   if (!/^https?:\/\//i.test(s)) s = 'https://' + s
   s = s.replace(/\/+$/, '')
   if (!/\.php$/i.test(s)) s += '/api.php'
-  return s
+  let u: URL
+  try {
+    u = new URL(s)
+  } catch {
+    throw new SyncError('Sunucu adresi geçersiz', 0)
+  }
+  if (u.username || u.password) throw new SyncError('Sunucu adresi geçersiz', 0)
+  if (u.protocol !== 'https:' && !isLocalHost(u.hostname)) {
+    throw new SyncError('Güvenlik için sunucu adresi https:// ile başlamalı (hostingde ücretsiz SSL\'i açın).', 0)
+  }
+  return u.toString()
 }
 
 async function call<T>(server: string, action: string, body?: unknown, token?: string): Promise<T> {
@@ -245,18 +269,18 @@ function randomSalt() {
 }
 
 export async function serverStatus(server: string) {
-  const s = await call<{ app: string; setup: boolean; api: number }>(server, 'durum')
+  const s = await call<{ app: string; setup: boolean; api: number; https?: boolean }>(server, 'durum')
   if (s.app !== 'ders-asistani') throw new SyncError('Bu adreste Ders Asistanı sunucusu bulunamadı', 0)
   return s
 }
 
 /** İlk cihaz: sunucuda hesabı oluşturur ve giriş yapar */
-export async function createAccount(serverInput: string, user: string, password: string, device: string): Promise<SyncConfig> {
+export async function createAccount(serverInput: string, user: string, password: string, device: string, code: string): Promise<SyncConfig> {
   const server = normalizeServer(serverInput)
   await serverStatus(server)
   const salt = randomSalt()
   const { encKey, auth } = await deriveKeys(password, salt, user)
-  await call(server, 'kurulum', { user, salt, kdf: KDF, auth })
+  await call(server, 'kurulum', { user, salt, kdf: KDF, auth, code })
   const r = await call<{ token: string }>(server, 'giris', { user, auth, device })
   return { server, user, token: r.token, encKey, device }
 }
@@ -264,8 +288,7 @@ export async function createAccount(serverInput: string, user: string, password:
 export async function login(serverInput: string, user: string, password: string, device: string): Promise<SyncConfig> {
   const server = normalizeServer(serverInput)
   const pre = await call<{ salt: string; kdf: string }>(server, 'on-giris', { user })
-  if (pre.kdf !== KDF) throw new SyncError('Sunucudaki hesap bu uygulama sürümüyle uyumsuz', 0)
-  const { encKey, auth } = await deriveKeys(password, pre.salt, user)
+  const { encKey, auth } = await deriveKeys(password, pre.salt, user, iterOf(pre.kdf))
   const r = await call<{ token: string }>(server, 'giris', { user, auth, device })
   return { server, user, token: r.token, encKey, device }
 }
@@ -277,8 +300,13 @@ export async function serverHasData(cfg: SyncConfig): Promise<boolean> {
 }
 
 export async function listDevices(cfg: SyncConfig) {
-  const r = await call<{ devices: { device: string; created: number; lastSeen: number; current: boolean }[] }>(cfg.server, 'cihazlar', undefined, cfg.token)
+  const r = await call<{ devices: { id: string; device: string; created: number; lastSeen: number; current: boolean }[] }>(cfg.server, 'cihazlar', {}, cfg.token)
   return r.devices
+}
+
+/** Kaybolan / çalınan bir cihazın oturumunu kapatır */
+export async function removeDevice(cfg: SyncConfig, id: string) {
+  await call(cfg.server, 'cihaz-kaldir', { id }, cfg.token)
 }
 
 /**
@@ -351,7 +379,7 @@ export async function syncOnce(getData: () => AppData, setData: (fn: (d: AppData
   for (const k of Object.keys(meta.snap)) {
     if (before.has(k)) continue
     const [c, i] = splitKey(k)
-    out.push({ c, i, d: null, u: now })
+    out.push({ c, i, d: await seal(TOMBSTONE, cfg.encKey, k), u: now })
   }
   for (let i = 0; i < out.length; i += 400) {
     await call(cfg.server, 'gonder', { changes: out.slice(i, i + 400) }, cfg.token)
@@ -360,19 +388,28 @@ export async function syncOnce(getData: () => AppData, setData: (fn: (d: AppData
   // 2) Al
   const incoming = new Map<string, string | null>()
   let rev = meta.rev
+  let bad = 0
+  let good = 0
   for (let guard = 0; guard < 500; guard++) {
     const r = await call<{ rev: number; more: boolean; changes: { c: string; i: string; d: string | null }[] }>(cfg.server, 'al', { since: rev }, cfg.token)
     for (const ch of r.changes) {
       const k = recKey(ch.c, ch.i)
+      // Şifresiz (doğrulanamayan) silme isteği yok sayılır
+      if (ch.d === null) continue
       try {
-        incoming.set(k, ch.d === null ? null : await open(ch.d, cfg.encKey, k))
+        const plain = await open(ch.d, cfg.encKey, k)
+        incoming.set(k, plain === TOMBSTONE ? null : plain)
+        good++
       } catch {
-        throw new SyncError('Sunucudaki veriler çözülemedi: parola farklı bir hesaba ait olabilir. Eşitlemeyi kapatıp yeniden giriş yapın.', 0)
+        // Doğrulanamayan (bozuk ya da sahte) kayıt uygulanmaz
+        bad++
       }
     }
     rev = r.rev
     if (!r.more) break
   }
+  // Hiç başarılı eşitleme yokken hepsi çözülemiyorsa anahtar yanlıştır; sonrasında doğrulanamayan kayıtlar yalnızca atlanır
+  if (bad && !good && !meta.lastSync) throw new SyncError('Sunucudaki veriler çözülemedi: parola farklı bir hesaba ait olabilir. Eşitlemeyi kapatıp yeniden giriş yapın.', 0)
 
   // 3) Birleştir: yalnızca bu tur sırasında yerelde değişmemiş kayıtlar güncellenir
   const apply = new Map<string, string | null>()

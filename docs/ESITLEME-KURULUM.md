@@ -38,6 +38,10 @@ Tarayıcıda `https://alanadiniz.com` açılabiliyorsa hazırdır.
    `api.php`, `index.html`, `.htaccess`, `ayarlar.ornek.php`.
 4. Tarayıcıda **`https://alanadiniz.com/ders/`** adresini açın.
    **"Sunucu çalışıyor ✓ · hesap henüz kurulmadı"** yazısını görmelisiniz.
+5. Dosya Yöneticisi'nde `ders` klasörünü yenileyin: içinde **`veri`** klasörü oluşmuş olmalı. İçindeki
+   **`KURULUM-KODU.txt`** dosyasını açın ve 10 karakterlik **kurulum kodunu** not edin.
+   (Bu kod yalnızca hosting panelinize girebilen kişi tarafından görülebilir; böylece sunucuyu sizden önce bulan biri
+   hesabı açamaz. Hesap oluşturulunca dosya kendiliğinden silinir.)
 
 > Klasör izinleri: Sunucu ilk açılışta `ders/veri` klasörünü kendisi oluşturur. "Veri klasörü oluşturulamadı"
 > hatası görürseniz Dosya Yöneticisi'nden `ders` klasörünün iznini **755** yapın.
@@ -46,8 +50,9 @@ Tarayıcıda `https://alanadiniz.com` açılabiliyorsa hazırdır.
 
 1. Uygulamada **Ayarlar → Eşitleme**.
 2. Sunucu adresi: `alanadiniz.com/ders` → **Devam**.
-3. "Sunucu hazır; henüz hesap yok" yazar. Bir **kullanıcı adı** ve **güçlü bir parola** (en az 8 karakter) girin,
-   cihaz adını "Telefon" bırakın → **Hesap oluştur ve bağlan**.
+3. "Sunucu hazır; henüz hesap yok" yazar. **Kurulum kodunu**, bir **kullanıcı adını** ve **güçlü bir parolayı** girin
+   (en az 10 karakter; ör. bir cümlenin kelimeleri: `MaviKalem-Sabah7-Defter`), cihaz adını "Telefon" bırakın
+   → **Hesap oluştur ve bağlan**.
 4. Telefondaki tüm veriler şifrelenip sunucuya gönderilir. "Eşitlendi · az önce" yazısını görünce tamamdır.
 
 ## 5. Tabletten bağlanın
@@ -72,6 +77,12 @@ bağlantı gelince eşitlenir.
 
 ## Güvenlik önerileri
 
+Ayrıntılı inceleme ve test sonuçları: [GUVENLIK.md](GUVENLIK.md).
+
+- **Telefon kaybolursa / çalınırsa:** Öteki cihazda Ayarlar → Eşitleme → Bağlı cihazlar → kaybolan cihazın yanındaki
+  **Kaldır**. O cihaz artık eşitleme yapamaz.
+- **GitHub hesabınızda iki adımlı doğrulamayı açın** (güncellemeler oradan geldiği için).
+- Sunucu adresi **https://** olmalı; uygulama şifresiz (http) internet adreslerini kabul etmez.
 - **Parolayı bir yere not edin.** Unutursanız: Ayarlar → Eşitleme → bağlantıyı kesin, sunucudaki `ders/veri`
   klasörünü silin ve hesabı yeniden oluşturun (veriler cihazlardan tekrar gönderilir).
 - Daha da güvenli olsun isterseniz veri klasörünü web kökünün dışına alın: `ayarlar.ornek.php` dosyasının adını
@@ -87,7 +98,10 @@ bağlantı gelince eşitlenir.
 | "Bu adreste Ders Asistanı sunucusu bulunamadı" | Dosyalar yanlış klasörde olabilir; `api.php` doğrudan `ders` klasöründe olmalı. |
 | "Hostingde PDO SQLite eklentisi yok" | Hosting panelinde **PHP Ayarları / Select PHP Version → Extensions** bölümünden `pdo_sqlite`'ı açın. |
 | "Oturum açılmamış" / "Oturum geçersiz" | Bazı hostingler giriş bilgisini iletmez; `.htaccess` dosyasının yüklendiğinden emin olun (gizli dosyaları gösterin). Sonra bağlantıyı kesip yeniden giriş yapın. |
-| "Kullanıcı adı ya da parola yanlış" | Büyük/küçük harf fark etmez ama parola birebir aynı olmalı. |
+| "Kullanıcı adı ya da parola yanlış" | Kullanıcı adında büyük/küçük harf fark etmez ama parola birebir aynı olmalı. |
+| "Kurulum kodu yanlış" | `ders/veri/KURULUM-KODU.txt` dosyasındaki 10 karakterlik kodu girin (boşluksuz). |
+| "Çok fazla hatalı deneme" | Güvenlik için 15 dakika bekleyin. |
+| "Güvenlik için sunucu adresi https:// ile başlamalı" | Hosting panelinden SSL'i açın. |
 
 ---
 

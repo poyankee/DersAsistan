@@ -56,7 +56,8 @@ describe('eşitleme kayıtları', () => {
 
   it('sunucu adresi düzeltilir', () => {
     expect(normalizeServer('ornek.com/ders/')).toBe('https://ornek.com/ders/api.php')
-    expect(normalizeServer('http://ornek.com/x/api.php')).toBe('http://ornek.com/x/api.php')
+    expect(normalizeServer('https://ornek.com/x/api.php')).toBe('https://ornek.com/x/api.php')
+    expect(() => normalizeServer('http://ornek.com/x/api.php')).toThrow()
   })
 })
 

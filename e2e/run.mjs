@@ -282,7 +282,11 @@ test('iki cihaz kendi sunucu üzerinden eşitlenir (şifreli)', async (browser) 
     await panel.locator('.field', { hasText: 'Bu cihazın adı' }).locator('input').fill(name)
     const pw = panel.locator('input[type=password]')
     await pw.nth(0).fill('cok-gizli-parola')
-    if (newAccount) await pw.nth(1).fill('cok-gizli-parola')
+    if (newAccount) {
+      await pw.nth(1).fill('cok-gizli-parola')
+      const kod = /\n([A-Z2-9]{10})\n/.exec(readFileSync(join(SYNC_DIR, 'veri', 'KURULUM-KODU.txt'), 'utf8'))[1]
+      await panel.locator('.field', { hasText: 'Kurulum kodu' }).locator('input').fill(kod)
+    }
     await panel.getByRole('button', { name: newAccount ? /Hesap oluştur/ : /Giriş yap/ }).click()
     await panel.locator('.sync-status', { hasText: 'Eşitlendi' }).waitFor({ timeout: 20000 })
     return d

@@ -37,7 +37,7 @@ jobs:
         id: upd
         run: |
           node scripts/make-update.mjs update
-          (cd server && zip -qr ../update/ders-sunucu.zip . -x 'veri/*' 'ayarlar.php')
+          (cd server && zip -qr ../update/ders-sunucu.zip . -x 'veri/*' 'ayarlar.php' '*.test.ts' '.gitignore')
           echo "tag=$(node -p "require('./update/surum.json').tag")" >> "$GITHUB_OUTPUT"
           echo "version=$(node -p "require('./update/surum.json').version")" >> "$GITHUB_OUTPUT"
       - run: npx cap sync android

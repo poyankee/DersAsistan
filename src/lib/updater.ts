@@ -80,8 +80,21 @@ async function fetchManifest(): Promise<Manifest> {
   const r = await CapacitorHttp.get({ url: MANIFEST_URL + '?t=' + Date.now(), responseType: 'json' })
   if (r.status !== 200) throw new Error(`Sürüm bilgisi alınamadı (${r.status})`)
   const m = (typeof r.data === 'string' ? JSON.parse(r.data) : r.data) as Manifest
-  if (!m || typeof m.build !== 'number' || !m.web?.file) throw new Error('Sürüm bilgisi okunamadı')
+  return checkManifest(m)
+}
+
+/** Sürüm dosyası beklenen biçimde mi (yalnızca bilinen dosya adları ve etiketler) */
+export function checkManifest(m: Manifest): Manifest {
+  if (!m || typeof m.build !== 'number' || !Number.isInteger(m.build) || m.build <= 0 || typeof m.nativeLevel !== 'number') throw new Error('Sürüm bilgisi okunamadı')
+  if (typeof m.tag !== 'string' || !/^v\d+(\.\d+){1,3}$/.test(m.tag) || !/^web-\d+\.zip$/.test(m.web?.file ?? '') || m.apk?.file !== 'DersAsistani.apk' || !/^[0-9a-f]{64}$/.test(m.web?.sha256 ?? '')) {
+    throw new Error('Sürüm bilgisi geçersiz')
+  }
   return m
+}
+
+/** Paketteki dosya yolu güvenli mi (paket klasörünün dışına çıkamaz) */
+export function safeEntry(name: string): boolean {
+  return !!name && !name.startsWith('/') && !name.includes('\\') && !name.includes('\0') && !/^[a-z]+:/i.test(name) && !name.split('/').some((p) => p === '..' || p === '.' || p === '')
 }
 
 async function sha256(bytes: Uint8Array): Promise<string> {
@@ -116,7 +129,9 @@ async function installWeb(m: Manifest) {
   const dir = `guncelleme/${m.build}`
   await Filesystem.rmdir({ path: dir, directory: Directory.Data, recursive: true }).catch(() => undefined)
   for (const [name, data] of Object.entries(files)) {
-    if (name.endsWith('/') || name.includes('..')) continue
+    // Paket dışına yazma girişimleri (../, mutlak yol) reddedilir
+    if (name.endsWith('/')) continue
+    if (!safeEntry(name)) throw new Error('Paket geçersiz dosya yolu içeriyor')
     await Filesystem.writeFile({ path: `${dir}/${name}`, data: toBase64(data), directory: Directory.Data, recursive: true })
   }
   await Filesystem.deleteFile({ path: tmp, directory: Directory.Cache }).catch(() => undefined)

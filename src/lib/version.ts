@@ -18,6 +18,7 @@ export const CHANGELOG: { version: string; items: string[] }[] = [
       'Telefon ↔ tablet eşitleme: kendi hostinginize kurduğunuz sunucu ile; veriler cihazda şifrelenir',
       'Uygulama içi güncelleme: yenilikler kendiliğinden iner, APK kurmanız gerekmez',
       'Ayarlar\'da Eşitleme ve Güncellemeler bölümleri',
+      'Güvenlik: kurulum kodu, kaba kuvvete karşı sınırlar, kaybolan cihazı kaldırma, şifreli silme işaretleri, yalnızca HTTPS',
     ],
   },
   {

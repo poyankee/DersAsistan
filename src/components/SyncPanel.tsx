@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { Cloud, CloudOff, Laptop, RefreshCw, Smartphone, Tablet } from 'lucide-react'
-import { connect, createAccount, disconnect, listDevices, loadConfig, login, normalizeServer, serverHasData, serverStatus, type SyncConfig } from '../lib/sync'
+import { connect, createAccount, disconnect, listDevices, loadConfig, login, normalizeServer, removeDevice, serverHasData, serverStatus, type SyncConfig } from '../lib/sync'
 import { onSyncStatus, refreshSyncStatus, syncNow, syncStatus } from '../lib/syncManager'
 import { emptyData, getData, setData, useData } from '../lib/store'
 import Modal from './Modal'
@@ -41,9 +41,10 @@ export default function SyncPanel() {
 function Connected({ cfg, onOff }: { cfg: SyncConfig; onOff: () => void }) {
   const status = useSyncExternalStore(onSyncStatus, syncStatus)
   const [devices, setDevices] = useState<Awaited<ReturnType<typeof listDevices>> | null>(null)
+  const reload = () => listDevices(cfg).then(setDevices).catch(() => setDevices(null))
   useEffect(() => {
-    listDevices(cfg).then(setDevices).catch(() => setDevices(null))
-  }, [cfg])
+    reload()
+  }, [cfg]) // eslint-disable-line react-hooks/exhaustive-deps
   const [, tick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => tick((x) => x + 1), 30_000)
@@ -89,6 +90,18 @@ function Connected({ cfg, onOff }: { cfg: SyncConfig; onOff: () => void }) {
                   <Icon size={16} /> <b>{d.device}</b>{d.current && <span className="muted"> (bu cihaz)</span>}
                   <span className="grow" />
                   <small className="muted">son görülme {ago(d.lastSeen * 1000)}</small>
+                  {!d.current && (
+                    <button
+                      className="btn small ghost"
+                      onClick={async () => {
+                        if (!confirm(`"${d.device}" cihazının oturumu kapatılsın mı? (Kaybolan ya da artık kullanmadığınız cihazlar için.) O cihaz yeniden parolayla giriş yapmadan eşitleyemez.`)) return
+                        await removeDevice(cfg, d.id).catch((e) => alert((e as Error).message))
+                        reload()
+                      }}
+                    >
+                      Kaldır
+                    </button>
+                  )}
                 </li>
               )
             })}
@@ -109,6 +122,8 @@ function ConnectForm({ onDone }: { onDone: (c: SyncConfig) => void }) {
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
   const [newAccount, setNewAccount] = useState<boolean | null>(null)
+  const [insecure, setInsecure] = useState(false)
+  const [code, setCode] = useState('')
   const [choose, setChoose] = useState<SyncConfig | null>(null)
 
   const localHasData = data.events.length + data.students.length + data.tasks.length > 0
@@ -125,6 +140,7 @@ function ConnectForm({ onDone }: { onDone: (c: SyncConfig) => void }) {
     setBusy('Sunucu denetleniyor…')
     try {
       const s = await serverStatus(normalizeServer(server))
+      setInsecure(s.https === false && !/^http:\/\/(localhost|127\.|10\.|192\.168\.)/.test(normalizeServer(server)))
       setNewAccount(!s.setup)
     } catch (e) {
       setError((e as Error).message)
@@ -135,12 +151,14 @@ function ConnectForm({ onDone }: { onDone: (c: SyncConfig) => void }) {
 
   const submit = async () => {
     setError('')
-    if (newAccount && password.length < 8) return setError('Parola en az 8 karakter olmalı.')
+    if (newAccount && password.length < 10) return setError('Parola en az 10 karakter olmalı.')
+    if (newAccount && (/^\d+$/.test(password) || new Set(password).size < 5)) return setError('Parola çok basit: harf, rakam ve farklı karakterler karıştırın (ör. bir cümlenin baş harfleri + yıl).')
     if (newAccount && password !== password2) return setError('Parolalar aynı değil.')
+    if (newAccount && code.replace(/\s/g, '').length < 10) return setError('Kurulum kodunu girin.')
     setBusy(newAccount ? 'Hesap oluşturuluyor…' : 'Giriş yapılıyor…')
     try {
       if (newAccount) {
-        const c = await createAccount(server, user.trim(), password, device.trim() || 'Cihaz')
+        const c = await createAccount(server, user.trim(), password, device.trim() || 'Cihaz', code)
         await finish(c, 'push')
       } else {
         const c = await login(server, user.trim(), password, device.trim() || 'Cihaz')
@@ -169,6 +187,7 @@ function ConnectForm({ onDone }: { onDone: (c: SyncConfig) => void }) {
         <button className="btn primary" disabled={!server.trim() || !!busy} onClick={check}>Devam</button>
       ) : (
         <>
+          {insecure && <p className="warn-text small">Sunucu şifresiz (HTTP) bağlantı bildiriyor. Hosting panelinden SSL'i açın.</p>}
           <p className={'small ' + (newAccount ? 'ok' : 'muted')}>{newAccount ? 'Sunucu hazır; henüz hesap yok. İlk cihaz olarak hesabı oluşturun.' : 'Sunucuda hesap var; aynı kullanıcı adı ve parolayla giriş yapın.'}</p>
           <div className="row wrap">
             <label className="field grow"><span>Kullanıcı adı</span><input value={user} onChange={(e) => setUser(e.target.value)} autoCapitalize="none" autoCorrect="off" /></label>
@@ -177,6 +196,11 @@ function ConnectForm({ onDone }: { onDone: (c: SyncConfig) => void }) {
           <label className="field"><span>Parola</span><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={newAccount ? 'new-password' : 'current-password'} /></label>
           {newAccount && (
             <>
+              <label className="field">
+                <span>Kurulum kodu</span>
+                <input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="ör. K7M2QX9TPA" autoCapitalize="characters" autoCorrect="off" />
+                <small className="muted">Hosting panelinde Dosya Yöneticisi → ders → veri → KURULUM-KODU.txt dosyasında yazar. Böylece hesabı sizden başkası açamaz.</small>
+              </label>
               <label className="field"><span>Parola (tekrar)</span><input type="password" value={password2} onChange={(e) => setPassword2(e.target.value)} autoComplete="new-password" /></label>
               <p className="warn-text small">Parolayı unutmayın: veriler bu parolayla şifrelenir; parola olmadan sunucudaki kopya açılamaz. (Cihazlardaki veriler etkilenmez.)</p>
             </>

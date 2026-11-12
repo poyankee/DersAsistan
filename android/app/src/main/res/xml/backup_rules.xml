@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android yedeği (Android 11 ve öncesi): veriler yedeklenir, eşitleme anahtarı/oturumu yedeklenmez -->
+<full-backup-content>
+    <exclude domain="sharedpref" path="CapacitorStorage.xml" />
+    <exclude domain="sharedpref" path="DaUpdater.xml" />
+    <exclude domain="sharedpref" path="CapWebViewSettings.xml" />
+</full-backup-content>

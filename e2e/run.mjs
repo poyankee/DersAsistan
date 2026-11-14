@@ -313,7 +313,9 @@ test('iki cihaz kendi sunucu üzerinden eşitlenir (şifreli)', async (browser) 
   assert.match(await syncAndOpenTasks(tablet), /Telefondan görev/)
   await addTask(tablet, 'Tabletten görev')
   await syncAndOpenTasks(tablet)
-  assert.match(await syncAndOpenTasks(phone), /Tabletten görev[\s\S]*Telefondan görev/)
+  const onPhone = await syncAndOpenTasks(phone)
+  assert.match(onPhone, /Tabletten görev/)
+  assert.match(onPhone, /Telefondan görev/)
 
   // Silme de eşitlenir
   await phone.page.locator('.todo-text', { hasText: 'Telefondan görev' }).click()
@@ -330,6 +332,127 @@ test('iki cihaz kendi sunucu üzerinden eşitlenir (şifreli)', async (browser) 
   assert.ok(!blob.includes('Tabletten') && !blob.includes('Telefondan'), 'sunucuda düz metin bulundu')
   assert.deepEqual(phone.errors, [])
   assert.deepEqual(tablet.errors, [])
+})
+
+// Hazır veri: bugün (16.11.2026 12:00) yapılmış ve ödenmemiş bir özel ders
+async function seed(page, extra = {}) {
+  await page.evaluate((extra) => {
+    const d = JSON.parse(localStorage.getItem('ders-asistan-v1'))
+    const now = Date.now()
+    d.settings.userName = 'Poyraz'
+    d.students = [{ id: 's1', name: 'Gül', fee: 600, active: true, payWhen: 'ders', color: '#43a047', createdAt: now }]
+    d.events = [
+      { id: 'g1', kind: 'ozel', studentId: 's1', date: '2026-11-16', start: '09:00', end: '10:00', title: 'Gül', status: 'planned', fee: 600, createdAt: now },
+      { id: 'g2', kind: 'ozel', studentId: 's1', date: '2026-11-16', start: '15:00', end: '16:00', title: 'Gül', status: 'planned', fee: 600, createdAt: now },
+    ]
+    Object.assign(d, extra)
+    localStorage.setItem('ders-asistan-v1', JSON.stringify(d))
+  }, extra)
+  await page.reload()
+}
+
+test('ana sayfa: selamlama, günün dersleri, sıradaki ders, not ekleme', async (browser) => {
+  const { page, errors } = await open(browser)
+  await seed(page)
+  await page.waitForSelector('.home-grid')
+  assert.match(await page.locator('.home-hello h1').innerText(), /Günaydın|İyi günler/)
+  assert.match(await page.locator('.home-hello h1').innerText(), /Poyraz/)
+  assert.equal(await page.locator('.timeline .tl-item').count(), 2)
+  assert.match(await page.locator('.next-card').innerText(), /Sıradaki Ders[\s\S]*Gül[\s\S]*15:00/)
+  // Not ekle
+  await page.locator('.quick-grid button', { hasText: 'Not Ekle' }).click()
+  await page.locator('.memo-input').fill('Deneme sınavı soruları hazırlanacak')
+  await page.locator('.modal-foot .btn.primary').click()
+  assert.match(await page.locator('.memo-list').innerText(), /Deneme sınavı soruları/)
+  // Önceki güne geçince o günün dersleri
+  await page.getByRole('button', { name: 'Önceki gün' }).click()
+  assert.match(await page.locator('.lessons-card').innerText(), /ders yok/)
+  assert.deepEqual(errors, [])
+})
+
+test('ödeme hatırlatıcısı: menü baloncuğu, alındı işaretleme, sonra', async (browser) => {
+  const { page, errors, nav } = await open(browser)
+  await seed(page, { events: [
+    { id: 'g0', kind: 'ozel', studentId: 's1', date: '2026-11-12', start: '09:00', end: '10:00', title: 'Gül', status: 'planned', fee: 600, createdAt: 1 },
+    { id: 'g1', kind: 'ozel', studentId: 's1', date: '2026-11-16', start: '09:00', end: '10:00', title: 'Gül', status: 'planned', fee: 600, createdAt: 1 },
+  ] })
+  assert.equal(await page.locator('.side-nav .nav-badge').innerText(), '2')
+  await nav('Öğrenciler')
+  // Liste ekranında tutar görünmez, yalnızca sayı
+  const banner = await page.locator('.remind-banner').innerText()
+  assert.match(banner, /2 dersin ödemesi bekleniyor/)
+  assert.ok(!banner.includes('₺'))
+  await page.locator('.remind-banner').click()
+  await page.locator('.remind-list li').first().getByRole('button', { name: /Alındı/ }).click()
+  await page.locator('.remind-list li').first().getByRole('button', { name: /Sonra/ }).click()
+  assert.match(await page.locator('.modal').innerText(), /Bekleyen ödeme yok/)
+  assert.equal(await page.locator('.side-nav .nav-badge').count(), 0)
+  const pays = await page.evaluate(() => JSON.parse(localStorage.getItem('ders-asistan-v1')).payments)
+  assert.equal(pays.length, 1)
+  assert.equal(pays[0].amount, 600)
+  assert.equal(pays[0].eventId, 'g1')
+  assert.deepEqual(errors, [])
+})
+
+test('öğrenci dosyası: notlar ders kayıtlarında görünmez, Notlar sekmesinde görünür', async (browser) => {
+  const { page, errors, nav } = await open(browser)
+  await seed(page, { notes: [{ id: 'n1', studentId: 's1', date: '2026-11-10', text: 'Veliyle görüşüldü', createdAt: 1 }] })
+  await nav('Öğrenciler')
+  await page.locator('.card', { hasText: 'Gül' }).click()
+  await page.locator('.quick-entry textarea').fill('Türev giriş')
+  await page.locator('.quick-entry .btn.primary').click()
+  const lessons = await page.locator('.log-list').innerText()
+  assert.match(lessons, /Türev giriş/)
+  assert.doesNotMatch(lessons, /Veliyle görüşüldü/)
+  await page.locator('.tabs-seg button', { hasText: 'Notlar' }).click()
+  const notes = await page.locator('.log-list').innerText()
+  assert.match(notes, /Veliyle görüşüldü/)
+  assert.doesNotMatch(notes, /Türev giriş/)
+  assert.deepEqual(errors, [])
+})
+
+test('kurum ödemesi yazılır, puantajla karşılaştırılır, giren/çıkan\'a gerçek tutar girer', async (browser) => {
+  const { page, errors, nav } = await open(browser)
+  await importProgram(page, nav)
+  await page.locator('.modal-foot .btn.primary').click()
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('ders-asistan-v1'))
+    d.settings.kurumHourlyRate = 300
+    localStorage.setItem('ders-asistan-v1', JSON.stringify(d))
+  })
+  await page.reload()
+  await nav('Raporlar')
+  await page.locator('.tabs-seg button', { hasText: 'Puantaj' }).click()
+  await page.locator('.kurum-pay').getByRole('button', { name: /Ödeme ekle/ }).click()
+  await page.locator('.modal .amount-field input').fill('1500')
+  await page.locator('.modal-foot .btn.primary').click()
+  const box = await page.locator('.kurum-pay').innerText()
+  assert.match(box, /alınan\s*1\.500/)
+  assert.match(box, /beklenen\s*1\.800/)
+  assert.match(box, /Eksik\s*300/)
+  assert.deepEqual(errors, [])
+})
+
+test('haftalık görünümde ders kenara sürüklenip bekletilince önceki haftaya geçer', async (browser) => {
+  const { page, errors, nav } = await open(browser)
+  await importProgram(page, nav)
+  await page.locator('.modal-foot .btn.primary').click()
+  await page.waitForSelector('.ev')
+  const ev = page.locator('.tg-col').nth(0).locator('.ev').first()
+  await ev.scrollIntoViewIfNeeded()
+  const box = await ev.boundingBox()
+  const col0 = await page.locator('.tg-col').nth(0).boundingBox()
+  const y = box.y + 10
+  await page.mouse.move(box.x + 20, y)
+  await page.mouse.down()
+  await page.mouse.move(box.x + 30, y, { steps: 3 })
+  await page.mouse.move(col0.x - 20, y, { steps: 8 })
+  await page.waitForTimeout(900)
+  const sun = await page.locator('.tg-col').nth(6).boundingBox()
+  await page.mouse.move(sun.x + 30, y, { steps: 6 })
+  await page.mouse.up()
+  assert.match(await page.locator('.toast').first().innerText(), /taşındı: 15 Kas Paz/)
+  assert.deepEqual(errors, [])
 })
 
 await waitForServer()

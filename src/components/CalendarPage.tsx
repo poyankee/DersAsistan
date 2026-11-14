@@ -372,7 +372,14 @@ function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, openEvent, onEmpty
     return () => el.removeEventListener('wheel', h)
   }, [HOUR_PX, setHourPx])
 
+  // Sürükleme sırasında görünen günler değişebilir (önceki/sonraki haftaya geçiş): her zaman güncel listeyi kullan
+  const daysRef = useRef(days)
+  daysRef.current = days
+  const swipeRef = useRef(onSwipe)
+  swipeRef.current = onSwipe
+
   const locate = (x: number, y: number, keepDate?: string) => {
+    const days = daysRef.current
     let date = keepDate
     let rect: DOMRect | undefined
     for (const d of days) {
@@ -404,14 +411,44 @@ function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, openEvent, onEmpty
     const dur = toMinutes(e.end) - toMinutes(e.start)
     const grab = locate(ev.clientX, ev.clientY, e.date).min - toMinutes(e.start)
     let cur: DragState = { id: e.id, mode, date: e.date, start: e.start, end: e.end, orig: e }
+    // Ders ilk/son günün kenarına sürüklenip bekletilirse önceki/sonraki haftaya (güne) geçilir
+    let edgeTimer: ReturnType<typeof setTimeout> | undefined
+    let edgeDir = 0
+    let lastP = { x: ev.clientX, y: ev.clientY }
+    const edgeCheck = (x: number) => {
+      const ds = daysRef.current
+      const first = colRefs.current.get(ds[0])?.getBoundingClientRect()
+      const last = colRefs.current.get(ds[ds.length - 1])?.getBoundingClientRect()
+      const dir = first && x < first.left + 10 ? -1 : last && x > last.right - 10 ? 1 : 0
+      if (dir === edgeDir) return
+      edgeDir = dir
+      clearTimeout(edgeTimer)
+      if (!dir || !swipeRef.current) return
+      const shift = () => {
+        swipeRef.current?.(dir)
+        // Yeni günler çizildikten sonra dersi kenardaki güne yerleştir, hâlâ kenardaysa bir sonraki geçişi bekle
+        setTimeout(() => {
+          const nds = daysRef.current
+          const edgeDate = dir < 0 ? nds[0] : nds[nds.length - 1]
+          const loc = locate(lastP.x, lastP.y, edgeDate)
+          const s = clampDay(snap(loc.min - grab))
+          cur = { ...cur, date: edgeDate, start: fromMinutes(s), end: fromMinutes(Math.min(24 * 60 - 1, s + dur)) }
+          setDrag(cur)
+        }, 60)
+        edgeTimer = setTimeout(shift, 900)
+      }
+      edgeTimer = setTimeout(shift, 550)
+    }
     startGesture(ev, {
       onStart: () => setDrag(cur),
       onMove: (p) => {
         autoScroll(p.clientY)
+        lastP = { x: p.clientX, y: p.clientY }
         if (mode === 'move') {
+          edgeCheck(p.clientX)
           const loc = locate(p.clientX, p.clientY, cur.date)
           const s = clampDay(snap(loc.min - grab))
-          cur = { ...cur, date: days.length > 1 ? loc.date : cur.date, start: fromMinutes(s), end: fromMinutes(Math.min(24 * 60 - 1, s + dur)) }
+          cur = { ...cur, date: daysRef.current.length > 1 || edgeDir ? loc.date : cur.date, start: fromMinutes(s), end: fromMinutes(Math.min(24 * 60 - 1, s + dur)) }
         } else {
           const loc = locate(p.clientX, p.clientY, e.date)
           const en = Math.max(toMinutes(e.start) + 10, snap(loc.min))
@@ -420,10 +457,14 @@ function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, openEvent, onEmpty
         setDrag(cur)
       },
       onEnd: () => {
+        clearTimeout(edgeTimer)
         setDrag(null)
         if (cur.date !== e.date || cur.start !== e.start || cur.end !== e.end) moveEvent(e, { date: cur.date, start: cur.start, end: cur.end })
       },
-      onCancel: () => setDrag(null),
+      onCancel: () => {
+        clearTimeout(edgeTimer)
+        setDrag(null)
+      },
       onTap: () => openEvent(e),
     })
   }

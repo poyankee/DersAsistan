@@ -21,7 +21,7 @@ export default function SummaryPage({ openStudent, initial }: { openStudent: (id
         <button className={tab === 'ozet' ? 'active' : ''} onClick={() => setTab('ozet')}>Aylık özet</button>
         <button className={tab === 'alacak' ? 'active' : ''} onClick={() => setTab('alacak')}>Alacaklar</button>
         <button className={tab === 'gelir' ? 'active' : ''} onClick={() => setTab('gelir')}>Gelir</button>
-        <button className={tab === 'puantaj' ? 'active' : ''} onClick={() => setTab('puantaj')}>Puantaj</button>
+        <button className={tab === 'puantaj' ? 'active' : ''} onClick={() => setTab('puantaj')}>Puantaj / Kurum</button>
         <button className={tab === 'odemelerim' ? 'active' : ''} onClick={() => setTab('odemelerim')}>Ödemelerim</button>
       </div>
       {tab === 'ozet' && <MonthlySummary />}

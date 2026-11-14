@@ -254,6 +254,10 @@ export interface NotifySettings {
 }
 
 export interface Settings {
+  /** Ana sayfadaki selamlamada kullanılan ad */
+  userName?: string
+  /** Ödeme hatırlatıcısında "sonra" denen dersler: ders kimliği → bu tarihe kadar gösterme */
+  payRemindSnooze?: Record<string, string>
   /** Uygulama içi güncellemeleri kendiliğinden indir (varsayılan açık) */
   autoUpdate?: boolean
   /** Kurum ek ders saat ücreti (opsiyonel, özet hesabı için) */
@@ -279,6 +283,26 @@ export interface Settings {
   introSeen?: boolean
 }
 
+/** Kurumdan alınan ödeme (ek ders ücreti, maaş farkı vb.) */
+export interface KurumPayment {
+  id: string
+  /** Paranın alındığı gün */
+  date: string
+  amount: number
+  /** Hangi ayın ödemesi (YYYY-MM), bilinmiyorsa boş */
+  period?: string
+  note?: string
+  createdAt: number
+}
+
+/** Ana sayfadaki kısa notlar */
+export interface Memo {
+  id: string
+  text: string
+  createdAt: number
+  updatedAt?: number
+}
+
 export interface AppData {
   version: number
   /** Son kayıt zamanı (hangi kopyanın daha yeni olduğunu anlamak için) */
@@ -297,6 +321,8 @@ export interface AppData {
   bills: Bill[]
   billPayments: BillPayment[]
   classNotes: ClassNote[]
+  kurumPayments: KurumPayment[]
+  memos: Memo[]
   trash: TrashItem[]
   /** Kullanıcının sildiği kurum ders saatleri: yeniden içe aktarılmaz */
   ignoredImportKeys: string[]

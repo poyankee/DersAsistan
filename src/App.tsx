@@ -9,6 +9,7 @@ import EventModal from './components/EventModal'
 import EventPeek from './components/EventPeek'
 import Toasts from './components/Toasts'
 import { UpdateBanner } from './components/UpdatePanel'
+import PayRemindersModal, { usePayReminders } from './components/PayReminders'
 import Modal from './components/Modal'
 import { ExamForm, TaskForm, newExam, newTask } from './components/TaskExamForms'
 import type { CalEvent, Exam, Task } from './lib/types'
@@ -56,6 +57,8 @@ export default function App() {
   const [payPick, setPayPick] = useState(false)
   const [reportTab, setReportTab] = useState<{ tab: 'odemelerim'; n: number } | null>(null)
   const [calDate, setCalDate] = useState<{ date: string; n: number } | null>(null)
+  const [remindOpen, setRemindOpen] = useState(false)
+  const reminders = usePayReminders()
 
   const openEvent: OpenEvent = (ev) => {
     const existing = 'id' in ev && ev.id ? data.events.find((e) => e.id === ev.id) : undefined
@@ -135,9 +138,9 @@ export default function App() {
       return false
     })
   })
-  const newEvent = () => {
+  const newEvent = (date?: string) => {
     const s = Math.ceil(toMinutes(nowHM()) / 30) * 30
-    setEditing({ date: todayISO(), start: fromMinutes(Math.min(s, 22 * 60)), end: fromMinutes(Math.min(s + 60, 23 * 60)) })
+    setEditing({ date: date ?? todayISO(), start: fromMinutes(Math.min(s, 22 * 60)), end: fromMinutes(Math.min(s + 60, 23 * 60)) })
   }
   const goCalendar = (date?: string) => {
     if (date) setCalDate({ date, n: Date.now() })
@@ -196,6 +199,7 @@ export default function App() {
             <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => go(t.id)} title={t.label}>
               <t.icon size={19} strokeWidth={2} />
               <span>{t.label}</span>
+              {t.id === 'ozel' && reminders.length > 0 && <em className="nav-badge" aria-label={`${reminders.length} ödeme bekleniyor`}>{reminders.length}</em>}
             </button>
           ))}
         </nav>
@@ -210,7 +214,7 @@ export default function App() {
 
       <main className="content">
         <div key={tab} className="page-anim">
-        {tab === 'bugun' && <TodayPage openEvent={openEvent} goCalendar={goCalendar} goSettings={() => go('ayarlar')} onSearch={() => setSearching(true)} openTask={setTask} goBills={() => { setReportTab({ tab: 'odemelerim', n: Date.now() }); go('ozet') }} goTasks={() => go('gorevler')} />}
+        {tab === 'bugun' && <TodayPage openEvent={openEvent} goCalendar={goCalendar} goSettings={() => go('ayarlar')} onSearch={() => setSearching(true)} openTask={setTask} goBills={() => { setReportTab({ tab: 'odemelerim', n: Date.now() }); go('ozet') }} goTasks={() => go('gorevler')} onNewEvent={newEvent} onNewTask={() => setTask(newTask())} goReports={() => go('ozet')} reminderCount={reminders.length} onReminders={() => setRemindOpen(true)} />}
         {tab === 'gorevler' && <TasksPage onOpen={setTask} />}
         {tab === 'takvim' && (
           <CalendarPage
@@ -237,6 +241,8 @@ export default function App() {
             onAddTask={(t) => setTask(newTask(t))}
             onOpenTask={setTask}
             onOpenExam={setExam}
+            reminderCount={reminders.length}
+            onReminders={() => setRemindOpen(true)}
           />
         )}
         <Suspense fallback={<p className="muted pad">Yükleniyor…</p>}>
@@ -249,7 +255,7 @@ export default function App() {
       <nav className="bottom-nav">
         {TABS.map((t) => (
           <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => go(t.id)}>
-            <span className="pill"><t.icon size={21} strokeWidth={tab === t.id ? 2.4 : 2} /></span>
+            <span className="pill"><t.icon size={21} strokeWidth={tab === t.id ? 2.4 : 2} />{t.id === 'ozel' && reminders.length > 0 && <em className="nav-badge">{reminders.length}</em>}</span>
             <span className="lbl">{t.short}</span>
           </button>
         ))}
@@ -289,6 +295,7 @@ export default function App() {
       {task && <TaskForm initial={task} onClose={() => setTask(null)} />}
       {exam && <ExamForm initial={exam} onClose={() => setExam(null)} />}
       {searching && <SearchModal onClose={() => setSearching(false)} onStudent={openStudent} onClass={openClass} onTask={setTask} onExam={setExam} />}
+      {remindOpen && <PayRemindersModal onClose={() => setRemindOpen(false)} onOpenStudent={openStudent} />}
       <Toasts />
       <UpdateBanner />
       {!data.settings.introSeen && data.events.length === 0 && data.students.length === 0 && (

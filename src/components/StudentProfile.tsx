@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { isOff } from '../lib/status'
-import { BookOpen, CalendarClock, FileText, CalendarRange, ChevronLeft, Eye, History as HistoryIcon, MessageCircle, Pencil, Phone, User, Wallet, X } from 'lucide-react'
+import { BookOpen, NotebookPen, CalendarClock, FileText, CalendarRange, ChevronLeft, Eye, History as HistoryIcon, MessageCircle, Pencil, Phone, User, Wallet, X } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { Payment, Student } from '../lib/types'
 import { useData } from '../lib/store'
@@ -16,9 +16,9 @@ import { lessonReport, paymentStatement } from '../lib/report'
 import ScheduleTab from './ScheduleTab'
 import BooksTab from './BooksTab'
 
-type Tab = 'dersler' | 'odeme' | 'bilgi'
+type Tab = 'dersler' | 'notlar' | 'odeme' | 'bilgi'
 
-/** Öğrenci dosyası: Dersler (tarihli kayıtlar) · Ödeme işlemleri · Bilgiler */
+/** Öğrenci dosyası: Dersler (ne yaptık) · Notlar · Ödeme işlemleri · Bilgiler */
 export default function StudentProfile({ student, onBack, onEdit, onPay, onPayNote, onEditPayment }: {
   student: Student
   onBack: () => void
@@ -33,6 +33,7 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onPayNo
   const [tab, setTab] = useState<Tab>('dersler')
   const [showView, setShowView] = useState(false)
   const [report, setReport] = useState<'ders' | 'odeme' | null>(null)
+  const noteCount = data.notes.filter((n) => n.studentId === student.id).length
   const next = data.events
     .filter((e) => e.studentId === student.id && e.date >= today && e.status === 'planned')
     .sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))[0]
@@ -51,6 +52,7 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onPayNo
 
       <div className="seg tabs-seg">
         <button className={tab === 'dersler' ? 'active' : ''} onClick={() => setTab('dersler')}><HistoryIcon size={15} /> Dersler</button>
+        <button className={tab === 'notlar' ? 'active' : ''} onClick={() => setTab('notlar')}><NotebookPen size={15} /> Notlar{noteCount ? ` (${noteCount})` : ''}</button>
         <button className={tab === 'odeme' ? 'active' : ''} onClick={() => setTab('odeme')}><Wallet size={15} /> Ödeme işlemleri</button>
         <button className={tab === 'bilgi' ? 'active' : ''} onClick={() => setTab('bilgi')}><User size={15} /> Bilgiler</button>
       </div>
@@ -61,6 +63,7 @@ export default function StudentProfile({ student, onBack, onEdit, onPay, onPayNo
           <button className="btn small ghost report-btn" onClick={() => setReport('ders')}><FileText size={14} /> Ders dökümü al</button>
         </>
       )}
+      {tab === 'notlar' && <LessonLog studentId={student.id} kind="not" />}
       {tab === 'odeme' && <PaymentsTab student={student} onPay={onPay} onPayNote={onPayNote} onEditPayment={onEditPayment} onReport={() => setReport('odeme')} />}
       {tab === 'bilgi' && <InfoTab student={student} onEdit={onEdit} />}
 

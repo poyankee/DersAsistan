@@ -4,7 +4,7 @@ import TimePicker from './TimePicker'
 import { CalendarRange, Pencil, Plus, Square } from 'lucide-react'
 import type { CalEvent, Student } from '../lib/types'
 import { deleteEvents, saveEvents, useData } from '../lib/store'
-import { TR_DAYS, addDays, formatShort, fromMinutes, toMinutes, todayISO, weekdayIndex } from '../lib/date'
+import { TR_DAYS, addDays, formatDMYDay, formatShort, fromMinutes, toMinutes, todayISO, weekdayIndex } from '../lib/date'
 import { isFullHoliday } from '../lib/holidays'
 import { showToast } from '../lib/toast'
 import { uid } from '../lib/util'
@@ -40,13 +40,16 @@ export default function ScheduleTab({ student }: { student: Student }) {
     }
     return out.sort((a, b) => a.weekday - b.weekday || a.start.localeCompare(b.start))
   }, [data.events, student.id, today])
+  // Tek seferlik dersler "Her … günü" diye gösterilmez; ayrı listelenir
+  const weekly = patterns.filter((p) => p.events.length > 1)
+  const singles = patterns.filter((p) => p.events.length === 1).map((p) => p.events[0]).sort((a, b) => (a.date + a.start).localeCompare(b.date + b.start))
 
   return (
     <>
       <p className="muted small">Öğrencinin ileri tarihli planlı dersleri burada haftalık düzenler halinde görünür. Gün/saat kalıcı olarak değiştiğinde tek seferde güncelleyebilirsiniz.</p>
-      {patterns.length === 0 && !adding && <p className="muted">Planlanmış ders düzeni yok.</p>}
+      {patterns.length === 0 && !adding && <p className="muted">Planlanmış ders yok.</p>}
       <div className="pattern-list">
-        {patterns.map((p) => (
+        {weekly.map((p) => (
           <div key={p.key} className="pattern-card">
             <div className="row middle">
               <span className="pattern-ico"><CalendarRange size={18} /></span>
@@ -61,6 +64,28 @@ export default function ScheduleTab({ student }: { student: Student }) {
           </div>
         ))}
       </div>
+      {singles.length > 0 && (
+        <>
+          <h4>Tek seferlik dersler</h4>
+          <ul className="single-list">
+            {singles.map((e) => (
+              <li key={e.id}>
+                <b>{formatDMYDay(e.date)}</b> <span className="muted">{e.start}–{e.end}</span>
+                <span className="grow" />
+                <button
+                  className="btn small ghost"
+                  onClick={() => {
+                    if (!confirm(`${formatDMYDay(e.date)} ${e.start} dersi silinsin mi? (30 gün çöp kutusunda kalır)`)) return
+                    deleteEvents([e.id])
+                  }}
+                >
+                  Sil
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       {adding ? <NewPattern student={student} onDone={() => setAdding(false)} /> : (
         <button className="btn" style={{ marginTop: 12 }} onClick={() => setAdding(true)}><Plus size={15} /> Yeni haftalık düzen ekle</button>
       )}

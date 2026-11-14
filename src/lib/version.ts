@@ -1,5 +1,5 @@
 /** Uygulama sürümü ve "bu sürümde neler değişti" listesi (Ayarlar → Yenilikler) */
-export const APP_VERSION = '0.11'
+export const APP_VERSION = '0.12'
 
 /** Bu arayüz paketinin derleme numarası (yerelde 0) */
 export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
@@ -12,6 +12,17 @@ export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
 export const NATIVE_LEVEL = 1
 
 export const CHANGELOG: { version: string; items: string[] }[] = [
+  {
+    version: '0.12',
+    items: [
+      'Yeni ana sayfa: günün dersleri zaman çizelgesi, sıradaki ders, hızlı işlemler, görevler, bu hafta, takvim, notlarım, yaklaşanlar',
+      'Ödeme hatırlatıcısı: ödemesi alınmamış dersler için menüde baloncuk ve zil; tek dokunuşla "Alındı" ya da "Sonra"',
+      'Kurum ödemeleri: Raporlar → Puantaj / Kurum; puantajla karşılaştırma, giren/çıkan\'a gerçek tutar',
+      'Öğrenci dosyası: ders kayıtları ve notlar ayrı sekmelerde',
+      'Ders düzeni: tek seferlik dersler "Her … günü" diye görünmez',
+      'Takvim: dersi haftanın kenarına sürükleyip bekletince önceki/sonraki haftaya geçer',
+    ],
+  },
   {
     version: '0.11',
     items: [

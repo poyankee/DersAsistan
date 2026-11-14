@@ -1,7 +1,7 @@
 import type { AppData, Category, Student } from './types'
 
 /** Verinin güncel şema sürümü. Yapı değiştikçe MIGRATIONS'a bir adım eklenir. */
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'yl', name: 'Yüksek lisans', color: '#8e24aa' },
@@ -24,6 +24,8 @@ export function emptyData(): AppData {
     bills: [],
     billPayments: [],
     classNotes: [],
+    kurumPayments: [],
+    memos: [],
     trash: [],
     ignoredImportKeys: [],
     settings: { dayStart: 8, dayEnd: 21, currency: '₺' },
@@ -65,6 +67,8 @@ const MIGRATIONS: ((d: Loose) => Loose)[] = [
   }),
   // 3 → 4: kişisel muhasebe (aylık ödemeler) eklendi
   (d) => ({ ...d, bills: d.bills ?? [], billPayments: d.billPayments ?? [] }),
+  // 4 → 5: kurum ödemeleri ve ana sayfa notları
+  (d) => ({ ...d, kurumPayments: d.kurumPayments ?? [], memos: d.memos ?? [] }),
 ]
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
@@ -114,6 +118,8 @@ export function parseData(raw: unknown): { data: AppData; report: LoadReport } {
     bills: list(d.bills, (b) => typeof b.name === 'string' && typeof b.day === 'number' && /^\d{4}-\d{2}$/.test(String(b.from))),
     billPayments: list(d.billPayments, (p) => typeof p.amount === 'number' && /^\d{4}-\d{2}$/.test(String(p.month))),
     classNotes: list(d.classNotes, any),
+    kurumPayments: list(d.kurumPayments, (p) => typeof p.amount === 'number' && DATE.test(String(p.date))),
+    memos: list(d.memos, (m) => typeof m.text === 'string'),
     // 30 günden eski silinenler kalıcı olarak temizlenir
     trash: list<AppData['trash'][number]>(d.trash, any).filter((t) => Date.now() - t.deletedAt < 30 * 86400000),
     ignoredImportKeys: Array.isArray(d.ignoredImportKeys) ? d.ignoredImportKeys.filter((k) => typeof k === 'string') : [],

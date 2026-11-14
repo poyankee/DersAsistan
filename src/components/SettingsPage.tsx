@@ -230,6 +230,10 @@ function AppearancePanel() {
   return (
     <section className="panel">
       <h3 className="row-title"><Palette size={18} /> Görünüm</h3>
+      <label className="field" style={{ maxWidth: 320 }}>
+        <span>Adınız (ana sayfadaki selamlama)</span>
+        <input value={data.settings.userName ?? ''} onChange={(e) => setData((d) => ({ ...d, settings: { ...d.settings, userName: e.target.value || undefined } }))} placeholder="ör. Poyraz" />
+      </label>
       <div className="field">
         <span>Ana renk</span>
         <div className="accent-list">

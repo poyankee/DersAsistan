@@ -12,11 +12,13 @@ import Modal from './Modal'
 
 type Item = { kind: 'lesson'; key: string; date: string; e: CalEvent } | { kind: 'note'; key: string; date: string; n: StudentNote }
 
-/** Öğrenci / sınıf dosyasındaki "Dersler" sekmesi: yeni kayıt + tarihli liste */
-export default function LessonLog({ studentId, groupCode }: { studentId?: string; groupCode?: string }) {
+/**
+ * Öğrenci / sınıf dosyası. kind='ders': yalnızca ders kayıtları (ne yaptık); kind='not': yalnızca öğrenci notları.
+ */
+export default function LessonLog({ studentId, groupCode, kind = 'ders' }: { studentId?: string; groupCode?: string; kind?: 'ders' | 'not' }) {
   const data = useData()
   const today = todayISO()
-  const [mode, setMode] = useState<'ders' | 'not'>('ders')
+  const mode: 'ders' | 'not' = studentId ? kind : 'ders'
   const [date, setDate] = useState(today)
   const [topic, setTopic] = useState('')
   const [homework, setHomework] = useState('')
@@ -34,16 +36,19 @@ export default function LessonLog({ studentId, groupCode }: { studentId?: string
 
   const items = useMemo(() => {
     const out: Item[] = []
-    for (const e of data.events) {
-      if (!mine(e)) continue
-      if (e.topic || e.homework || e.notes || e.status === 'done' || isOff(e)) {
-        if (e.status !== 'planned' || e.topic) out.push({ kind: 'lesson', key: e.id, date: e.date + e.start, e })
+    if (mode === 'ders') {
+      for (const e of data.events) {
+        if (!mine(e)) continue
+        if (e.topic || e.homework || e.status === 'done' || isOff(e)) {
+          if (e.status !== 'planned' || e.topic) out.push({ kind: 'lesson', key: e.id, date: e.date + e.start, e })
+        }
       }
+    } else if (studentId) {
+      for (const n of data.notes) if (n.studentId === studentId) out.push({ kind: 'note', key: n.id, date: n.date + String(n.createdAt).padStart(15, '0'), n })
     }
-    if (studentId) for (const n of data.notes) if (n.studentId === studentId) out.push({ kind: 'note', key: n.id, date: n.date + '99', n })
     return out.sort((a, b) => b.date.localeCompare(a.date))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.events, data.notes, studentId, groupCode])
+  }, [data.events, data.notes, studentId, groupCode, mode])
 
   const reset = () => {
     setDate(today)
@@ -72,12 +77,6 @@ export default function LessonLog({ studentId, groupCode }: { studentId?: string
   return (
     <>
       <div className="quick-entry">
-        {studentId && (
-          <div className="seg small inline-seg" style={{ marginBottom: 8 }}>
-            <button className={mode === 'ders' ? 'active' : ''} onClick={() => setMode('ders')}>Ders kaydı</button>
-            <button className={mode === 'not' ? 'active' : ''} onClick={() => setMode('not')}>Not</button>
-          </div>
-        )}
         <div className="row middle wrap" style={{ minHeight: 0 }}>
           <DateInput value={date} onChange={setDate} />
           {mode === 'ders' && (
@@ -110,7 +109,7 @@ export default function LessonLog({ studentId, groupCode }: { studentId?: string
       </div>
 
       {items.length === 0 ? (
-        <p className="muted">Henüz kayıt yok. Yukarıdan ilk dersi yazın.</p>
+        <p className="muted">{mode === 'not' ? 'Henüz not yok. Veli görüşmesi, dikkat edilecekler gibi kendinize notları buraya yazın; ders kayıtlarında görünmez.' : 'Henüz kayıt yok. Yukarıdan ilk dersi yazın.'}</p>
       ) : (
         <ol className="log-list">
           {items.map((it) =>
@@ -121,7 +120,6 @@ export default function LessonLog({ studentId, groupCode }: { studentId?: string
                   {isOff(it.e) ? <span className="muted">Ders yapılmadı (iptal)</span> : <span className="log-topic pre">{it.e.topic || <span className="muted">—</span>}</span>}
                   {it.e.homework && <small>Ödev: {it.e.homework}</small>}
                   {it.e.bookId && <small><BookOpen size={12} /> {bookName(it.e.bookId) ?? 'Kitap'}{it.e.bookProgress ? ` — ${it.e.bookProgress}` : ''}</small>}
-                  {it.e.notes && <small className="muted">{it.e.notes}</small>}
                 </div>
               </li>
             ) : (

@@ -115,3 +115,6 @@
 .cf-new { margin-top: 6px; }
 .cf-new .cf-label-input { flex: 0 0 150px; }
 @media (max-width: 720px) { .cf-label { width: 96px; } .cf-new { flex-wrap: wrap; } .cf-new .cf-label-input { flex: 1 1 100%; } }
+.single-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.single-list li { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+.single-list .grow { flex: 1; }

@@ -5,6 +5,7 @@ import { Download, Printer } from 'lucide-react'
 import { useData } from '../lib/store'
 import { TR_DAYS, addMonths, fromISO, isPast, monthLabel, startOfMonth, todayISO, weekdayIndex } from '../lib/date'
 import { downloadFile, money } from '../lib/util'
+import KurumPayments from './KurumPayments'
 
 /** Kurum ek ders puantajı: ay içindeki her gün için sınıf bazında ders saati */
 export default function PuantajPanel() {
@@ -90,6 +91,7 @@ export default function PuantajPanel() {
           </table>
         </div>
       )}
+      <KurumPayments month={ym} expected={rate ? total * rate : 0} />
       <p className="muted small">İptal/ertelenen dersler sayılmaz. Soluk satırlar henüz yapılmamış (ileri tarihli) günlerdir. Sınıf adları Ayarlar'dan değiştirilebilir.{groups.length > 0 && ` Sınıflar: ${groups.map((g) => `${g}${data.groups[g]?.name ? ` (${data.groups[g].name})` : ''}`).join(', ')}`}</p>
     </div>
   )

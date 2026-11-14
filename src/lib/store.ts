@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { AppData, Bill, BillPayment, Book, CalEvent, ClassNote, Exam, Group, Holiday, Payment, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
+import type { AppData, Bill, BillPayment, Book, CalEvent, ClassNote, Exam, Group, Holiday, KurumPayment, Memo, Payment, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
 import { PALETTE, colorFor, uid } from './util'
 import type { Category } from './types'
 import { isNative } from './native'
@@ -439,4 +439,20 @@ export function eventTitle(d: AppData, e: CalEvent): string {
     return s ? `Özel: ${s.name}` : e.title
   }
   return e.title || '(Başlıksız)'
+}
+
+export function saveKurumPayment(p: KurumPayment) {
+  setData((d) => ({ ...d, kurumPayments: upsert(d.kurumPayments, p) }))
+}
+
+export function deleteKurumPayment(id: string) {
+  setData((d) => ({ ...d, kurumPayments: d.kurumPayments.filter((p) => p.id !== id) }))
+}
+
+export function saveMemo(m: Memo) {
+  setData((d) => ({ ...d, memos: upsert(d.memos, m) }))
+}
+
+export function deleteMemo(id: string) {
+  setData((d) => ({ ...d, memos: d.memos.filter((m) => m.id !== id) }))
 }

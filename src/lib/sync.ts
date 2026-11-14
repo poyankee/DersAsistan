@@ -13,7 +13,7 @@ import { isNative } from './native'
 // ---------------------------------------------------------------------------
 // Kayıtlara ayırma / birleştirme
 
-const LIST_COLLS = ['events', 'students', 'payments', 'books', 'notes', 'holidays', 'tasks', 'exams', 'categories', 'bills', 'billPayments', 'classNotes', 'trash'] as const
+const LIST_COLLS = ['events', 'students', 'payments', 'books', 'notes', 'holidays', 'tasks', 'exams', 'categories', 'bills', 'billPayments', 'classNotes', 'kurumPayments', 'memos', 'trash'] as const
 type ListColl = (typeof LIST_COLLS)[number]
 /** Cihaza özel ayarlar eşitlenmez */
 const LOCAL_SETTINGS: (keyof Settings)[] = ['lock', 'fontScale', 'autoUpdate', 'introSeen']

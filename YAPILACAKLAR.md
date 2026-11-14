@@ -118,6 +118,9 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
 - v0.10 Android geri hareketi, görev kategorileri / sıralama / önemli işareti / alt adımlar / ekler,
   takvimde sade kutular, takvimin PDF çıktısı, arama kutusu; Ödemelerim hatırlatma, takvimde ödeme günleri,
   aylık giren / çıkan; yeni ana ekran widget'ı; kalıcı APK imzası
+- v0.12 Yeni ana sayfa (zaman çizelgesi, sıradaki ders, hızlı işlemler, bu hafta, mini takvim, notlarım, yaklaşanlar, zil),
+  ödeme hatırlatıcısı (menü baloncuğu), kurum ödemeleri, öğrenci notları ayrı sekmede, tek seferlik dersler ders düzeninde
+  ayrı, takvimde haftalar arası sürükleme
 - v0.11 Telefon ↔ tablet eşitleme (kendi PHP sunucusu, uçtan uca şifreli), uygulama içi otomatik güncelleme
   (arayüz paketi APK'sız; gerekirse APK uygulama içinden), hatalı güncellemede kendiliğinden geri dönüş
 

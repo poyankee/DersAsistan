@@ -119,7 +119,7 @@ function FlowCard({ month }: { month: string }) {
   const max = Math.max(f.income, f.out, 1)
   const parts = [
     f.ozel ? `Özel ders tahsilatı ${m(f.ozel)}` : '',
-    f.kurum ? `Kurum ek ders ${f.kurumHours} saat · ${m(f.kurum)}` : '',
+    f.kurum ? (f.kurumEstimated ? `Kurum ek ders ${f.kurumHours} saat · ${m(f.kurum)} (tahmini)` : `Kurumdan alınan ${m(f.kurum)}`) : '',
     f.fixed ? `Sabit gelir ${m(f.fixed)}` : '',
   ].filter(Boolean)
   return (

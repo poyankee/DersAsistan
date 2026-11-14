@@ -104,9 +104,11 @@ export interface CashFlow {
   month: string
   /** Öğrencilerden o ay alınan ödemeler (tahsilat tarihine göre) */
   ozel: number
-  /** Yapılmış kurum ek ders saati × saat ücreti (ücret girilmişse) */
+  /** Kurumdan alınan ödemeler (kayıt varsa); yoksa yapılmış ek ders saati × saat ücreti (tahmini) */
   kurum: number
   kurumHours: number
+  /** Kurum geliri tahmini mi (kurum ödemesi kaydı yok) */
+  kurumEstimated: boolean
   /** Ayarlardaki sabit aylık gelir (maaş vb.) */
   fixed: number
   income: number
@@ -125,7 +127,10 @@ export function cashFlow(d: AppData, month: string, today = todayISO()): CashFlo
   if (rate) for (const e of d.events) if (e.kind === 'kurum' && e.date.slice(0, 7) === month && happened(e, today)) kurumHours += e.hours ?? 1
   let out = 0
   for (const p of d.billPayments) if (p.month === month) out += p.amount
-  const kurum = kurumHours * rate
+  // Kuruma ait gerçek ödeme kaydı varsa (alındığı güne göre) o kullanılır; yoksa saat × ücret tahmini
+  const received = (d.kurumPayments ?? []).filter((p) => p.date.slice(0, 7) === month)
+  const kurumEstimated = received.length === 0
+  const kurum = kurumEstimated ? kurumHours * rate : received.reduce((a, p) => a + p.amount, 0)
   const income = ozel + kurum + fixed
-  return { month, ozel, kurum, kurumHours, fixed, income, out, net: income - out }
+  return { month, ozel, kurum, kurumHours, kurumEstimated, fixed, income, out, net: income - out }
 }

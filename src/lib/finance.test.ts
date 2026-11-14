@@ -84,3 +84,25 @@ describe('sade ödeme modeli', () => {
     expect('promises' in d).toBe(false)
   })
 })
+
+describe('ödeme hatırlatıcısı', () => {
+  it('her ders ödeyenlerin ödenmemiş geçmiş dersleri; ödenen ve ertelenen görünmez', async () => {
+    const { payReminders } = await import('./reminders')
+    const { emptyData } = await import('./schema')
+    const base = emptyData()
+    const st = (id: string, payWhen: 'ders' | 'aysonu') => ({ id, name: id, fee: 500, active: true, payWhen, color: '#000', createdAt: 1 })
+    const ev = (id: string, sid: string, date: string) => ({ id, kind: 'ozel' as const, studentId: sid, date, start: '10:00', end: '11:00', title: sid, status: 'planned' as const, fee: 500, createdAt: 1 })
+    const d = {
+      ...base,
+      students: [st('ayse', 'ders'), st('can', 'aysonu')] as never,
+      events: [ev('e1', 'ayse', '2026-11-10'), ev('e2', 'ayse', '2026-11-12'), ev('e3', 'ayse', '2026-11-20'), ev('e4', 'can', '2026-11-11')],
+      payments: [{ id: 'p', studentId: 'ayse', date: '2026-11-10', amount: 500, eventId: 'e1' }],
+    }
+    const r = payReminders(d, '2026-11-14', '12:00')
+    expect(r.map((x) => x.event.id)).toEqual(['e2'])
+    expect(r[0].due).toBe(500)
+    const snoozed = { ...d, settings: { ...d.settings, payRemindSnooze: { e2: '2026-11-15' } } }
+    expect(payReminders(snoozed, '2026-11-14', '12:00')).toEqual([])
+    expect(payReminders(snoozed, '2026-11-15', '12:00').map((x) => x.event.id)).toEqual(['e2'])
+  })
+})

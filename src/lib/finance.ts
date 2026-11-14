@@ -25,6 +25,8 @@ export interface StudentFinance {
   /** Peşin ödemenin karşıladığı ders sayısı */
   creditLessons: number
   lessonPay: Map<string, LessonPayState>
+  /** Ödenmemiş derslerin kalan tutarı */
+  lessonDue: Map<string, number>
   payNote?: PayNote
   /** Ödeme notunun tarihi geçti mi */
   noteLate: boolean
@@ -85,6 +87,7 @@ function compute(d: AppData, s: Student, today: string, now: string): StudentFin
   }
   for (const v of direct.values()) pool += v
   const lessonPay = new Map<string, LessonPayState>()
+  const lessonDue = new Map<string, number>()
   const unpaid: { e: CalEvent; due: number }[] = []
   for (const e of lessons) {
     const fee = e.fee ?? 0
@@ -95,6 +98,7 @@ function compute(d: AppData, s: Student, today: string, now: string): StudentFin
     if (fee === 0 || due <= 0.0001) lessonPay.set(e.id, 'paid')
     else {
       lessonPay.set(e.id, due < fee ? 'partial' : 'unpaid')
+      lessonDue.set(e.id, due)
       unpaid.push({ e, due })
     }
   }
@@ -129,6 +133,7 @@ function compute(d: AppData, s: Student, today: string, now: string): StudentFin
     unpaidLessons: unpaid.length,
     creditLessons: s.fee > 0 ? Math.floor((credit + 0.0001) / s.fee) : 0,
     lessonPay,
+    lessonDue,
     payNote,
     noteLate,
     noteDays: payNote ? Math.max(0, dayDiff(payNote.since, today)) : undefined,

@@ -1,4 +1,4 @@
-import { School, UserRound, Users } from 'lucide-react'
+import { School, UserRound, Users, BellRing } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { Exam, Task } from '../lib/types'
 import StudentsPage from './StudentsPage'
@@ -22,6 +22,8 @@ export default function PeoplePage(props: {
   onAddTask: (t: Partial<Task>) => void
   onOpenTask: (t: Task) => void
   onOpenExam: (x: Exam) => void
+  reminderCount?: number
+  onReminders?: () => void
 }) {
   const { view, setView } = props
   const inFile = (view === 'ogrenci' && props.selected) || (view === 'sinif' && props.classCode)
@@ -35,6 +37,11 @@ export default function PeoplePage(props: {
             <button className={view === 'kisisel' ? 'active' : ''} onClick={() => setView('kisisel')}><UserRound size={15} /> Kişisel</button>
           </div>
         </div>
+      )}
+      {!inFile && view === 'ogrenci' && !!props.reminderCount && (
+        <button className="remind-banner" onClick={props.onReminders}>
+          <BellRing size={17} /> <b>{props.reminderCount} dersin ödemesi bekleniyor</b> <span className="grow" /> <span className="muted small">Gör ve işaretle →</span>
+        </button>
       )}
       {(view === 'ogrenci' || props.payPick) && (
         <StudentsPage openEvent={props.openEvent} selected={props.selected} onSelect={props.onSelect} payPick={props.payPick} onPayPickDone={props.onPayPickDone} />

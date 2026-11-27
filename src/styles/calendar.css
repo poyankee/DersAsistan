@@ -173,3 +173,93 @@ body.dragging-now, body.dragging-now * { cursor: grabbing !important; user-selec
 /* İptal edilen ders: arkada soluk, yer kaplamaz; yalnızca küçük etiket tıklanır */
 .ev-off { position: absolute; left: 1px; right: 2px; border-radius: 8px; border: 1.5px dashed color-mix(in srgb, var(--ev) 45%, transparent); background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--ev) 7%, transparent) 0 6px, transparent 6px 12px); pointer-events: none; z-index: 0; }
 .ev-off-chip { pointer-events: auto; position: absolute; top: 2px; right: 2px; max-width: calc(100% - 4px); border: 0; border-radius: 6px; padding: 1px 6px; font-size: 10.5px; font-weight: 650; background: var(--surface); color: var(--muted); text-decoration: line-through; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; box-shadow: var(--shadow-sm); }
+
+/* ============ Takvim v2 (örnek tasarım) ============ */
+.calendar-page { background: transparent; }
+.toolbar { gap: 10px; padding: 16px 20px 12px; }
+.tb-nav { display: inline-flex; gap: 2px; padding: 4px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
+.tb-nav .icon-btn { width: 38px; height: 38px; border-radius: 12px; }
+.period { display: inline-flex; align-items: center; gap: 10px; margin: 0; padding: 9px 18px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-sm); font-size: 20px; font-weight: 700; white-space: nowrap; }
+.period svg { color: var(--primary); }
+.view-seg { padding: 4px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
+.view-seg button { padding: 8px 18px; border-radius: 12px; font-weight: 600; }
+.view-seg button.active { background: var(--grad); color: var(--primary-text); box-shadow: 0 6px 14px -6px var(--glow); }
+
+.cal-body { flex: 1; min-height: 0; display: flex; gap: 16px; padding: 0 20px 16px; }
+.cal-main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow-sm); overflow: hidden; }
+.cal-main .timegrid { border-top: 0; }
+.cal-main .month-wrap { flex: 1; min-height: 0; }
+
+/* Gün başlıkları: hap kartlar, bugün dolu */
+.tg-head { padding-top: 10px; padding-bottom: 6px; border-bottom: 0; }
+.tg-dayhead { margin: 0 4px; padding: 8px 0; border-radius: 16px; background: var(--surface-2); color: var(--text); gap: 0; transition: background .15s, transform .15s; }
+.tg-dayhead:hover { transform: translateY(-1px); }
+.tg-dayhead .dname { font-size: 15px; text-transform: none; letter-spacing: 0; font-weight: 700; color: var(--text); }
+.tg-dayhead .dnum { display: none; }
+.tg-dayhead .dmon { font-size: 13px; color: var(--muted); }
+.tg-dayhead.today { background: var(--grad); box-shadow: 0 8px 18px -8px var(--glow); }
+.tg-dayhead.today .dname, .tg-dayhead.today .dmon { color: var(--primary-text); }
+.tg-dayhead:hover .dnum { background: none; }
+.tg-col.is-today { background: color-mix(in srgb, var(--primary) 6%, transparent); }
+.timegrid.single .tg-dayhead { flex-direction: row; justify-content: center; gap: 8px; }
+
+/* Ders kutuları: açık zemin, solda renkli şerit, simge + ad + saat */
+.ev { padding: 5px 8px 5px 10px; border-radius: 12px; }
+@supports (background: color-mix(in srgb, red 50%, blue)) {
+  .ev { background: color-mix(in srgb, var(--ev) 16%, var(--surface)); color: color-mix(in srgb, var(--ev) 55%, var(--ev-text-mix)); box-shadow: inset 4px 0 0 var(--ev), 0 1px 2px rgba(0, 0, 0, .04); }
+}
+.ev-title { font-size: 12.5px; }
+.ev-ico { display: inline-block; vertical-align: -2px; margin-right: 4px; color: var(--ev); }
+.ev-time { font-size: 11.5px; margin-top: 2px; opacity: .8; }
+.ev.roomy .ev-title .ev-ico { display: block; margin: 0 0 3px; width: 15px; height: 15px; }
+.ev.compact .ev-ico { display: none; }
+
+.new-ev-fab { position: absolute; right: 18px; bottom: 16px; z-index: 6; display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 12px 20px; background: var(--grad); color: var(--primary-text); font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 12px 26px -10px var(--glow); transition: transform .15s; }
+.new-ev-fab:hover { transform: translateY(-2px); }
+
+/* Sağ panel */
+.cal-side { width: 340px; flex: none; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; padding-bottom: 4px; }
+@media (max-width: 1180px) { .cal-side { display: none; } }
+.cs-date { position: relative; overflow: hidden; border-radius: 22px; padding: 18px 20px 20px; min-height: 140px; background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 10%, var(--surface)), var(--surface)); border: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.cs-date > :not(.cs-scene) { position: relative; z-index: 1; max-width: 62%; }
+.cs-date small { font-weight: 600; color: var(--text-2); }
+.cs-date b { font-family: var(--display); font-size: 25px; font-weight: 750; letter-spacing: -.01em; }
+.cs-date em { margin-top: 8px; color: var(--text-2); font-size: 13.5px; }
+.cs-scene { position: absolute; inset: 0; z-index: 0; -webkit-mask-image: linear-gradient(to right, transparent 25%, #000 70%); mask-image: linear-gradient(to right, transparent 25%, #000 70%); }
+.cs-card { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 14px 16px; box-shadow: var(--shadow-sm); }
+.cs-title { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; font-family: var(--display); font-size: 15.5px; font-weight: 700; color: var(--text); text-transform: none; letter-spacing: 0; }
+.cs-title svg { color: var(--primary); }
+.cs-lessons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.cs-lessons button { --ev: var(--primary); width: 100%; display: flex; align-items: center; gap: 10px; border: 0; border-radius: 14px; padding: 8px 10px; background: var(--surface-2); box-shadow: inset 4px 0 0 var(--ev); font: inherit; color: var(--text); cursor: pointer; text-align: left; }
+.cs-lessons .grow { display: flex; flex-direction: column; min-width: 0; }
+.cs-lessons b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cs-lessons small { color: var(--muted); font-size: 12.5px; }
+.csl-ico { color: var(--ev); display: grid; place-items: center; width: 30px; }
+.csl-done { color: var(--success); }
+.csl-open { color: var(--line-strong); }
+.cs-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cs-tile { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 18px; padding: 12px; background: var(--surface); box-shadow: var(--shadow-sm); font: inherit; color: var(--text); cursor: pointer; text-align: left; }
+.cs-tile b { display: block; font-size: 14.5px; }
+.cs-tile small { color: var(--muted); font-size: 12.5px; }
+.cst-ico { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); flex: none; }
+.cs-bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; height: 92px; }
+.csb { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 0; background: none; padding: 0; font: inherit; color: var(--muted); cursor: pointer; }
+.csb-bar { flex: 1; width: 100%; max-width: 30px; display: flex; align-items: flex-end; }
+.csb-bar i { display: block; width: 100%; border-radius: 8px 8px 4px 4px; background: color-mix(in srgb, var(--primary) 28%, var(--surface-3)); transition: height .5s var(--ease); }
+.csb.today { color: var(--text); font-weight: 750; }
+.csb.today .csb-bar i { background: var(--grad); }
+.csb small { font-size: 12px; }
+.cs-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.cs-quick button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 4px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); font: inherit; font-size: 11.5px; font-weight: 600; color: var(--text); cursor: pointer; text-align: center; }
+.cs-quick button svg { color: var(--primary); }
+.cs-quick button:hover { background: var(--primary-soft); }
+
+@media (max-width: 720px) {
+  .cal-body { padding: 0 8px 8px; }
+  .cal-main { border-radius: 18px; }
+  .period { font-size: 16px; padding: 7px 12px; }
+  .period svg { display: none; }
+  .view-seg button { padding: 6px 10px; }
+  .tg-dayhead .dname { font-size: 13px; }
+  .tg-dayhead .dmon { font-size: 11.5px; }
+}

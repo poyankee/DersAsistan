@@ -1,4 +1,5 @@
 import { memo, useMemo, useState } from 'react'
+import PageArt from './PageArt'
 import { ArrowDownUp, Check, ListTodo, Paperclip, Plus, Star, Trash2 } from 'lucide-react'
 import type { Task } from '../lib/types'
 import { deleteTask, saveCategory, saveTask, useData } from '../lib/store'
@@ -145,7 +146,7 @@ export default function TasksPage({ onOpen }: { onOpen: (t: Task) => void }) {
 
   return (
     <div className="page todo">
-      <div className="page-head">
+      <div className="page-head art-head"><PageArt />
         <h2>Görevler</h2>
         <div className="spacer" />
         <div className="seg small inline-seg">

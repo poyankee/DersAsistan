@@ -14,7 +14,7 @@ export function StatusMark({ e }: { e: CalEvent }) {
 
 /** Takvim kutuları için kısa ad: sınıfın adı (yoksa kodu), öğrencinin adı ya da etkinlik başlığı */
 export function shortTitle(data: AppData, e: CalEvent): string {
-  if (e.kind === 'kurum' && e.groupCode) return (data.groups[e.groupCode]?.name || e.groupCode) + subSuffix(e)
+  if (e.kind === 'kurum' && e.groupCode) return ((data.groups[e.groupCode]?.name || e.groupCode) + subSuffix(e, data.groups[e.groupCode]?.name || e.groupCode))
   if (e.kind === 'ozel' && e.studentId) return data.students.find((s) => s.id === e.studentId)?.name ?? e.title
   return e.title
 }

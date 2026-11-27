@@ -12,7 +12,7 @@ import { usePayReminders } from './PayReminders'
 type Data = ReturnType<typeof useData>
 
 const nameOf = (d: Data, e: CalEvent) =>
-  e.kind === 'kurum' && e.groupCode ? (d.groups[e.groupCode]?.name || e.groupCode) + subSuffix(e)
+  e.kind === 'kurum' && e.groupCode ? ((d.groups[e.groupCode]?.name || e.groupCode) + subSuffix(e, d.groups[e.groupCode]?.name || e.groupCode))
   : e.kind === 'ozel' && e.studentId ? d.students.find((s) => s.id === e.studentId)?.name ?? e.title
   : e.title
 

@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, CalendarSearch, Printer, ChevronLeft, ChevronRight, MoreHorizontal, Upload, ZoomIn, ZoomOut } from 'lucide-react'
+import { CalendarDays, CalendarSearch, Printer, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import FreeSlotsModal from './FreeSlotsModal'
 import type { OpenEvent } from '../App'
 import type { AppData, Task } from '../lib/types'
 import { useData } from '../lib/store'
-import { addDays, addMonths, formatLong, formatShort, fromMinutes, monthLabel, startOfMonth, startOfWeek, toMinutes, todayISO } from '../lib/date'
+import { addDays, addMonths, formatLong, formatShort, fromMinutes, monthLabel, nowHM, startOfMonth, startOfWeek, toMinutes, todayISO } from '../lib/date'
 import ImportModal from './ImportModal'
 import IcsImportModal from './IcsImportModal'
 import CalendarPrint from './CalendarPrint'
 import Modal from './Modal'
 import { MAX_PX, MIN_PX } from './calendarShared'
 import TimeGrid from './CalendarTimeGrid'
+import CalendarSide from './CalendarSide'
 import MonthGrid, { DayPanel } from './CalendarMonth'
 
 type View = 'day' | '3day' | 'week' | 'month' | 'agenda'
@@ -45,8 +46,10 @@ function store(key: string, v: string | number) {
   }
 }
 
-export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initialDate, onOpenBills }: {
+export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initialDate, onOpenBills, onNewTask, goTasks }: {
   initialDate?: string
+  onNewTask?: () => void
+  goTasks?: () => void
   onOpenBills?: () => void
   openEvent: OpenEvent
   onAddExam?: (date: string) => void
@@ -116,7 +119,8 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
   else if (view === 'week' || view === '3day') {
     const s = days[0]
     const e = days[days.length - 1]
-    label = s.slice(0, 7) === e.slice(0, 7) ? monthLabel(s) : `${formatShort(s).split(' ').slice(0, 2).join(' ')} – ${formatShort(e).split(' ').slice(0, 2).join(' ')} ${e.slice(0, 4)}`
+    const dm = (x: string) => formatShort(x).split(' ').slice(0, 2).join(' ')
+    label = `${dm(s)} – ${dm(e)} ${e.slice(0, 4)}`
   } else label = monthLabel(cursor)
 
   const newAt = (date: string, start?: string, end?: string) => {
@@ -129,10 +133,12 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
   return (
     <div className="calendar-page">
       <div className="toolbar">
-        <button className="btn" onClick={() => setCursor(today)}>Bugün</button>
-        <button className="icon-btn" onClick={() => step(-1)} aria-label="Önceki"><ChevronLeft size={20} /></button>
-        <button className="icon-btn" onClick={() => step(1)} aria-label="Sonraki"><ChevronRight size={20} /></button>
-        <h2 className="period">{label}</h2>
+        <div className="tb-nav">
+          <button className="icon-btn" onClick={() => step(-1)} aria-label="Önceki"><ChevronLeft size={20} /></button>
+          <button className="icon-btn" onClick={() => step(1)} aria-label="Sonraki"><ChevronRight size={20} /></button>
+        </div>
+        <h2 className="period"><CalendarDays size={20} /> {label}</h2>
+        {!days.includes(today) || view === 'month' ? <button className="btn small today-btn" onClick={() => setCursor(today)}>Bugün</button> : null}
         <div className="spacer" />
         <div className="seg small view-seg">
           {views.map((v) => (
@@ -143,6 +149,8 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
         <button className={'icon-btn' + (hidden ? ' has-dot' : '')} onClick={() => setMenuOpen(true)} aria-label="Diğer seçenekler" title="Diğer seçenekler"><MoreHorizontal size={20} /></button>
       </div>
 
+      <div className={'cal-body' + (view !== 'month' && !mobile ? ' with-side' : '')}>
+      <div className="cal-main">
       {view !== 'month' && (
         <TimeGrid
           data={shown}
@@ -179,6 +187,21 @@ export default function CalendarPage({ openEvent, onAddExam, onOpenTask, initial
           />
         </div>
       )}
+
+      {view !== 'month' && !mobile && <button className="new-ev-fab" onClick={() => newAt(days.includes(today) ? today : days[0], fromMinutes(Math.min(22 * 60, Math.ceil(toMinutes(nowHM()) / 30) * 30)))}><Plus size={18} /> Yeni Etkinlik</button>}
+      </div>
+      {view !== 'month' && !mobile && (
+        <CalendarSide
+          cursor={cursor}
+          openEvent={openEvent}
+          onNew={() => newAt(today, fromMinutes(Math.min(22 * 60, Math.ceil(toMinutes(nowHM()) / 30) * 30)))}
+          onNewTask={onNewTask}
+          onAddExam={onAddExam}
+          goTasks={goTasks}
+          onPickDay={(d) => setCursor(d)}
+        />
+      )}
+      </div>
 
       {menuOpen && (
         <Modal title="Takvim" onClose={() => setMenuOpen(false)}>

@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
-import { BarChart3, BookOpen, CalendarDays, CalendarPlus, GraduationCap, Home, LayoutGrid, ListTodo, Plus, School, Moon, Search, Settings, Sun, UserRound, Users, Wallet } from 'lucide-react'
+import { BarChart3, BookOpen, CalendarDays, CalendarPlus, GraduationCap, Home, LayoutGrid, ListTodo, Plus, School, Search, Settings, UserRound, Users, Wallet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import CalendarPage from './components/CalendarPage'
 import PeoplePage, { type PeopleView } from './components/PeoplePage'
@@ -232,7 +232,6 @@ export default function App() {
             <span>Ayarlar</span>
           </button>
         </nav>
-        {!scene?.dark && <ThemeToggle />}
         {scene && <div className="side-scene"><Landscape scene={scene} variant="side" /></div>}
       </aside>
 
@@ -249,6 +248,8 @@ export default function App() {
             onAddExam={(date) => setExam(newExam({ date }))}
             onOpenTask={setTask}
             onOpenBills={() => goBills('gider')}
+            onNewTask={() => setTask(newTask())}
+            goTasks={() => go('gorevler')}
           />
         )}
         {PEOPLE_VIEW[tab] && (
@@ -350,21 +351,6 @@ export default function App() {
         <Intro onDone={() => setData((d) => ({ ...d, settings: { ...d.settings, introSeen: true } }))} />
       )}
       {locked && data.settings.lock && <LockScreen lock={data.settings.lock} onUnlock={() => setLocked(false)} />}
-    </div>
-  )
-}
-
-/** Kenar çubuğundaki açık / koyu düğmesi */
-function ThemeToggle() {
-  const data = useData()
-  const sysDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
-  const t = data.settings.theme ?? 'system'
-  const dark = t === 'dark' || (t === 'system' && sysDark)
-  const set = (v: 'light' | 'dark') => setData((d) => ({ ...d, settings: { ...d.settings, theme: v } }))
-  return (
-    <div className="theme-toggle" role="group" aria-label="Açık / koyu görünüm">
-      <button className={dark ? 'on' : ''} onClick={() => set('dark')} aria-label="Koyu" aria-pressed={dark}><Moon size={16} /></button>
-      <button className={!dark ? 'on' : ''} onClick={() => set('light')} aria-label="Açık" aria-pressed={!dark}><Sun size={16} /></button>
     </div>
   )
 }

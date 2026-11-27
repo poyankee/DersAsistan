@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import PageArt from './PageArt'
 import { ArrowDownLeft, ArrowUpRight, HandCoins } from 'lucide-react'
 import BillsPanel from './BillsPanel'
 import { Receivables } from './SummaryPage'
@@ -10,7 +11,7 @@ export default function PaymentsPage({ initial, openStudent }: { initial?: PayTa
   const [tab, setTab] = useState<PayTab>(initial ?? 'gider')
   return (
     <div className="page">
-      <div className="page-head"><h2>Ödemeler</h2></div>
+      <div className="page-head art-head"><PageArt /><h2>Ödemeler</h2></div>
       <div className="seg tabs-seg">
         <button className={tab === 'gider' ? 'active' : ''} onClick={() => setTab('gider')}><ArrowUpRight size={15} /> Ödemelerim</button>
         <button className={tab === 'gelir' ? 'active' : ''} onClick={() => setTab('gelir')}><ArrowDownLeft size={15} /> Gelirlerim</button>

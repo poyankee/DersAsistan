@@ -294,7 +294,7 @@ const GUIDE: [string, string][] = [
   ['Telefon ve tableti eşitlemek', 'Ayarlar → Hesap ve eşitleme. Önce telefonda sunucu adresini girip hesap oluşturun, sonra tablette aynı bilgilerle giriş yapın. Değişiklikler birkaç saniyede öteki cihaza geçer; veriler cihazda şifrelenir.'],
   ['Menü düzeni', 'Ayarlar → Menü düzeni: sayfaların sırasını oklarla değiştirin, kullanmadıklarınızı gizleyin. Telefonda ilk 4 sayfa alt menüde, gerisi "Menü"de.'],
   ['Gelirler ve giderler', 'Ödemeler → Ödemelerim (kira, kart, fatura) ve Gelirlerim (maaş, kurum ödemesi, ek gelirler). Her ay, 2 ayda bir, yılda bir ya da tek seferlik olabilir; bir aya birden fazla ödeme yazılabilir (ör. kurumdan 5\'i ve 15\'i).'],
-  ['Tema değiştirmek', 'Ayarlar → Görünüm → Tema: Gün batımı, Sonbahar, Orman, Kış, Çayır, Lavanta, Gece ya da "Mevsime göre". Açık / koyu için kenar menüsünün altındaki ay–güneş düğmesi.'],
+  ['Tema değiştirmek', 'Ayarlar → Görünüm → Tema: Gün batımı, Sonbahar, Orman, Kış, Çayır, Lavanta, Gece ya da "Mevsime göre". Açık / koyu da aynı yerde.'],
   ['Geri almak', 'Bir şeyi kaydettikten sonra altta çıkan "Geri al"a dokunun. Klavyede Ctrl+Z son değişikliği geri alır. Silinen kayıtlar ayrıca 30 gün Ayarlar → Çöp kutusu\'nda durur.'],
   ['Gider/gelir kategorileri', 'Ödemeler → kaleme dokunun → Kategori. Seçmezseniz addan tahmin edilir (ör. "Elektrik" → Fatura). Dağılım Ödemelerim\'in özetinde, aylık tablo Raporlar → Gelir–gider\'de.'],
   ['Güncellemeler', 'Yeni sürümler kendiliğinden indirilir; ekranın altında "Yeni sürüm hazır" çıkınca "Yeniden başlat"a dokunun. APK aramanıza gerek yok.'],

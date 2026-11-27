@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import PageArt from './PageArt'
 import { happened, isOff } from '../lib/status'
 import { School, Users } from 'lucide-react'
 import { eventTitle, useData } from '../lib/store'
@@ -18,7 +19,7 @@ export default function SummaryPage() {
   const T: [STab, string][] = [['ogrenci', 'Ders sayıları'], ['ozet', 'Aylık özet'], ['gelirgider', 'Gelir – gider'], ['maliyet', 'Maliyet'], ['gelir', 'Ders geliri'], ['puantaj', 'Puantaj']]
   return (
     <div className="page">
-      <div className="page-head"><h2>Raporlar</h2></div>
+      <div className="page-head art-head"><PageArt /><h2>Raporlar</h2></div>
       <div className="seg tabs-seg scroll-seg">
         {T.map(([k, l]) => <button key={k} className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>{l}</button>)}
       </div>

@@ -1,4 +1,5 @@
 import { tap } from '../lib/a11y'
+import PageArt from './PageArt'
 import { useMemo, useState } from 'react'
 import { happened } from '../lib/status'
 import DateInput from './DateInput'
@@ -166,7 +167,7 @@ export default function StudentsPage({ openEvent, selected, onSelect, payPick, o
 
   return (
     <div className="page">
-      <div className="page-head">
+      <div className="page-head art-head"><PageArt />
         <h2>Özel ders öğrencileri</h2>
         <div className="spacer" />
         {data.students.length > 0 && <button className="btn" onClick={() => setBulkFee(true)}><Percent size={16} /> Ücret güncelle</button>}

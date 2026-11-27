@@ -1,5 +1,5 @@
 /** Uygulama sürümü ve "bu sürümde neler değişti" listesi (Ayarlar → Yenilikler) */
-export const APP_VERSION = '0.16'
+export const APP_VERSION = '0.17'
 
 /** Bu arayüz paketinin derleme numarası (yerelde 0) */
 export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
@@ -12,6 +12,17 @@ export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
 export const NATIVE_LEVEL = 1
 
 export const CHANGELOG: { version: string; items: string[] }[] = [
+  {
+    version: '0.17',
+    items: [
+      'Yeni takvim görünümü: tarih aralığı, hap biçimli gün başlıkları (bugün dolu), simgeli ders kutuları, "Yeni Etkinlik" düğmesi',
+      'Takvimin sağ paneli: günün tarihi ve sözü, Bugünkü Dersler, Bu Hafta / Görevler, Haftalık Yoğunluk, Hızlı İşlemler (geniş ekranda)',
+      'Öğrenciler, Sınıflar, Kişisel, Görevler, Ödemeler ve Raporlar başlıklarında manzara',
+      'Ayarlar bölümlere ayrıldı: Görünüm, Menü ve ana sayfa, Dersler ve takvim, Bildirimler, Hesap, Yedek, Güncellemeler, Yardım',
+      'Açık / koyu seçimi kenar menüsünden kaldırıldı; Ayarlar → Görünüm ve genel\'de',
+      'Sınıfın adı zaten "Etüt" içeriyorsa "· Etüt" eki tekrar yazılmaz',
+    ],
+  },
   {
     version: '0.16',
     items: [

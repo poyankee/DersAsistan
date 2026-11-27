@@ -1,13 +1,13 @@
 import { tap } from '../lib/a11y'
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type React from 'react'
-import { GraduationCap, ListTodo } from 'lucide-react'
+import { BookOpen, CalendarDays, FileText, GraduationCap, ListTodo, UserRound } from 'lucide-react'
 import { isOff } from '../lib/status'
 import { holidayMap } from '../lib/holidays'
 import type { OpenEvent } from '../App'
 import type { AppData, CalEvent, Task } from '../lib/types'
 import { eventColor, eventTitle } from '../lib/store'
-import { TR_DAYS_SHORT, fromISO, fromMinutes, isPast, nowHM, toMinutes, todayISO, weekdayIndex } from '../lib/date'
+import { TR_DAYS_SHORT, TR_MONTHS, fromISO, fromMinutes, isPast, nowHM, toMinutes, todayISO, weekdayIndex } from '../lib/date'
 import { gestureActive, startGesture } from '../lib/gesture'
 import { moveEvent } from '../lib/eventOps'
 import { eventsByDay } from '../lib/eventIndex'
@@ -343,6 +343,7 @@ export default function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, ope
             <button className={'tg-dayhead' + (d === today ? ' today' : '')} onClick={() => onDayClick(d)}>
               <span className="dname">{TR_DAYS_SHORT[weekdayIndex(d)]}</span>
               <span className="dnum">{fromISO(d).getDate()}</span>
+              <span className="dmon">{fromISO(d).getDate()} {TR_MONTHS[fromISO(d).getMonth()].slice(0, 3)}</span>
               {hol.get(d) && <span className="hol-tag" title={hol.get(d)!.name}>{hol.get(d)!.name}</span>}
             </button>
             <AllDayItems data={data} date={d} onOpenTask={onOpenTask} />
@@ -435,7 +436,7 @@ const DayEvents = memo(function DayEvents({ data, date, events, drag, hourPx, on
             key={e.id}
             role="button"
             tabIndex={0}
-            className={`ev ev-${e.status}` + (isPast(e.date, e.end) ? ' past' : '') + (isDragging ? ' dragging' : '') + (h < 34 ? ' compact' : '')}
+            className={`ev ev-${e.status}` + (isPast(e.date, e.end) ? ' past' : '') + (isDragging ? ' dragging' : '') + (h < 34 ? ' compact' : '') + (h >= 78 ? ' roomy' : '')}
             style={{ top, height: h, left: isDragging ? 1 : `calc(${(col / cols) * 100}% + 1px)`, width: isDragging ? 'calc(100% - 3px)' : `calc(${100 / cols}% - 3px)`, ['--ev' as string]: eventColor(data, e) }}
             onPointerDown={(ev) => onDown(ev, orig, 'move')}
             onKeyDown={(ev) => ev.key === 'Enter' && onOpen(orig)}
@@ -443,7 +444,8 @@ const DayEvents = memo(function DayEvents({ data, date, events, drag, hourPx, on
             title={`${eventTitle(data, e)}\n${e.start}–${e.end}`}
           >
             {/* Sade görünüm: yalnızca ad; saat dokununca açılan kartta ve sürüklerken görünür */}
-            <div className="ev-title"><StatusMark e={e} />{shortTitle(data, e)}</div>
+            <div className="ev-title"><EvIcon e={e} /><StatusMark e={e} />{shortTitle(data, e)}</div>
+            {h >= 44 && !isDragging && <div className="ev-time">{e.start} – {e.end}</div>}
             {isDragging && <div className="ev-drag-time">{e.start}–{e.end}</div>}
             <div className="ev-resize" onPointerDown={(ev) => onDown(ev, orig, 'resize')} />
           </div>
@@ -454,3 +456,9 @@ const DayEvents = memo(function DayEvents({ data, date, events, drag, hourPx, on
 }, (a, b) =>
   a.events === b.events && a.drag === b.drag && a.hourPx === b.hourPx && a.date === b.date && a.onDown === b.onDown && a.onOpen === b.onOpen &&
   a.data.groups === b.data.groups && a.data.students === b.data.students && a.data.categories === b.data.categories && a.data.settings === b.data.settings)
+
+/** Ders kutusundaki küçük simge: kurum dersi, etüt, deneme, özel ders ya da kişisel */
+function EvIcon({ e }: { e: CalEvent }) {
+  const I = e.kind === 'ozel' ? UserRound : e.sub === 'deneme' ? FileText : e.kind === 'kurum' ? BookOpen : CalendarDays
+  return <I className="ev-ico" size={13} strokeWidth={2.2} aria-hidden />
+}

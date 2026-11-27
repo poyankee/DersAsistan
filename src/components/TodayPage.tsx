@@ -36,7 +36,7 @@ function relative(mins: number) {
 }
 
 const shortName = (d: ReturnType<typeof useData>, e: CalEvent) =>
-  e.kind === 'kurum' && e.groupCode ? (d.groups[e.groupCode]?.name || e.groupCode) + subSuffix(e)
+  e.kind === 'kurum' && e.groupCode ? ((d.groups[e.groupCode]?.name || e.groupCode) + subSuffix(e, d.groups[e.groupCode]?.name || e.groupCode))
   : e.kind === 'ozel' && e.studentId ? `Özel: ${d.students.find((s) => s.id === e.studentId)?.name ?? e.title}`
   : e.title
 
@@ -395,7 +395,7 @@ function MemosBox({ onOpen }: { onOpen: (m: Memo) => void }) {
   )
 }
 
-function MemoEditor({ memo, onClose }: { memo: Memo; onClose: () => void }) {
+export function MemoEditor({ memo, onClose }: { memo: Memo; onClose: () => void }) {
   const data = useData()
   const [text, setText] = useState(memo.text)
   const isNew = !data.memos.some((m) => m.id === memo.id)

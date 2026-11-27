@@ -209,3 +209,32 @@
 .big-text .table { font-size: .92em; }
 .big-text .table-wrap { overflow-x: auto; }
 .modal:focus { outline: none; }
+
+/* ---------- Ayarlar: bölümler ---------- */
+.settings { max-width: 1180px; }
+.settings-layout { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 20px; align-items: start; }
+.settings-nav { position: sticky; top: 0; display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 22px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-sm); }
+.sn-item { display: flex; align-items: center; gap: 12px; border: 0; background: none; border-radius: 16px; padding: 10px 12px; font: inherit; color: var(--text); cursor: pointer; text-align: left; transition: background .15s; }
+.sn-item:hover { background: var(--surface-2); }
+.sn-item.active { background: var(--primary-soft); }
+.sn-ico { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-2); color: var(--primary); }
+.sn-item.active .sn-ico { background: var(--grad); color: var(--primary-text); }
+.sn-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.sn-text b { font-size: 14.5px; }
+.sn-text small { color: var(--muted); font-size: 12px; line-height: 1.35; }
+.sn-arrow { color: var(--muted); flex: none; }
+.sn-foot { margin: 8px 12px 4px; }
+.settings-content { min-width: 0; }
+.settings-content > .panel:first-of-type, .settings-content > .sc-head + .panel { margin-top: 0; }
+.sc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.sc-head h3 { display: flex; align-items: center; gap: 10px; font-size: 21px; margin: 0; }
+.sc-head h3 svg { color: var(--primary); }
+.sc-back { display: none; }
+@media (min-width: 721px) { .sn-arrow { display: none; } }
+@media (max-width: 720px) {
+  .settings-layout { grid-template-columns: 1fr; }
+  .settings-nav { position: static; }
+  .settings.has-section .settings-nav, .settings.has-section > .page-head { display: none; }
+  .settings:not(.has-section) .settings-content { display: none; }
+  .sc-back { display: inline-grid; }
+}

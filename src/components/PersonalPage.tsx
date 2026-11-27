@@ -1,4 +1,5 @@
 import { tap } from '../lib/a11y'
+import PageArt from './PageArt'
 import { useMemo } from 'react'
 import { CalendarRange, GraduationCap, ListTodo, Plus, UserX } from 'lucide-react'
 import type { CalEvent, Exam, Task } from '../lib/types'
@@ -24,7 +25,7 @@ export default function PersonalPage({ onAddTask, onAddExam, onOpenTask, onOpenE
   }
   return (
     <div className="page">
-      <div className="page-head">
+      <div className="page-head art-head"><PageArt />
         <h2>Kişisel</h2>
         <div className="spacer" />
         <button className="btn primary" onClick={addCategory}><Plus size={16} /> Kategori ekle</button>

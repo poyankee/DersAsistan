@@ -1,4 +1,5 @@
 import { tap } from '../lib/a11y'
+import PageArt from './PageArt'
 import { useMemo, useState } from 'react'
 import { happened, isOff } from '../lib/status'
 import { BookOpenText, FileText, ChevronLeft, GraduationCap, ListTodo, NotebookPen, Pencil, Plus, School } from 'lucide-react'
@@ -45,7 +46,7 @@ export default function ClassesPage({ openEvent, open, setOpen, onAddExam, onAdd
 
   return (
     <div className="page">
-      <div className="page-head">
+      <div className="page-head art-head"><PageArt />
         <h2>Kurum Sınıfları</h2>
         <div className="spacer" />
         <button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> Sınıf ekle</button>
@@ -73,6 +74,7 @@ export default function ClassesPage({ openEvent, open, setOpen, onAddExam, onAdd
           ))}
         </div>
       )}
+      <PageArt foot />
     </div>
   )
 }

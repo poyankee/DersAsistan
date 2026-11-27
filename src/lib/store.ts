@@ -78,7 +78,7 @@ function widgetPayload(d: AppData): string {
       let title = e.title
       let sub = cat ?? 'Etkinlik'
       if (e.kind === 'kurum' && e.groupCode) {
-        title = (g?.name || e.groupCode) + subSuffix(e)
+        title = (g?.name || e.groupCode) + subSuffix(e, g?.name || e.groupCode)
         sub = (g?.name ? e.groupCode + ' · ' : '') + 'Kurum' + (e.hours && e.hours > 1 ? ` · ${e.hours} saat` : '')
       } else if (e.kind === 'ozel') {
         title = d.students.find((s) => s.id === e.studentId)?.name ?? e.title
@@ -494,12 +494,14 @@ export function eventColor(d: AppData, e: CalEvent): string {
 export const SUB_LABEL: Record<NonNullable<CalEvent['sub']>, string> = { etut: 'Etüt', deneme: 'Deneme sınavı' }
 
 /** Kurum etkinliği etüt/deneme ise başlığa eklenecek ek (" · Etüt") */
-export const subSuffix = (e: CalEvent) => (e.kind === 'kurum' && e.sub ? ` · ${SUB_LABEL[e.sub]}` : '')
+/** Etüt / deneme eki; sınıfın adı zaten bunu içeriyorsa (ör. "Etüt") tekrar yazılmaz */
+export const subSuffix = (e: CalEvent, name = '') =>
+  e.kind === 'kurum' && e.sub && !name.toLocaleLowerCase('tr').includes(SUB_LABEL[e.sub].split(' ')[0].toLocaleLowerCase('tr')) ? ` · ${SUB_LABEL[e.sub]}` : ''
 
 export function eventTitle(d: AppData, e: CalEvent): string {
   if (e.kind === 'kurum' && e.groupCode) {
     const name = d.groups[e.groupCode]?.name
-    return (name ? `${name} (${e.groupCode})` : e.groupCode) + subSuffix(e)
+    return (name ? `${name} (${e.groupCode})` : e.groupCode) + subSuffix(e, name || e.groupCode)
   }
   if (e.kind === 'ozel' && e.studentId) {
     const s = d.students.find((x) => x.id === e.studentId)

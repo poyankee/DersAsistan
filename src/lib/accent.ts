@@ -25,8 +25,8 @@ export function accentOf(id?: string): Accent {
 }
 
 /** Ana rengi sayfaya uygular (tüm renkler bu değişkenlerden türetilir) */
-export function applyAccent(id?: string) {
-  const a = accentOf(id)
+export function applyAccent(id?: string | Pick<Accent, 'h' | 's' | 'l' | 'h2'>) {
+  const a = typeof id === 'object' ? id : accentOf(id)
   const st = document.documentElement.style
   st.setProperty('--h', String(a.h))
   st.setProperty('--s', `${a.s}%`)

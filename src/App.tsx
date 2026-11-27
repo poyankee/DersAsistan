@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
-import { BarChart3, CalendarDays, CalendarPlus, GraduationCap, Home, LayoutGrid, ListTodo, Plus, School, Search, Settings, UserRound, Users, Wallet } from 'lucide-react'
+import { BarChart3, BookOpen, CalendarDays, CalendarPlus, GraduationCap, Home, LayoutGrid, ListTodo, Plus, School, Moon, Search, Settings, Sun, UserRound, Users, Wallet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import CalendarPage from './components/CalendarPage'
 import PeoplePage, { type PeopleView } from './components/PeoplePage'
@@ -15,6 +15,8 @@ import { ExamForm, TaskForm, newExam, newTask } from './components/TaskExamForms
 import type { CalEvent, Exam, Task } from './lib/types'
 import { getData, isReady, setData, takeLoadNotice, undoLast, useData } from './lib/store'
 import { applyAccent } from './lib/accent'
+import { useScene } from './lib/useScene'
+import Landscape from './components/Landscape'
 import SearchModal from './components/SearchModal'
 import LockScreen from './components/LockScreen'
 import Intro from './components/Intro'
@@ -84,15 +86,19 @@ export default function App() {
   }, [])
 
   // Tema ve yazı boyutu
+  const scene = useScene()
   useEffect(() => {
     const root = document.documentElement
-    const theme = data.settings.theme ?? 'system'
+    const theme = scene?.dark ? 'dark' : data.settings.theme ?? 'system'
     if (theme === 'system') root.removeAttribute('data-theme')
     else root.setAttribute('data-theme', theme)
     root.style.fontSize = `${15 * (data.settings.fontScale ?? 1)}px`
     root.classList.toggle('big-text', (data.settings.fontScale ?? 1) > 1.05)
-    applyAccent(data.settings.accent)
-  }, [data.settings.theme, data.settings.fontScale, data.settings.accent])
+    // Manzaralı temada ana renk temadan gelir
+    if (scene) root.setAttribute('data-scene', scene.id)
+    else root.removeAttribute('data-scene')
+    applyAccent(scene ?? data.settings.accent)
+  }, [data.settings.theme, data.settings.fontScale, data.settings.accent, scene])
 
   // Uygulama kilidi: açılışta ve 1 dakikadan uzun arka planda kaldıktan sonra
   const [locked, setLocked] = useState(() => !!data.settings.lock)
@@ -201,7 +207,7 @@ export default function App() {
     <div className="app">
       <aside className="sidebar">
         <div className="brand">
-          <img src="./icon.svg" alt="" width={34} height={34} />
+          {scene ? <span className="brand-mark" aria-hidden><BookOpen size={20} /></span> : <img src="./icon.svg" alt="" width={34} height={34} />}
           <div>
             <b>Ders Asistanı</b>
             <small>Öğretmen ajandası</small>
@@ -226,6 +232,8 @@ export default function App() {
             <span>Ayarlar</span>
           </button>
         </nav>
+        {!scene?.dark && <ThemeToggle />}
+        {scene && <div className="side-scene"><Landscape scene={scene} variant="side" /></div>}
       </aside>
 
       <main className="content">
@@ -342,6 +350,21 @@ export default function App() {
         <Intro onDone={() => setData((d) => ({ ...d, settings: { ...d.settings, introSeen: true } }))} />
       )}
       {locked && data.settings.lock && <LockScreen lock={data.settings.lock} onUnlock={() => setLocked(false)} />}
+    </div>
+  )
+}
+
+/** Kenar çubuğundaki açık / koyu düğmesi */
+function ThemeToggle() {
+  const data = useData()
+  const sysDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches
+  const t = data.settings.theme ?? 'system'
+  const dark = t === 'dark' || (t === 'system' && sysDark)
+  const set = (v: 'light' | 'dark') => setData((d) => ({ ...d, settings: { ...d.settings, theme: v } }))
+  return (
+    <div className="theme-toggle" role="group" aria-label="Açık / koyu görünüm">
+      <button className={dark ? 'on' : ''} onClick={() => set('dark')} aria-label="Koyu" aria-pressed={dark}><Moon size={16} /></button>
+      <button className={!dark ? 'on' : ''} onClick={() => set('light')} aria-label="Açık" aria-pressed={!dark}><Sun size={16} /></button>
     </div>
   )
 }

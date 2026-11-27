@@ -15,6 +15,8 @@ import { sortTasks } from './TasksPage'
 import SyncBadge from './SyncBadge'
 import { HomeCardsEditor, homeOrder, type HomeCard } from './HomeCards'
 import Modal from './Modal'
+import Landscape from './Landscape'
+import { useScene } from '../lib/useScene'
 
 function greeting(min: number) {
   if (min < 12 * 60) return { text: 'Günaydın', Icon: Sunrise }
@@ -52,6 +54,7 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
   onReminders: () => void
 }) {
   const data = useData()
+  const scene = useScene()
   const [, tick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => tick((x) => x + 1), 30_000)
@@ -133,7 +136,7 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
             <span className="next-row"><CalendarDays size={16} /> {dayWord(hero.date, today)}, {hero.start} – {hero.end}</span>
             <span className="next-row"><Timer size={16} /> {hero === ongoing ? `bitişe ${relative(toMinutes(hero.end) - now)}` : hero.date === today ? `${relative(toMinutes(hero.start) - now)} sonra` : eventTitle(data, hero) !== shortName(data, hero) ? eventTitle(data, hero) : ' '}</span>
             <span className="next-btn"><Play size={16} fill="currentColor" /> {hero === ongoing ? 'Derse git' : 'Dersi aç'}</span>
-            <MathDeco />
+            {scene ? <span className="card-scene"><Landscape scene={scene} variant="card" /></span> : <MathDeco />}
           </button>
         ) : (
           <div className="hcard next-card empty">
@@ -167,7 +170,7 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
           <h1>{text}{name ? `, ${name}` : ''} <span className="wave" aria-hidden>👋</span></h1>
           <p className="muted"><Icon size={15} /> {subtitle}</p>
         </div>
-        <DeskArt />
+        {scene ? <div className="home-scene"><Landscape scene={scene} variant="hero" /></div> : <DeskArt />}
         <div className="head-actions">
           <SyncBadge compact onClick={goSettings} />
           <button className="round-btn" onClick={onSearch} aria-label="Ara"><Search size={20} /></button>

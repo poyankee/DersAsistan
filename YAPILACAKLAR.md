@@ -119,6 +119,7 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
 - v0.10 Android geri hareketi, görev kategorileri / sıralama / önemli işareti / alt adımlar / ekler,
   takvimde sade kutular, takvimin PDF çıktısı, arama kutusu; Ödemelerim hatırlatma, takvimde ödeme günleri,
   aylık giren / çıkan; yeni ana ekran widget'ı; kalıcı APK imzası
+- v0.15 Manzaralı temalar (7 manzara + mevsime göre + klasik), koyu kenar menüsü, açık/koyu düğmesi
 - v0.14 Gider/gelir kategorileri, kaydettikten sonra Geri al (Ctrl+Z), eşitleme çakışma uyarısı, koleksiyon bazlı kayıt
   dosyaları (telefonda tek yazma), Latin yazı tipleri, parça parça liste, takvim önbelleği, Takvim/Ayarlar kodu bölündü,
   erişilebilirlik (odak halkası, etiketler, klavye, büyük yazıda tablolar)

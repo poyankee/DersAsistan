@@ -12,6 +12,8 @@ import { gestureActive, startGesture } from '../lib/gesture'
 import { moveEvent } from '../lib/eventOps'
 import { findFreeGaps } from '../lib/freeSlots'
 import { eventsByDay } from '../lib/eventIndex'
+import Landscape from './Landscape'
+import { useScene } from '../lib/useScene'
 import { StatusMark, shortTitle } from './calendarShared'
 
 export default function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
@@ -143,6 +145,7 @@ export function DayPanel({ data, date, openEvent, onAdd, onDayView, onAddExam, o
   onAddExam?: (date: string) => void
   onOpenTask?: (t: Task) => void
 }) {
+  const scene = useScene()
   const list = data.events.filter((e) => e.date === date).sort((a, b) => a.start.localeCompare(b.start))
   const exams = data.exams.filter((x) => x.date === date)
   const tasks = data.tasks.filter((t) => !t.done && t.due === date)
@@ -153,6 +156,7 @@ export function DayPanel({ data, date, openEvent, onAdd, onDayView, onAddExam, o
   return (
     <aside className="day-panel">
       <div className="dp-head">
+        {scene && <span className="dp-scene"><Landscape scene={scene} variant="full" /></span>}
         <b>{formatLong(date)}</b>
         {hol && <span className="hol-tag">{hol.name}</span>}
       </div>

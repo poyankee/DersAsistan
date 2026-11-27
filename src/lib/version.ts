@@ -1,5 +1,5 @@
 /** Uygulama sürümü ve "bu sürümde neler değişti" listesi (Ayarlar → Yenilikler) */
-export const APP_VERSION = '0.14'
+export const APP_VERSION = '0.15'
 
 /** Bu arayüz paketinin derleme numarası (yerelde 0) */
 export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
@@ -12,6 +12,15 @@ export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
 export const NATIVE_LEVEL = 1
 
 export const CHANGELOG: { version: string; items: string[] }[] = [
+  {
+    version: '0.15',
+    items: [
+      'Manzaralı temalar: Gün batımı, Sonbahar, Orman, Kış, Çayır, Lavanta, Gece; ya da mevsime göre kendiliğinden (Ayarlar → Görünüm → Tema)',
+      'Koyu kenar menüsü, altında manzara; ana sayfa başlığında, Sıradaki Ders kartında ve takvimin gün panelinde manzara',
+      'Kenar menüsünün altında açık / koyu düğmesi',
+      'Eski renkli görünüm "Klasik renkli" olarak duruyor',
+    ],
+  },
   {
     version: '0.14',
     items: [

@@ -297,6 +297,8 @@ export interface Settings {
   lock?: { salt: string; hash: string }
   /** Ana renk (tema vurgusu) */
   accent?: string
+  /** Manzaralı tema (klasik = eski renkli görünüm) */
+  scene?: import('./scenes').SceneSetting
   /** İlk açılış tanıtımı görüldü mü */
   introSeen?: boolean
 }

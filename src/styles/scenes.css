@@ -1,0 +1,131 @@
+/* ============ Manzaralı temalar ============
+   Kökte data-scene="..." varken geçerlidir. Ana renk (--h …) temadan gelir (lib/scenes.ts).
+   --sc-* değişkenleri manzaranın renkleridir; koyu temada gece renklerine döner. */
+
+[data-scene="gunbatimi"] { --sc-sky1: #f1cfa6; --sc-sky2: #f8ebde; --sc-sun: #fbe6c8; --sc-m3: #e5c9ac; --sc-m2: #c8a07f; --sc-m1: #a98263; --sc-tree: #5b4632; --sc-tree2: #8a6a4e; --sc-side1: #4f3d30; --sc-side2: #8b6a52; --sc-trunk: #5b4632; }
+[data-scene="sonbahar"]  { --sc-sky1: #f5c991; --sc-sky2: #fbeedd; --sc-sun: #ffe3b8; --sc-m3: #ebcaa0; --sc-m2: #d6a376; --sc-m1: #b98258; --sc-tree: #5f5232; --sc-tree2: #92764c; --sc-side1: #5a3a26; --sc-side2: #a0623a; --sc-trunk: #5a3a26; --sc-leaf: #e0782c; --sc-leaf2: #c9551e; }
+[data-scene="orman"]     { --sc-sky1: #dfe8d6; --sc-sky2: #f4f5ee; --sc-sun: #fbf3d8; --sc-m3: #cdd8c3; --sc-m2: #a5b89b; --sc-m1: #7d9673; --sc-tree: #34503a; --sc-tree2: #5f7b5c; --sc-lake: #c3d8d6; --sc-side1: #33443a; --sc-side2: #5e7558; --sc-trunk: #4a3a2a; }
+[data-scene="kis"]       { --sc-sky1: #c7dbec; --sc-sky2: #f0f5f9; --sc-sun: #fff6df; --sc-m3: #c4d3e3; --sc-m2: #98aec6; --sc-m1: #e8eef4; --sc-tree: #36534d; --sc-tree2: #6f8f8a; --sc-snow: #ffffff; --sc-side1: #33414f; --sc-side2: #5f7489; --sc-trunk: #4a3a2a; }
+[data-scene="cayir"]     { --sc-sky1: #dfeacb; --sc-sky2: #f6f7ea; --sc-sun: #fdf3cf; --sc-m3: #d0ddb5; --sc-m2: #aec68d; --sc-m1: #8caa64; --sc-tree: #57773a; --sc-tree2: #7f9a5c; --sc-side1: #3f4d33; --sc-side2: #6c8452; --sc-trunk: #6b4e32; }
+[data-scene="lavanta"]   { --sc-sky1: #b49ccb; --sc-sky2: #efe0ea; --sc-sun: #fbe7ef; --sc-m3: #c5b2d3; --sc-m2: #a18bb8; --sc-m1: #7f6a98; --sc-tree: #483c60; --sc-tree2: #6f5f8a; --sc-side1: #3f3452; --sc-side2: #74628d; --sc-trunk: #3f3452; }
+[data-scene] { --sc-moon: #f4eccf; --sc-lake: #c9d9e3; --sc-snow: #ffffff; --sc-leaf: #e0782c; --sc-leaf2: #c9551e; }
+
+/* Gece renkleri: "Gece" teması ve koyu tema */
+[data-scene="gece"], :root[data-theme="dark"][data-scene] {
+  --sc-sky1: #151a30; --sc-sky2: #39406a; --sc-sun: #f4eccf; --sc-m3: #3a4168; --sc-m2: #2b3154; --sc-m1: #1d2240; --sc-tree: #10142a; --sc-tree2: #232947; --sc-lake: #4b5584; --sc-snow: #c9d2ea; --sc-side1: #151a2e; --sc-side2: #2c3356; --sc-trunk: #10142a; --sc-leaf: #9a5a3a; --sc-leaf2: #7c4730;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-scene]:not([data-theme="light"]) {
+    --sc-sky1: #151a30; --sc-sky2: #39406a; --sc-sun: #f4eccf; --sc-m3: #3a4168; --sc-m2: #2b3154; --sc-m1: #1d2240; --sc-tree: #10142a; --sc-tree2: #232947; --sc-lake: #4b5584; --sc-snow: #c9d2ea; --sc-side1: #151a2e; --sc-side2: #2c3356; --sc-trunk: #10142a; --sc-leaf: #9a5a3a; --sc-leaf2: #7c4730;
+  }
+}
+
+/* Gündüz / gece öğeleri */
+.landscape { display: block; width: 100%; height: 100%; }
+.landscape .ls-night { display: none; }
+[data-scene="gece"] .landscape .ls-night, :root[data-theme="dark"] .landscape .ls-night { display: inline; }
+[data-scene="gece"] .landscape .ls-day, :root[data-theme="dark"] .landscape .ls-day { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .landscape .ls-night { display: inline; }
+  :root:not([data-theme="light"]) .landscape .ls-day { display: none; }
+}
+.ls-fall { animation: leaf-fall 9s ease-in-out infinite; transform-box: fill-box; }
+.ls-fall:nth-of-type(2) { animation-delay: -3s; }
+.ls-fall:nth-of-type(3) { animation-delay: -6s; }
+@keyframes leaf-fall { 0% { translate: 0 -30px; opacity: 0; } 15% { opacity: 1; } 100% { translate: 60px 150px; rotate: 160deg; opacity: 0; } }
+
+/* Açık temada sıcak, kâğıt tonlu yüzeyler (örnek tasarımdaki gibi) */
+:root[data-scene]:not([data-theme="dark"]):not([data-scene="gece"]) {
+  --bg: hsl(var(--h) 34% 95%);
+  --bg-art: radial-gradient(900px 520px at 100% -10%, hsl(var(--h2) 60% 90% / .7), transparent 70%);
+  --surface: hsl(var(--h) 45% 98.6%);
+  --surface-2: hsl(var(--h) 36% 95%);
+  --surface-3: hsl(var(--h) 30% 90%);
+  --glass: hsl(var(--h) 40% 98% / .78);
+  --primary-soft: hsl(var(--h) 45% 92%);
+  --text: hsl(var(--h) 28% 14%);
+  --text-2: hsl(var(--h) 18% 30%);
+  --muted: hsl(var(--h) 12% 45%);
+  --line: hsl(var(--h) 28% 89%);
+  --line-strong: hsl(var(--h) 24% 80%);
+  --grad: linear-gradient(135deg, hsl(var(--h) var(--s) calc(var(--l) + 8%)), hsl(var(--h) var(--s) calc(var(--l) - 4%)));
+  --shadow-sm: 0 1px 2px hsl(var(--h) 40% 25% / .05), 0 4px 14px -4px hsl(var(--h) 40% 25% / .08);
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-scene]:not([data-theme="light"]):not([data-theme="dark"]) {
+    --bg: hsl(var(--h) 22% 7%); --surface: hsl(var(--h) 16% 11.5%); --surface-2: hsl(var(--h) 15% 15%); --surface-3: hsl(var(--h) 14% 20%);
+    --text: hsl(var(--h) 25% 94%); --text-2: hsl(var(--h) 14% 80%); --muted: hsl(var(--h) 10% 62%); --line: hsl(var(--h) 14% 19%); --line-strong: hsl(var(--h) 12% 28%);
+  }
+}
+
+/* ---------- Kenar çubuğu: koyu, alt kısmında manzara ---------- */
+[data-scene] .sidebar { position: relative; background: linear-gradient(180deg, var(--sc-side1), var(--sc-side2)); border-right: 0; color: #fff; isolation: isolate; }
+[data-scene] .sidebar > * { position: relative; z-index: 1; }
+[data-scene] .sidebar .side-scene { position: absolute; z-index: 0; left: 0; right: 0; bottom: 0; height: 300px; pointer-events: none; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 45%); mask-image: linear-gradient(to bottom, transparent, #000 45%); opacity: .95; }
+[data-scene] .brand b { background: none; color: #fff; }
+[data-scene] .brand small { color: rgba(255, 255, 255, .72); }
+[data-scene] .sidebar .create-btn { background: linear-gradient(135deg, hsl(var(--h) 38% 66%), hsl(var(--h) 34% 52%)); color: #fff; box-shadow: 0 10px 22px -10px rgba(0, 0, 0, .55); }
+[data-scene] .sidebar .side-search { color: rgba(255, 255, 255, .78); background: rgba(255, 255, 255, .08); border-color: rgba(255, 255, 255, .14); }
+[data-scene] .sidebar .side-search:hover { background: rgba(255, 255, 255, .14); }
+[data-scene] .sidebar .sync-badge { color: rgba(255, 255, 255, .78); }
+[data-scene] .side-nav button { color: rgba(255, 255, 255, .86); text-shadow: 0 1px 2px rgba(0, 0, 0, .2); }
+[data-scene] .side-nav button:hover { background: rgba(255, 255, 255, .12); }
+[data-scene] .side-nav button.active { background: rgba(255, 252, 248, .93); color: var(--sc-side1); text-shadow: none; box-shadow: 0 8px 20px -10px rgba(0, 0, 0, .5); }
+[data-scene] .sidebar .nav-badge { background: rgba(255, 255, 255, .9); color: var(--sc-side1); box-shadow: none; }
+[data-scene] .sidebar .side-nav button.active .nav-badge { background: var(--sc-side2); color: #fff; }
+
+/* Açık / koyu düğmesi (kenar çubuğunun altında) */
+.theme-toggle { display: inline-flex; align-self: flex-start; margin: 2px 8px 4px; padding: 4px; gap: 2px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); }
+.theme-toggle button { width: 38px; height: 32px; border: 0; border-radius: 999px; background: none; color: var(--muted); display: grid; place-items: center; cursor: pointer; transition: background .2s, color .2s; }
+.theme-toggle button.on { background: var(--surface); color: var(--primary); box-shadow: var(--shadow-sm); }
+[data-scene] .sidebar .theme-toggle { background: rgba(0, 0, 0, .25); border-color: rgba(255, 255, 255, .14); }
+[data-scene] .sidebar .theme-toggle button { color: rgba(255, 255, 255, .8); }
+[data-scene] .sidebar .theme-toggle button.on { background: rgba(255, 252, 248, .95); color: var(--sc-side1); }
+
+/* ---------- Ana sayfa başlığındaki manzara ---------- */
+.home-scene { position: absolute; z-index: 0; top: -22px; right: -24px; width: min(64%, 900px); height: 230px; pointer-events: none;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 32%), linear-gradient(to bottom, #000 62%, transparent);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(to right, transparent, #000 32%), linear-gradient(to bottom, #000 62%, transparent); mask-composite: intersect; }
+[data-scene] .home-head { min-height: 120px; }
+[data-scene] .home-date { position: relative; z-index: 1; }
+[data-scene] .home .round-btn { background: color-mix(in srgb, var(--surface) 85%, transparent); backdrop-filter: blur(6px); }
+[data-scene] .home-date .icon-btn, [data-scene] .home-date .btn { background: color-mix(in srgb, var(--surface) 80%, transparent); backdrop-filter: blur(6px); border-radius: 999px; }
+[data-scene] .avatar-btn { background: linear-gradient(135deg, var(--sc-side2), var(--sc-side1)); }
+@media (max-width: 720px) {
+  .home-scene { width: 100%; right: -16px; top: -16px; height: 190px; opacity: .55; -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent); mask-image: linear-gradient(to bottom, #000 40%, transparent); }
+}
+
+/* Sıradaki ders kartı: koyu tonlu, altta manzara */
+[data-scene] .next-card:not(.empty) { background: linear-gradient(150deg, var(--sc-side1), var(--sc-side2)); box-shadow: 0 18px 36px -18px rgba(0, 0, 0, .55); }
+[data-scene] .next-card .card-scene { position: absolute; z-index: 0; left: 0; right: 0; bottom: 0; height: 62%; opacity: .5; pointer-events: none; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 50%); mask-image: linear-gradient(to bottom, transparent, #000 50%); }
+[data-scene] .next-card .next-label { position: relative; z-index: 1; }
+[data-scene] .next-btn { color: var(--sc-side1); }
+
+/* Takvim: ay görünümündeki gün paneli başlığı */
+.dp-scene { position: absolute; inset: 0; z-index: 0; pointer-events: none; -webkit-mask-image: linear-gradient(to left, #000 30%, transparent); mask-image: linear-gradient(to left, #000 30%, transparent); opacity: .9; }
+[data-scene] .day-panel .dp-head { position: relative; overflow: hidden; min-height: 96px; border-radius: 16px 16px 0 0; }
+[data-scene] .day-panel .dp-head > :not(.dp-scene) { position: relative; z-index: 1; }
+
+/* Ayarlar: tema seçici */
+.scene-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.scene-card { position: relative; border: 2px solid var(--line); border-radius: 16px; padding: 0; overflow: hidden; background: var(--surface-2); cursor: pointer; text-align: left; font: inherit; color: var(--text); transition: transform .15s, border-color .15s; }
+.scene-card:hover { transform: translateY(-2px); }
+.scene-card.sel { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent); }
+.scene-card .scene-thumb { height: 74px; }
+.scene-card span { display: flex; align-items: center; gap: 6px; padding: 7px 10px 8px; font-weight: 650; font-size: 13.5px; }
+.scene-card small { color: var(--muted); font-weight: 500; }
+.scene-card .classic-thumb { height: 74px; background: linear-gradient(135deg, hsl(252 85% 60%), hsl(292 85% 60%)); }
+.scene-card .auto-thumb { height: 74px; display: grid; grid-template-columns: repeat(4, 1fr); }
+
+/* Ayarlardaki önizlemeler her zaman gündüz hâlini gösterir (Gece hariç) */
+.scene-card .landscape .ls-night { display: none !important; }
+.scene-card .landscape .ls-day { display: inline !important; }
+.scene-card[data-scene="gece"] .landscape .ls-night { display: inline !important; }
+.scene-card[data-scene="gece"] .landscape .ls-day { display: none !important; }
+
+/* Kenar çubuğu manzarası yazıların okunması için biraz koyulaştırılır */
+[data-scene] .sidebar .side-scene .landscape { filter: brightness(.8) saturate(1.05); }
+[data-scene] .sidebar .spacer + .side-nav button:not(.active) { text-shadow: 0 1px 6px rgba(0, 0, 0, .55); }
+
+/* Logo: temanın renginde açık kitap */
+.brand-mark { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; color: #fff8ee; background: linear-gradient(135deg, hsl(var(--h) 42% 64%), hsl(var(--h) 36% 46%)); box-shadow: 0 6px 14px -6px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .3); }

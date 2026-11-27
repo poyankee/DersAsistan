@@ -118,7 +118,7 @@ function writeAll() {
  * Art arda hızlı değişiklikler (yazma, sürükleme) tek adım sayılır. Geri alınca yalnızca o
  * adımda değişen ve sonradan başka yerden (ör. eşitleme) değiştirilmemiş bölümler eski hâline döner.
  */
-interface UndoStep { before: AppData; after: AppData; at: number }
+interface UndoStep { before: AppData; after: AppData; at: number; keys: Set<keyof AppData> }
 const undoStack: UndoStep[] = []
 const UNDO_MAX = 40
 const UNDO_MERGE_MS = 1200
@@ -130,11 +130,16 @@ export function setData(updater: (d: AppData) => AppData, opts: { history?: bool
   if (opts.history !== false && ready) {
     const now = Date.now()
     const last = undoStack[undoStack.length - 1]
-    if (last && last.after === before && now - last.at < UNDO_MERGE_MS) {
+    const keys = new Set((Object.keys(state) as (keyof AppData)[]).filter((k) => !UNDO_SKIP.includes(k) && state[k] !== before[k]))
+    // Yalnızca aynı bölümlerdeki hızlı değişiklikler birleştirilir (yazma, sürükleme); ilgisiz bir değişiklik ayrı adımdır
+    // Aynı işlemdeki art arda kayıtlar (ör. öğrenci + dersleri) her zaman tek adımdır
+    const sameAction = now - last?.at < 250
+    if (last && last.after === before && (sameAction || (now - last.at < UNDO_MERGE_MS && [...keys].every((k) => last.keys.has(k))))) {
       last.after = state
       last.at = now
-    } else {
-      undoStack.push({ before, after: state, at: now })
+      keys.forEach((k) => last.keys.add(k))
+    } else if (keys.size) {
+      undoStack.push({ before, after: state, at: now, keys })
       if (undoStack.length > UNDO_MAX) undoStack.shift()
     }
   }

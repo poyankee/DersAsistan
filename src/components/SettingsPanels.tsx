@@ -1,4 +1,6 @@
 /* Ayarlar sayfasının bölümleri */
+import Landscape from './Landscape'
+import { SCENES, activeScene } from '../lib/scenes'
 import { useState } from 'react'
 import DateInput from './DateInput'
 import { Bell, BookOpen, Bug, KeyRound, Sparkles, Palette, RotateCcw, ShieldCheck, Trash2, ChevronDown, ChevronUp, LayoutList } from 'lucide-react'
@@ -66,6 +68,7 @@ export function AppearancePanel() {
   const data = useData()
   const theme = data.settings.theme ?? 'system'
   const scale = data.settings.fontScale ?? 1
+  const sceneSet = data.settings.scene ?? 'gunbatimi'
   return (
     <section className="panel">
       <h3 className="row-title"><Palette size={18} /> Görünüm</h3>
@@ -74,6 +77,27 @@ export function AppearancePanel() {
         <input value={data.settings.userName ?? ''} onChange={(e) => setData((d) => ({ ...d, settings: { ...d.settings, userName: e.target.value || undefined } }))} placeholder="ör. Poyraz" />
       </label>
       <div className="field">
+        <span>Tema</span>
+        <div className="scene-list">
+          {SCENES.map((sc) => (
+            <button key={sc.id} data-scene={sc.id} className={'scene-card' + (sceneSet === sc.id ? ' sel' : '')} onClick={() => setSettings({ scene: sc.id })} aria-pressed={sceneSet === sc.id}>
+              <div className="scene-thumb"><Landscape scene={sc} variant="full" /></div>
+              <span>{sc.name}</span>
+            </button>
+          ))}
+          <button className={'scene-card' + (sceneSet === 'otomatik' ? ' sel' : '')} onClick={() => setSettings({ scene: 'otomatik' })} aria-pressed={sceneSet === 'otomatik'}>
+            <div className="auto-thumb">
+              {(['kis', 'cayir', 'orman', 'sonbahar'] as const).map((id) => <div key={id} data-scene={id}><Landscape scene={SCENES.find((x) => x.id === id)!} variant="side" /></div>)}
+            </div>
+            <span>Mevsime göre <small>· şu an {activeScene('otomatik', todayISO())!.name}</small></span>
+          </button>
+          <button className={'scene-card' + (sceneSet === 'klasik' ? ' sel' : '')} onClick={() => setSettings({ scene: 'klasik' })} aria-pressed={sceneSet === 'klasik'}>
+            <div className="classic-thumb" />
+            <span>Klasik renkli</span>
+          </button>
+        </div>
+      </div>
+      {sceneSet === 'klasik' && <div className="field">
         <span>Ana renk</span>
         <div className="accent-list">
           {ACCENTS.map((a) => (
@@ -86,10 +110,10 @@ export function AppearancePanel() {
             ><span>{a.name}</span></button>
           ))}
         </div>
-      </div>
+      </div>}
       <div className="row wrap">
         <div className="field">
-          <span>Tema</span>
+          <span>Açık / koyu</span>
           <div className="seg small" style={{ margin: 0 }}>
             {([['system', 'Telefona göre'], ['light', 'Açık'], ['dark', 'Koyu']] as const).map(([v, l]) => (
               <button key={v} className={theme === v ? 'active' : ''} onClick={() => setSettings({ theme: v })}>{l}</button>
@@ -270,6 +294,7 @@ const GUIDE: [string, string][] = [
   ['Telefon ve tableti eşitlemek', 'Ayarlar → Hesap ve eşitleme. Önce telefonda sunucu adresini girip hesap oluşturun, sonra tablette aynı bilgilerle giriş yapın. Değişiklikler birkaç saniyede öteki cihaza geçer; veriler cihazda şifrelenir.'],
   ['Menü düzeni', 'Ayarlar → Menü düzeni: sayfaların sırasını oklarla değiştirin, kullanmadıklarınızı gizleyin. Telefonda ilk 4 sayfa alt menüde, gerisi "Menü"de.'],
   ['Gelirler ve giderler', 'Ödemeler → Ödemelerim (kira, kart, fatura) ve Gelirlerim (maaş, kurum ödemesi, ek gelirler). Her ay, 2 ayda bir, yılda bir ya da tek seferlik olabilir; bir aya birden fazla ödeme yazılabilir (ör. kurumdan 5\'i ve 15\'i).'],
+  ['Tema değiştirmek', 'Ayarlar → Görünüm → Tema: Gün batımı, Sonbahar, Orman, Kış, Çayır, Lavanta, Gece ya da "Mevsime göre". Açık / koyu için kenar menüsünün altındaki ay–güneş düğmesi.'],
   ['Geri almak', 'Bir şeyi kaydettikten sonra altta çıkan "Geri al"a dokunun. Klavyede Ctrl+Z son değişikliği geri alır. Silinen kayıtlar ayrıca 30 gün Ayarlar → Çöp kutusu\'nda durur.'],
   ['Gider/gelir kategorileri', 'Ödemeler → kaleme dokunun → Kategori. Seçmezseniz addan tahmin edilir (ör. "Elektrik" → Fatura). Dağılım Ödemelerim\'in özetinde, aylık tablo Raporlar → Gelir–gider\'de.'],
   ['Güncellemeler', 'Yeni sürümler kendiliğinden indirilir; ekranın altında "Yeni sürüm hazır" çıkınca "Yeniden başlat"a dokunun. APK aramanıza gerek yok.'],

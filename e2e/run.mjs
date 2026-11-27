@@ -590,10 +590,25 @@ test('erişilebilirlik: simge düğmelerinin adı var, kartlar klavyeyle açıl�
   assert.deepEqual(errors, [])
 })
 
+test('manzaralı temalar: varsayılan Gün batımı, Kış ve Klasik seçilebilir', async (browser) => {
+  const { page, errors, nav } = await open(browser)
+  const scene = () => page.evaluate(() => document.documentElement.getAttribute('data-scene'))
+  assert.equal(await scene(), 'gunbatimi')
+  assert.equal(await page.locator('.home-scene svg').count(), 1)
+  await nav('Ayarlar')
+  await page.locator('.scene-card', { hasText: 'Kış' }).click()
+  assert.equal(await scene(), 'kis')
+  await page.locator('.scene-card', { hasText: 'Klasik' }).click()
+  assert.equal(await scene(), null)
+  await page.locator('.scene-card', { hasText: 'Gece' }).click()
+  assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-theme')), 'dark')
+  assert.deepEqual(errors, [])
+})
+
 await waitForServer()
 const browser = await chromium.launch()
 let failed = 0
-for (const t of tests) {
+for (const t of tests.filter((x) => !process.env.E2E_ONLY || x.name.includes(process.env.E2E_ONLY))) {
   const started = Date.now()
   try {
     await t.fn(browser)

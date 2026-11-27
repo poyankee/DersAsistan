@@ -3,7 +3,7 @@ import type { AppData, Bill, BillPayment, Book, CalEvent, ClassNote, Exam, Group
 import { PALETTE, colorFor, uid } from './util'
 import type { Category } from './types'
 import { isNative } from './native'
-import { dropLegacy, flush, persist, readCandidates, readSnapshots } from './persist'
+import { dropLegacy, flush, persistNative, persistWebSnapshot, readCandidates, readSnapshots, setLegacyLocalKey } from './persist'
 import { DEFAULT_CATEGORIES, emptyData, parseData } from './schema'
 import { addDays, todayISO } from './date'
 
@@ -96,16 +96,20 @@ function widgetPayload(d: AppData): string {
 let ready = false
 
 function writeAll() {
+  // Android: asıl kayıt dosyalardadır; yalnızca değişen koleksiyonlar yazılır (tüm veri her seferinde metne çevrilmez)
+  if (isNative) {
+    const snapshot = state
+    if (ready) persistNative(snapshot, () => widgetPayload(snapshot), todayISO())
+    return
+  }
   const json = JSON.stringify(state)
   try {
     localStorage.setItem(KEY, json)
   } catch (e) {
-    // Android'de asıl kayıt dosyadadır; tarayıcı deposu dolarsa sorun değil
-    if (!isNative) alert('Veri kaydedilemedi! Tarayıcı deposu dolu olabilir. Lütfen yedek alın.')
+    alert('Veri kaydedilemedi! Tarayıcı deposu dolu olabilir. Lütfen yedek alın.')
     console.error(e)
   }
-  // Kalıcı kopya ancak açılıştaki yükleme bittikten sonra yazılır
-  if (ready) persist(json, widgetPayload(state), todayISO())
+  if (ready) persistWebSnapshot(json, todayISO())
 }
 
 export function setData(updater: (d: AppData) => AppData) {
@@ -119,6 +123,7 @@ export function setData(updater: (d: AppData) => AppData) {
  * Hiçbiri sağlam değilse günlük sağlam kopyalara dönülür.
  */
 export async function initStore() {
+  setLegacyLocalKey(KEY)
   try {
     const candidates = await readCandidates(KEY)
     let best: AppData | null = state.savedAt || state.events.length || state.students.length ? state : null

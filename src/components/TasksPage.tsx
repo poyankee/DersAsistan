@@ -7,6 +7,7 @@ import { showToast } from '../lib/toast'
 import { PALETTE, uid } from '../lib/util'
 import { newTask } from './TaskExamForms'
 import DateInput from './DateInput'
+import { useIncremental } from './ShowMore'
 
 type Filter = 'acik' | 'bugun' | 'tamam'
 export type TaskSort = 'yeni' | 'eski' | 'tarih' | 'az'
@@ -83,6 +84,7 @@ export default function TasksPage({ onOpen }: { onOpen: (t: Task) => void }) {
       done: data.tasks.filter((t) => t.done && inCat(t)).sort((a, b) => (b.doneAt ?? '').localeCompare(a.doneAt ?? '') || b.createdAt - a.createdAt),
     }
   }, [data.tasks, today, sort, activeCat]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [doneShown, doneMore] = useIncremental(groups.done, 50)
   const openCount = groups.late.length + groups.today.length + groups.week.length + groups.later.length + groups.someday.length
 
   const toggle = (t: Task) => {
@@ -105,10 +107,10 @@ export default function TasksPage({ onOpen }: { onOpen: (t: Task) => void }) {
   }
 
   // Not: bileşen değil düz fonksiyon; her yazışta listenin yeniden oluşup titremesini önler
-  const section = (name: string, list: Task[], tone?: string) =>
+  const section = (name: string, list: Task[], tone?: string, total = list.length) =>
     list.length === 0 ? null : (
       <section className="todo-section" key={name}>
-        <h4 className={tone}>{name} <span>{list.length}</span></h4>
+        <h4 className={tone}>{name} <span>{total}</span></h4>
         <ul className="todo-list">
           {list.map((t) => {
             const link = linkName(t)
@@ -194,7 +196,8 @@ export default function TasksPage({ onOpen }: { onOpen: (t: Task) => void }) {
       )}
       {filter === 'tamam' && (
         <>
-          {section('Tamamlananlar', groups.done)}
+          {section('Tamamlananlar', doneShown, undefined, groups.done.length)}
+          {doneMore}
           {groups.done.length === 0 ? <p className="muted pad center">Henüz tamamlanan görev yok.</p> : (
             <button className="btn small ghost" onClick={clearDone}><Trash2 size={14} /> Tamamlananları temizle</button>
           )}

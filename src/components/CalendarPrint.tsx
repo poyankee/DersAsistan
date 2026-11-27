@@ -6,6 +6,7 @@ import { eventColor, subSuffix, useData } from '../lib/store'
 import { TR_DAYS, addDays, addMonths, formatDMY, fromISO, monthLabel, startOfMonth, startOfWeek } from '../lib/date'
 import { holidayMap } from '../lib/holidays'
 import { isOff } from '../lib/status'
+import { eventsByDay } from '../lib/eventIndex'
 import { isNative, printPage } from '../lib/native'
 
 type Mode = 'hafta' | 'ay'
@@ -34,12 +35,7 @@ export default function CalendarPrint({ date, initialMode, onClose }: { date: st
   }, [onClose])
 
   const hol = holidayMap(data)
-  const byDay = new Map<string, CalEvent[]>()
-  for (const e of data.events) {
-    if (!byDay.has(e.date)) byDay.set(e.date, [])
-    byDay.get(e.date)!.push(e)
-  }
-  byDay.forEach((l) => l.sort((a, b) => a.start.localeCompare(b.start)))
+  const byDay = eventsByDay(data.events)
 
   const weekStart = startOfWeek(cursor)
   const monthStart = startOfMonth(cursor)

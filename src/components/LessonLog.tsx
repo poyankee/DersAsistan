@@ -8,6 +8,7 @@ import { formatDMYDay, todayISO } from '../lib/date'
 import { showToast } from '../lib/toast'
 import { uid } from '../lib/util'
 import DateInput from './DateInput'
+import { useIncremental } from './ShowMore'
 import Modal from './Modal'
 
 type Item = { kind: 'lesson'; key: string; date: string; e: CalEvent } | { kind: 'note'; key: string; date: string; n: StudentNote }
@@ -49,6 +50,7 @@ export default function LessonLog({ studentId, groupCode, kind = 'ders' }: { stu
     return out.sort((a, b) => b.date.localeCompare(a.date))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.events, data.notes, studentId, groupCode, mode])
+  const [shown, more] = useIncremental(items, 40)
 
   const reset = () => {
     setDate(today)
@@ -112,7 +114,7 @@ export default function LessonLog({ studentId, groupCode, kind = 'ders' }: { stu
         <p className="muted">{mode === 'not' ? 'Henüz not yok. Veli görüşmesi, dikkat edilecekler gibi kendinize notları buraya yazın; ders kayıtlarında görünmez.' : 'Henüz kayıt yok. Yukarıdan ilk dersi yazın.'}</p>
       ) : (
         <ol className="log-list">
-          {items.map((it) =>
+          {shown.map((it) =>
             it.kind === 'lesson' ? (
               <li key={it.key} className={'log-item' + (isOff(it.e) ? ' off' : '')} onClick={() => setEditing(it.e)}>
                 <div className="log-date"><b>{formatDMYDay(it.e.date)}</b><small>{it.e.start}–{it.e.end}</small></div>
@@ -131,6 +133,7 @@ export default function LessonLog({ studentId, groupCode, kind = 'ders' }: { stu
           )}
         </ol>
       )}
+      {more}
 
       {editing && <EntryEditor ev={editing} books={studentId ? data.books.filter((b) => b.studentId === studentId) : []} onClose={() => setEditing(null)} />}
       {editingNote && <NoteEditor note={editingNote} onClose={() => setEditingNote(null)} />}

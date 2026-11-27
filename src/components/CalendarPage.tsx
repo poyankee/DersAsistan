@@ -18,6 +18,7 @@ import CalendarPrint from './CalendarPrint'
 import { gestureActive, startGesture } from '../lib/gesture'
 import { moveEvent } from '../lib/eventOps'
 import { findFreeGaps } from '../lib/freeSlots'
+import { eventsByDay } from '../lib/eventIndex'
 import Modal from './Modal'
 
 type View = 'day' | '3day' | 'week' | 'month' | 'agenda'
@@ -331,13 +332,8 @@ function TimeGrid({ data, days, scrollKey, hourPx, setHourPx, openEvent, onEmpty
   // Sürüklemeden bağımsız gün listeleri: sürükleme sırasında değişmez, böylece diğer günler yeniden çizilmez
   const dayKey = days.join()
   const byDay = useMemo(() => {
-    const m = new Map<string, CalEvent[]>()
-    for (const e of data.events) {
-      if (!days.includes(e.date)) continue
-      if (!m.has(e.date)) m.set(e.date, [])
-      m.get(e.date)!.push(e)
-    }
-    return m
+    const all = eventsByDay(data.events)
+    return new Map(days.map((d) => [d, all.get(d) ?? EMPTY]))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.events, dayKey])
   const downRef = useRef<(ev: React.PointerEvent, e: CalEvent, mode: 'move' | 'resize') => void>(() => undefined)
@@ -682,7 +678,9 @@ const DayEvents = memo(function DayEvents({ data, date, events, drag, hourPx, on
       })}
     </>
   )
-})
+}, (a, b) =>
+  a.events === b.events && a.drag === b.drag && a.hourPx === b.hourPx && a.date === b.date && a.onDown === b.onDown && a.onOpen === b.onOpen &&
+  a.data.groups === b.data.groups && a.data.students === b.data.students && a.data.categories === b.data.categories && a.data.settings === b.data.settings)
 
 function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
   data: AppData
@@ -700,9 +698,10 @@ function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
   const [drag, setDrag] = useState<{ id: string; date: string } | null>(null)
   const sw = useRef<{ x: number; y: number } | null>(null)
   const byDay = useMemo(() => {
+    if (!drag) return eventsByDay(data.events)
     const m = new Map<string, CalEvent[]>()
     for (const e0 of data.events) {
-      const e = drag && e0.id === drag.id ? { ...e0, date: drag.date } : e0
+      const e = e0.id === drag.id ? { ...e0, date: drag.date } : e0
       if (!m.has(e.date)) m.set(e.date, [])
       m.get(e.date)!.push(e)
     }

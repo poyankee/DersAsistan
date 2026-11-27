@@ -192,3 +192,6 @@
 .count-table td, .count-table th { text-align: right; font-variant-numeric: tabular-nums; }
 .count-table td:first-child, .count-table th:first-child { text-align: left; }
 .count-table .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
+
+/* Uzun listelerde "Daha fazla göster" */
+.show-more { display: block; margin: 10px auto; }

@@ -92,3 +92,7 @@
 .bill-table .flow-in td { color: #16a34a; }
 .bill-table .flow-net-row td { border-top: 1px solid var(--line); }
 .kurum-pay { margin: 18px 0 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+/* Gider/gelir kategorileri */
+.cat-tag { font-style: normal; font-weight: 600; opacity: .8; }
+.cat-bars { margin: 6px 0 14px; }

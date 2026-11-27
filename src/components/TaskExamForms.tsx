@@ -3,7 +3,7 @@ import TaskExtras from './TaskExtras'
 import { Star } from 'lucide-react'
 import DateInput from './DateInput'
 import type { Exam, Task } from '../lib/types'
-import { deleteExam, deleteTask, saveExam, saveTask, useData } from '../lib/store'
+import { deleteExam, deleteTask, saveExam, saveTask, useData, savedToast } from '../lib/store'
 import { addDays, startOfWeek, todayISO } from '../lib/date'
 import { uid } from '../lib/util'
 import Modal from './Modal'
@@ -57,10 +57,10 @@ export function TaskForm({ initial, onClose }: { initial: Task; onClose: () => v
       onClose={onClose}
       footer={
         <>
-          {!isNew && <button className="btn danger" onClick={() => { deleteTask(t.id); onClose() }}>Sil</button>}
+          {!isNew && <button className="btn danger" onClick={() => { deleteTask(t.id); savedToast('Görev silindi'); onClose() }}>Sil</button>}
           <div className="spacer" />
           <button className="btn" onClick={onClose}>Vazgeç</button>
-          <button className="btn primary" disabled={!t.title.trim()} onClick={() => { saveTask({ ...t, title: t.title.trim() }); onClose() }}>Kaydet</button>
+          <button className="btn primary" disabled={!t.title.trim()} onClick={() => { saveTask({ ...t, title: t.title.trim() }); savedToast(isNew ? 'Görev eklendi' : 'Görev kaydedildi'); onClose() }}>Kaydet</button>
         </>
       }
     >
@@ -99,10 +99,10 @@ export function ExamForm({ initial, onClose }: { initial: Exam; onClose: () => v
       onClose={onClose}
       footer={
         <>
-          {!isNew && <button className="btn danger" onClick={() => { deleteExam(x.id); onClose() }}>Sil</button>}
+          {!isNew && <button className="btn danger" onClick={() => { deleteExam(x.id); savedToast('Sınav silindi'); onClose() }}>Sil</button>}
           <div className="spacer" />
           <button className="btn" onClick={onClose}>Vazgeç</button>
-          <button className="btn primary" disabled={!x.title.trim() || !x.date} onClick={() => { saveExam({ ...x, title: x.title.trim() }); onClose() }}>Kaydet</button>
+          <button className="btn primary" disabled={!x.title.trim() || !x.date} onClick={() => { saveExam({ ...x, title: x.title.trim() }); savedToast(isNew ? 'Sınav eklendi' : 'Sınav kaydedildi'); onClose() }}>Kaydet</button>
         </>
       }
     >

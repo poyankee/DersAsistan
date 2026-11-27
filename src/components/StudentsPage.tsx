@@ -1,10 +1,11 @@
+import { tap } from '../lib/a11y'
 import { useMemo, useState } from 'react'
 import { happened } from '../lib/status'
 import DateInput from './DateInput'
 import { Percent, Search, UserPlus } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { CalEvent, Payment, PayWhen, Student } from '../lib/types'
-import { deletePayment, deleteStudent, getData, newStudent, saveEvents, savePayment, saveStudent, useData } from '../lib/store'
+import { deletePayment, deleteStudent, getData, newStudent, saveEvents, savePayment, saveStudent, useData, savedToast } from '../lib/store'
 import { PAY_WHEN_LABEL, financeLine, payWhenOf, studentFinance, type StudentFinance } from '../lib/finance'
 import { addDays, formatDMY, formatDMYDay, todayISO } from '../lib/date'
 import { PALETTE, money, uid } from '../lib/util'
@@ -120,7 +121,7 @@ export default function StudentsPage({ openEvent, selected, onSelect, payPick, o
             const next = nextLesson.get(s.id)
             const last = lastTopic.get(s.id)
             return (
-              <div key={s.id} className={'card student' + (s.active ? '' : ' inactive') + (s.id === selected ? ' selected' : '')} onClick={() => onSelect(s.id)}>
+              <div key={s.id} className={'card student' + (s.active ? '' : ' inactive') + (s.id === selected ? ' selected' : '')} {...tap(() => onSelect(s.id))}>
                 <div className="card-top">
                   <i className="avatar" style={{ background: s.color }}>{s.name.slice(0, 1).toLocaleUpperCase('tr')}</i>
                   <div className="grow">
@@ -217,6 +218,7 @@ export function StudentForm({ initial, onClose, onDeleted }: { initial: Student;
             onClick={() => {
               saveStudent({ ...s, name: s.name.trim() })
               if (!isNew && updateFuture && futurePlanned.length) saveEvents(futurePlanned.map((e) => ({ ...e, fee: s.fee })))
+              savedToast(isNew ? `${s.name.trim()} eklendi` : 'Öğrenci bilgileri kaydedildi')
               onClose()
             }}
           >Kaydet</button>
@@ -291,6 +293,7 @@ export function PaymentForm({ initial, onClose }: { initial: Payment; onClose: (
     // Borç kapandıysa ödeme notunu temizle
     const st = getData().students.find((s) => s.id === p.studentId)
     if (st?.payNote && studentFinance(getData(), st, today).debt <= 0) saveStudent({ ...st, payNote: undefined })
+    savedToast(isNew ? 'Ödeme kaydedildi' : 'Ödeme güncellendi')
     onClose()
   }
 

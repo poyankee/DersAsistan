@@ -156,3 +156,47 @@ export function cashFlow(d: AppData, month: string, today = todayISO()): CashFlo
   const income = ozel + gelir
   return { month, ozel, gelir, kurum, kurumEstimate, kurumHours, income, out, net: income - out }
 }
+
+/* ---------------- Kategoriler ---------------- */
+
+export const BILL_CATS: Record<'gider' | 'gelir', string[]> = {
+  gider: ['Fatura', 'Kira', 'Kredi / Kart', 'Ulaşım', 'Market', 'Eğitim', 'Sağlık', 'Abonelik', 'Diğer'],
+  gelir: ['Maaş', 'Kurum', 'Özel ders', 'Ek iş', 'Kira geliri', 'Diğer'],
+}
+
+const GUESS: [RegExp, string][] = [
+  [/elektri|(^|\s)su(\s|$)|doğalgaz|dogalgaz|internet|telefon|fatura|aidat|gsm/i, 'Fatura'],
+  [/kira/i, 'Kira'],
+  [/kredi|kart|taksit|borç|borc/i, 'Kredi / Kart'],
+  [/benzin|akaryakıt|otobüs|ulaşım|ulasim|araba|araç|arac|kasko|sigorta/i, 'Ulaşım'],
+  [/market|mutfak|gıda/i, 'Market'],
+  [/okul|kurs|eğitim|egitim|kitap|tez|harç|harc/i, 'Eğitim'],
+  [/sağlık|saglik|ilaç|ilac|hastane|doktor/i, 'Sağlık'],
+  [/netflix|spotify|youtube|abonelik|üyelik|uyelik|icloud|google/i, 'Abonelik'],
+]
+
+/** Kalemin kategorisi: seçilmişse o, değilse addan tahmin */
+export function billCategory(b: Bill): string {
+  const kind = kindOf(b)
+  if (b.category) return b.category
+  if (kind === 'gelir') {
+    if (b.source === 'kurum') return 'Kurum'
+    if (/maaş|maas|sabit/i.test(b.name)) return 'Maaş'
+    if (/özel ders|ozel ders/i.test(b.name)) return 'Özel ders'
+    return 'Diğer'
+  }
+  for (const [re, c] of GUESS) if (re.test(b.name)) return c
+  return 'Diğer'
+}
+
+/** Son aylarda kategori başına ödenen/alınan toplam (büyükten küçüğe) */
+export function categoryTotals(d: AppData, months: string[], kind: 'gider' | 'gelir' = 'gider'): { category: string; cells: number[]; total: number }[] {
+  const by = new Map<string, number[]>()
+  for (const r of paidMatrix(d, months, kind)) {
+    const c = billCategory(r.bill)
+    const cur = by.get(c) ?? months.map(() => 0)
+    r.cells.forEach((v, i) => (cur[i] += v))
+    by.set(c, cur)
+  }
+  return [...by].map(([category, cells]) => ({ category, cells, total: cells.reduce((a, b) => a + b, 0) })).sort((a, b) => b.total - a.total)
+}

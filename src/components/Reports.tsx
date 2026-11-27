@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Download } from 'lucide-react'
 import type { AppData, CalEvent } from '../lib/types'
 import { useData } from '../lib/store'
-import { cashFlow, lastMonths } from '../lib/bills'
+import { cashFlow, lastMonths, categoryTotals } from '../lib/bills'
 import { happened, isOff } from '../lib/status'
 import { TR_MONTHS, addMonths, monthLabel, startOfMonth, toMinutes, todayISO } from '../lib/date'
 import { downloadFile, money } from '../lib/util'
@@ -120,6 +120,8 @@ export function CashReport() {
   const data = useData()
   const months = lastMonths(todayISO().slice(0, 7), 12)
   const flows = useMemo(() => months.map((m) => cashFlow(data, m)), [data]) // eslint-disable-line react-hooks/exhaustive-deps
+  const outCats = useMemo(() => categoryTotals(data, months, 'gider'), [data]) // eslint-disable-line react-hooks/exhaustive-deps
+  const inCats = useMemo(() => categoryTotals(data, months, 'gelir'), [data]) // eslint-disable-line react-hooks/exhaustive-deps
   const cur = data.settings.currency
   const n = (v: number) => (v ? Math.round(v).toLocaleString('tr-TR') : '')
   const signed = (v: number) => (v ? (v < 0 ? '−' : '') + Math.round(Math.abs(v)).toLocaleString('tr-TR') : '')
@@ -130,6 +132,10 @@ export function CashReport() {
     csv('gelir-gider.csv', [
       ['Ay', 'Özel ders tahsilatı', 'Gelirlerim', 'Toplam giren', 'Ödemelerim (çıkan)', 'Kalan'],
       ...flows.map((f) => [`${TR_MONTHS[Number(f.month.slice(5)) - 1]} ${f.month.slice(0, 4)}`, Math.round(f.ozel), Math.round(f.gelir), Math.round(f.income), Math.round(f.out), Math.round(f.net)]),
+      [],
+      ['Kategori', 'Tür', ...months.map((m) => `${TR_MONTHS[Number(m.slice(5)) - 1]} ${m.slice(0, 4)}`), 'Toplam'],
+      ...inCats.map((c) => [c.category, 'Gelir', ...c.cells.map(Math.round), Math.round(c.total)]),
+      ...outCats.map((c) => [c.category, 'Gider', ...c.cells.map(Math.round), Math.round(c.total)]),
     ])
   return (
     <div>
@@ -167,6 +173,20 @@ export function CashReport() {
           <tfoot><tr className="flow-net-row"><td><b>Kalan</b></td>{flows.map((f) => <td key={f.month} className={f.net < 0 ? 'warn-text' : ''}>{signed(f.net)}</td>)}<td><b>{signed(sum('net'))}</b></td></tr></tfoot>
         </table>
       </div>
+      {(inCats.length > 0 || outCats.length > 0) && (
+        <>
+          <h4>Kategorilere göre</h4>
+          <div className="table-wrap">
+            <table className="table bill-table">
+              <thead><tr><th>Kategori</th>{flows.map((f) => <th key={f.month}>{label(f.month)}</th>)}<th>Toplam</th></tr></thead>
+              <tbody>
+                {inCats.map((c) => <tr key={'g' + c.category} className="flow-in"><td className="nowrap">{c.category} <small className="muted">gelir</small></td>{c.cells.map((v, i) => <td key={i}>{n(v)}</td>)}<td><b>{n(c.total)}</b></td></tr>)}
+                {outCats.map((c) => <tr key={'c' + c.category}><td className="nowrap">{c.category} <small className="muted">gider</small></td>{c.cells.map((v, i) => <td key={i}>{n(v)}</td>)}<td><b>{n(c.total)}</b></td></tr>)}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -222,9 +242,9 @@ export function CostReport() {
         </div>
         {range === 'ay' ? <MonthNav month={month} setMonth={setMonth} /> : (
           <span className="month-nav">
-            <button className="icon-btn" onClick={() => setMonth(addMonths(month, -12))}>‹</button>
+            <button className="icon-btn" onClick={() => setMonth(addMonths(month, -12))} aria-label="Önceki yıl">‹</button>
             <span>{ym.slice(0, 4)}</span>
-            <button className="icon-btn" onClick={() => setMonth(addMonths(month, 12))}>›</button>
+            <button className="icon-btn" onClick={() => setMonth(addMonths(month, 12))} aria-label="Sonraki yıl">›</button>
           </span>
         )}
         <div className="spacer" />

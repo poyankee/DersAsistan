@@ -1,3 +1,4 @@
+import { tap } from '../lib/a11y'
 import { useState } from 'react'
 import { BookOpen, PlusCircle } from 'lucide-react'
 import type { Book, BookStatus, Student } from '../lib/types'
@@ -57,7 +58,7 @@ export default function BooksTab({ student }: { student: Student }) {
                 const last = h.find((r) => r.progress)
                 return (
                   <div key={b.id} className={'book-card st-' + b.status}>
-                    <div className="row middle" onClick={() => setOpen(open === b.id ? null : b.id)} style={{ cursor: 'pointer' }}>
+                    <div className="row middle" {...tap(() => setOpen(open === b.id ? null : b.id))} style={{ cursor: 'pointer' }}>
                       <div className="grow">
                         <b className="row-title"><BookOpen size={16} /> {b.title}</b>
                         <div className="muted small">

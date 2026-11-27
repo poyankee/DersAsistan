@@ -195,3 +195,17 @@
 
 /* Uzun listelerde "Daha fazla göster" */
 .show-more { display: block; margin: 10px auto; }
+
+/* Erişilebilirlik: klavyeyle gezinirken odaklanan öğe belirgin halka ile görünür */
+:where(button, a, [role="button"], [tabindex], summary, select, input[type="checkbox"], input[type="radio"]):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 70%, transparent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+[role="button"] { cursor: pointer; }
+
+/* Büyük yazı boyutunda tablolar ekrana sığsın: hücreler satır kırar, boşluklar daralır */
+.big-text .table th, .big-text .table td { white-space: normal; overflow-wrap: anywhere; padding-left: 6px; padding-right: 6px; }
+.big-text .table { font-size: .92em; }
+.big-text .table-wrap { overflow-x: auto; }
+.modal:focus { outline: none; }

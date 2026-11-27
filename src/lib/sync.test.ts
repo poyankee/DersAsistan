@@ -79,3 +79,11 @@ describe('uçtan uca şifreleme', () => {
     await expect(open(sealed, a.encKey, recKey('students', 's2'))).rejects.toThrow()
   }, 30_000)
 })
+
+describe('çakışma adı', () => {
+  it('kaydın türünü ve adını okunur yazar', async () => {
+    const { conflictLabel, recKey } = await import('./sync')
+    expect(conflictLabel(recKey('tasks', 'x'), JSON.stringify({ title: 'Karne' }))).toBe('Görev: Karne')
+    expect(conflictLabel(recKey('settings', 'x'), '{}')).toBe('Ayar')
+  })
+})

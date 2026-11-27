@@ -439,7 +439,7 @@ test('Gelirlerim: kurumdan iki ödeme (5\'i ve 15\'i), puantajla karşılaştır
   assert.match(box, /beklenen\s*1\.800/)
   assert.match(box, /Eksik\s*300/)
   await page.locator('.tabs-seg button', { hasText: 'Gelir – gider' }).click()
-  assert.match(await page.locator('.bill-table').innerText(), /Gelirlerim[\s\S]*1\.500/)
+  assert.match(await page.locator('.bill-table').first().innerText(), /Gelirlerim[\s\S]*1\.500/)
   assert.deepEqual(errors, [])
 })
 
@@ -552,6 +552,41 @@ test('ana sayfa kartları gizlenip sıralanabilir', async (browser) => {
   await page.reload()
   await page.waitForSelector('.home-grid')
   assert.equal((await titles()).length, 7)
+  assert.deepEqual(errors, [])
+})
+
+test('gider kategorisi, kaydettikten sonra Geri al ve Ctrl+Z', async (browser) => {
+  const { page, errors, nav } = await open(browser)
+  await nav('Ödemeler')
+  await page.locator('.bills .chip', { hasText: 'Doğalgaz' }).click()
+  // Addan tahmin edilen kategori seçili gelir
+  assert.equal(await page.locator('.modal .chip.sel', { hasText: 'Fatura' }).count(), 1)
+  await page.locator('.modal .chip', { hasText: 'Abonelik' }).click()
+  await page.locator('.modal-foot .btn.primary').click()
+  assert.match(await page.locator('.bill-list').innerText(), /Doğalgaz[\s\S]*Abonelik/)
+  // Bildirimdeki "Geri al" kaydı geri alır
+  await page.locator('.toast button', { hasText: 'Geri al' }).click()
+  assert.equal(await page.locator('.bill-list', { hasText: 'Doğalgaz' }).count(), 0)
+  // Ctrl+Z: görev ekleyip geri al
+  await nav('Görevler')
+  await page.locator('.todo-add > input').fill('Geri alınacak görev')
+  await page.keyboard.press('Enter')
+  await page.locator('.todo-list', { hasText: 'Geri alınacak görev' }).waitFor()
+  await page.locator('.page-head h2').click()
+  await page.keyboard.press('Control+z')
+  await page.locator('.toast', { hasText: 'geri alındı' }).waitFor()
+  assert.equal(await page.locator('.todo-list', { hasText: 'Geri alınacak görev' }).count(), 0)
+  assert.deepEqual(errors, [])
+})
+
+test('erişilebilirlik: simge düğmelerinin adı var, kartlar klavyeyle açılır', async (browser) => {
+  const { page, errors, nav } = await open(browser)
+  for (const p of ['Bugün', 'Takvim', 'Ödemeler', 'Raporlar']) {
+    await nav(p)
+    const unnamed = await page.locator('button').evaluateAll((els) =>
+      els.filter((b) => b.offsetParent !== null && !(b.getAttribute('aria-label') || b.getAttribute('title') || b.textContent?.trim())).map((b) => b.outerHTML.slice(0, 80)))
+    assert.deepEqual(unnamed, [], p)
+  }
   assert.deepEqual(errors, [])
 })
 

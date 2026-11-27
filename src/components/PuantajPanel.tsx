@@ -59,9 +59,9 @@ export default function PuantajPanel() {
     <div className="puantaj">
       <div className="page-head" style={{ marginBottom: 10 }}>
         <span className="month-nav">
-          <button className="icon-btn" onClick={() => setMonth(addMonths(month, -1))}>‹</button>
+          <button className="icon-btn" onClick={() => setMonth(addMonths(month, -1))} aria-label="Önceki ay">‹</button>
           <span>{monthLabel(month)}</span>
-          <button className="icon-btn" onClick={() => setMonth(addMonths(month, 1))}>›</button>
+          <button className="icon-btn" onClick={() => setMonth(addMonths(month, 1))} aria-label="Sonraki ay">›</button>
         </span>
         <div className="spacer" />
         <button className="btn" onClick={exportCSV}><Download size={16} /> Excel (CSV)</button>

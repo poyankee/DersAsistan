@@ -1,3 +1,4 @@
+import { tap } from '../lib/a11y'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { isOff } from '../lib/status'
@@ -119,7 +120,7 @@ function PaymentsTab({ student, onPay, onPayNote, onEditPayment, onReport }: { s
             <thead><tr><th>Tarih</th><th>Tutar</th><th>Yöntem</th><th>Not</th></tr></thead>
             <tbody>
               {payments.map((p) => (
-                <tr key={p.id} onClick={() => onEditPayment(p)}>
+                <tr key={p.id} {...tap(() => onEditPayment(p))}>
                   <td className="nowrap">{formatDMY(p.date)}</td>
                   <td className="nowrap">{money(p.amount, cur)}</td>
                   <td>{p.method}</td>

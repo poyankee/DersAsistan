@@ -363,6 +363,27 @@ export async function disconnect() {
 export interface SyncResult {
   sent: number
   received: number
+  /** Bu cihazda değiştirilip aynı anda başka cihazda da değiştirilen kayıtlar (diğer cihazdaki hâl kaldı) */
+  conflicts: string[]
+}
+
+const COLL_LABEL: Record<string, string> = {
+  events: 'Ders', students: 'Öğrenci', payments: 'Ödeme', tasks: 'Görev', exams: 'Sınav', bills: 'Gider/gelir',
+  billPayments: 'Gider ödemesi', notes: 'Not', classNotes: 'Sınıf notu', books: 'Kitap', memos: 'Not', categories: 'Kategori',
+}
+
+/** Çakışan kayıt için okunabilir ad: "Görev: Karne notları" */
+export function conflictLabel(key: string, json: string | null | undefined): string {
+  const [c] = splitKey(key)
+  let name = ''
+  try {
+    const o = json ? JSON.parse(json) : null
+    name = o?.title || o?.name || o?.text || (o?.date ? String(o.date).split('-').reverse().join('.') : '')
+  } catch {
+    /* ad çıkarılamazsa yalnızca tür yazılır */
+  }
+  const label = COLL_LABEL[c] ?? (c === 'settings' || c === 'groups' ? 'Ayar' : 'Kayıt')
+  return name ? `${label}: ${String(name).slice(0, 40)}` : label
 }
 
 /**
@@ -442,7 +463,11 @@ export async function syncOnce(getData: () => AppData, setData: (fn: (d: AppData
   // Bu tur sırasında silinen kayıtlar: gönderilen hâlin özeti kalsın ki silme bir sonraki turda gönderilsin
   for (const [k, json] of before) if (!after.has(k) && !apply.has(k)) snap[k] = digest(json)
   await save(META_KEY, { rev, snap, lastSync: Date.now() })
-  return { sent: out.length, received: apply.size }
+  // Çakışma: bu turda gönderdiğimiz bir kaydın yerine başka cihazın daha yeni hâli geldi
+  const sentKeys = new Set(out.map((o) => recKey(o.c, o.i)))
+  const conflicts: string[] = []
+  for (const [k, json] of apply) if (sentKeys.has(k) && !meta.mergeOld) conflicts.push(conflictLabel(k, json ?? before.get(k)))
+  return { sent: out.length, received: apply.size, conflicts }
 }
 
 export async function lastSyncTime(): Promise<number | undefined> {

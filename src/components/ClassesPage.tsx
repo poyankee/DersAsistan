@@ -1,3 +1,4 @@
+import { tap } from '../lib/a11y'
 import { useMemo, useState } from 'react'
 import { happened, isOff } from '../lib/status'
 import { BookOpenText, FileText, ChevronLeft, GraduationCap, ListTodo, NotebookPen, Pencil, Plus, School } from 'lucide-react'
@@ -55,7 +56,7 @@ export default function ClassesPage({ openEvent, open, setOpen, onAddExam, onAdd
       ) : (
         <div className="cards">
           {rows.map(({ g, last, next, month, exam }) => (
-            <div key={g.code} className="card" onClick={() => setOpen(g.code)}>
+            <div key={g.code} className="card" {...tap(() => setOpen(g.code))}>
               <div className="card-top">
                 <i className="avatar" style={{ background: g.color }}><School size={18} /></i>
                 <div className="grow">

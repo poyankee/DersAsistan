@@ -75,9 +75,9 @@ function MonthlySummary() {
       <div className="page-head">
         <div className="spacer" />
         <span className="month-nav">
-          <button className="icon-btn" onClick={() => setMonth(addMonths(month, -1))}>‹</button>
+          <button className="icon-btn" onClick={() => setMonth(addMonths(month, -1))} aria-label="Önceki ay">‹</button>
           <span>{monthLabel(month)}</span>
-          <button className="icon-btn" onClick={() => setMonth(addMonths(month, 1))}>›</button>
+          <button className="icon-btn" onClick={() => setMonth(addMonths(month, 1))} aria-label="Sonraki ay">›</button>
         </span>
       </div>
 

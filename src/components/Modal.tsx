@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 export default function Modal({ title, onClose, children, footer, wide }: {
@@ -11,6 +11,16 @@ export default function Modal({ title, onClose, children, footer, wide }: {
   const ref = useRef<HTMLDivElement>(null)
   const openedAt = useRef(Date.now())
   const downOnBackdrop = useRef(false)
+  const titleId = useId()
+  // Açılınca odak pencereye taşınır, kapanınca önceki öğeye döner (klavye ve ekran okuyucu için)
+  useEffect(() => {
+    const prev = document.activeElement as HTMLElement | null
+    const box = ref.current?.querySelector<HTMLElement>('.modal')
+    if (box && !box.contains(document.activeElement)) box.focus({ preventScroll: true })
+    return () => {
+      if (prev && document.contains(prev)) prev.focus({ preventScroll: true })
+    }
+  }, [])
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
@@ -34,9 +44,9 @@ export default function Modal({ title, onClose, children, footer, wide }: {
         downOnBackdrop.current = false
       }}
     >
-      <div className={'modal' + (wide ? ' wide' : '')} role="dialog" aria-modal="true">
+      <div className={'modal' + (wide ? ' wide' : '')} role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
         <div className="modal-head">
-          <h3>{title}</h3>
+          <h3 id={titleId}>{title}</h3>
           <button className="icon-btn" onClick={onClose} aria-label="Kapat">✕</button>
         </div>
         <div

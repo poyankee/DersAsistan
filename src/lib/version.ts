@@ -1,5 +1,5 @@
 /** Uygulama sürümü ve "bu sürümde neler değişti" listesi (Ayarlar → Yenilikler) */
-export const APP_VERSION = '0.13'
+export const APP_VERSION = '0.14'
 
 /** Bu arayüz paketinin derleme numarası (yerelde 0) */
 export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
@@ -12,6 +12,18 @@ export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
 export const NATIVE_LEVEL = 1
 
 export const CHANGELOG: { version: string; items: string[] }[] = [
+  {
+    version: '0.14',
+    items: [
+      'Gider ve gelir kategorileri (Fatura, Kira, Kredi / Kart, Maaş, Kurum…): kalemde seçilir, Ödemelerim\'de dağılım, Raporlar → Gelir–gider\'de kategori tablosu',
+      'Kaydettikten sonra "Geri al": ders, görev, sınav, öğrenci ve ödeme formlarında; klavyede Ctrl+Z',
+      'Eşitlemede aynı kayıt iki cihazda birden değişirse uyarı verilir',
+      'Daha hızlı ve güvenli kayıt: yalnızca değişen bölümler yazılır, telefonda çift kayıt kaldırıldı',
+      'Uzun listeler (ders geçmişi, tamamlanan görevler) parça parça açılır; takvim haftaları önbellekten çizilir',
+      'Daha küçük güncelleme paketi (yalnızca Türkçe yazı tipi dosyaları)',
+      'Erişilebilirlik: klavyeyle gezinme ve odak halkası, ekran okuyucu etiketleri, büyük yazıda tabloların sığması',
+    ],
+  },
   {
     version: '0.13',
     items: [

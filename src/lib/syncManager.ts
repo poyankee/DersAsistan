@@ -1,6 +1,7 @@
 import { getData, isReady, setData, subscribe } from './store'
 import { loadConfig, syncOnce, SyncError } from './sync'
 import { isNative } from './native'
+import { showToast } from './toast'
 
 /** Otomatik eşitleme: açılışta, değişiklikten birkaç saniye sonra, uygulamaya dönünce ve açıkken dakikada bir */
 
@@ -47,7 +48,7 @@ export function syncNow(): Promise<void> {
       const apply = (fn: Parameters<typeof setData>[0]) => {
         applying = true
         try {
-          setData(fn)
+          setData(fn, { history: false })
         } finally {
           applying = false
         }
@@ -55,6 +56,10 @@ export function syncNow(): Promise<void> {
       const r = await syncOnce(getData, apply)
       lastOk = Date.now()
       setStatus({ kind: 'idle', last: lastOk, sent: r?.sent, received: r?.received })
+      if (r?.conflicts.length) {
+        const list = r.conflicts.slice(0, 3).join(', ') + (r.conflicts.length > 3 ? ` ve ${r.conflicts.length - 3} kayıt daha` : '')
+        showToast(`Aynı kayıt iki cihazda birden değiştirildi; diğer cihazdaki hâl alındı: ${list}. Gerekirse yeniden düzenleyin.`, [], 12000)
+      }
     } catch (e) {
       const err = e as SyncError
       setStatus({ kind: 'error', message: err.message || 'Eşitlenemedi', last: lastOk, auth: err.status === 401 })

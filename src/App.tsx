@@ -13,7 +13,7 @@ import PayRemindersModal, { usePayReminders } from './components/PayReminders'
 import Modal from './components/Modal'
 import { ExamForm, TaskForm, newExam, newTask } from './components/TaskExamForms'
 import type { CalEvent, Exam, Task } from './lib/types'
-import { getData, isReady, setData, takeLoadNotice, useData } from './lib/store'
+import { getData, isReady, setData, takeLoadNotice, undoLast, useData } from './lib/store'
 import { applyAccent } from './lib/accent'
 import SearchModal from './components/SearchModal'
 import LockScreen from './components/LockScreen'
@@ -90,11 +90,25 @@ export default function App() {
     if (theme === 'system') root.removeAttribute('data-theme')
     else root.setAttribute('data-theme', theme)
     root.style.fontSize = `${15 * (data.settings.fontScale ?? 1)}px`
+    root.classList.toggle('big-text', (data.settings.fontScale ?? 1) > 1.05)
     applyAccent(data.settings.accent)
   }, [data.settings.theme, data.settings.fontScale, data.settings.accent])
 
   // Uygulama kilidi: açılışta ve 1 dakikadan uzun arka planda kaldıktan sonra
   const [locked, setLocked] = useState(() => !!data.settings.lock)
+  // Ctrl+Z (Mac'te Cmd+Z): son değişikliği geri al. Yazı alanındayken tarayıcının kendi geri alması çalışır.
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.key.toLowerCase() !== 'z') return
+      const t = e.target as HTMLElement | null
+      if (t && (/INPUT|TEXTAREA|SELECT/.test(t.tagName) || t.isContentEditable)) return
+      e.preventDefault()
+      showToast(undoLast() ? 'Son değişiklik geri alındı' : 'Geri alınacak değişiklik yok', [], 2500)
+    }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [])
+
   useEffect(() => {
     let hiddenAt = 0
     const h = () => {

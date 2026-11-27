@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import type { CalEvent, EventKind, LessonStatus } from '../lib/types'
-import { deleteEvents, eventTitle, saveCategory, saveEvents, saveGroup, useData } from '../lib/store'
+import { deleteEvents, eventTitle, saveCategory, saveEvents, saveGroup, useData, savedToast } from '../lib/store'
 import { addDays, formatDMY, fromMinutes, toMinutes, todayISO } from '../lib/date'
 import { PALETTE, uid } from '../lib/util'
 import { applyShiftToSeries, conflictsOf, futureSeriesEvents } from '../lib/eventOps'
@@ -93,6 +93,7 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
       }
     }
     if (isNew) showToast(out.length > 1 ? `${out.length} ders eklendi` : `${eventTitle(data, base)} eklendi`, [{ label: 'Geri al', run: () => deleteEvents(out.map((e) => e.id), { trash: false }) }])
+    else savedToast('Değişiklik kaydedildi')
     onClose()
   }
 

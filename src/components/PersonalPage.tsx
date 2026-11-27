@@ -1,3 +1,4 @@
+import { tap } from '../lib/a11y'
 import { useMemo } from 'react'
 import { CalendarRange, GraduationCap, ListTodo, Plus, UserX } from 'lucide-react'
 import type { CalEvent, Exam, Task } from '../lib/types'
@@ -100,11 +101,11 @@ function CategoryCard({ id, onAddTask, onAddExam, onOpenTask, onOpenExam }: {
       )}
       {(tasks.length > 0 || exams.length > 0) && (
         <ul className="wk-list">
-          {exams.map((x) => <li key={x.id} onClick={() => onOpenExam(x)} className="link-row"><GraduationCap size={14} /> <b>{formatDMY(x.date)}</b> {x.title}</li>)}
+          {exams.map((x) => <li key={x.id} {...tap(() => onOpenExam(x))} className="link-row"><GraduationCap size={14} /> <b>{formatDMY(x.date)}</b> {x.title}</li>)}
           {tasks.map((t) => (
             <li key={t.id} className="link-row">
               <button className="task-check" onClick={() => { saveTask({ ...t, done: true, doneAt: today }); showToast(`Tamamlandı: ${t.title}`, [{ label: 'Geri al', run: () => saveTask(t) }]) }} aria-label="Tamamla" />
-              <span onClick={() => onOpenTask(t)}>{t.due ? <b>{formatDMY(t.due)} </b> : null}{t.title}</span>
+              <span {...tap(() => onOpenTask(t))}>{t.due ? <b>{formatDMY(t.due)} </b> : null}{t.title}</span>
             </li>
           ))}
         </ul>

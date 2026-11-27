@@ -160,6 +160,8 @@ export interface Bill {
   months?: number[]
   /** Kurumdan gelen ödeme (puantajla karşılaştırılır) */
   source?: 'kurum'
+  /** Kategori (ör. Fatura, Kira, Maaş). Boşsa addan tahmin edilir. */
+  category?: string
   createdAt: number
 }
 

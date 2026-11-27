@@ -6,6 +6,7 @@ import { isNative } from './native'
 import { dropLegacy, flush, persistNative, persistWebSnapshot, readCandidates, readSnapshots, setLegacyLocalKey } from './persist'
 import { DEFAULT_CATEGORIES, emptyData, parseData } from './schema'
 import { addDays, todayISO } from './date'
+import { showToast } from './toast'
 
 const KEY = 'ders-asistan-v1'
 
@@ -112,10 +113,61 @@ function writeAll() {
   if (ready) persistWebSnapshot(json, todayISO())
 }
 
-export function setData(updater: (d: AppData) => AppData) {
+/* ---------- Geri alma geçmişi ----------
+ * Her değişiklikte önceki ve sonraki hâl saklanır (veri paylaşımlı olduğu için ucuzdur).
+ * Art arda hızlı değişiklikler (yazma, sürükleme) tek adım sayılır. Geri alınca yalnızca o
+ * adımda değişen ve sonradan başka yerden (ör. eşitleme) değiştirilmemiş bölümler eski hâline döner.
+ */
+interface UndoStep { before: AppData; after: AppData; at: number }
+const undoStack: UndoStep[] = []
+const UNDO_MAX = 40
+const UNDO_MERGE_MS = 1200
+const UNDO_SKIP: (keyof AppData)[] = ['savedAt', 'version', 'trash']
+
+export function setData(updater: (d: AppData) => AppData, opts: { history?: boolean } = {}) {
+  const before = state
   state = { ...ensureGroups(updater(state)), savedAt: Date.now() }
+  if (opts.history !== false && ready) {
+    const now = Date.now()
+    const last = undoStack[undoStack.length - 1]
+    if (last && last.after === before && now - last.at < UNDO_MERGE_MS) {
+      last.after = state
+      last.at = now
+    } else {
+      undoStack.push({ before, after: state, at: now })
+      if (undoStack.length > UNDO_MAX) undoStack.shift()
+    }
+  }
   writeAll()
   listeners.forEach((l) => l())
+}
+
+/** Geri alınabilecek bir adım var mı */
+export function canUndo(): boolean {
+  return undoStack.length > 0
+}
+
+/** Son değişikliği geri alır. Geri alındıysa true döner. */
+export function undoLast(): boolean {
+  const step = undoStack.pop()
+  if (!step) return false
+  const patch: Partial<AppData> = {}
+  let changed = false
+  for (const k of Object.keys(step.after) as (keyof AppData)[]) {
+    if (UNDO_SKIP.includes(k) || step.before[k] === step.after[k]) continue
+    // Sonradan başka bir değişiklik bu bölümü değiştirdiyse dokunma
+    if (state[k] !== step.after[k]) continue
+    ;(patch as Record<string, unknown>)[k] = step.before[k]
+    changed = true
+  }
+  if (!changed) return undoLast()
+  setData((d) => ({ ...d, ...patch }), { history: false })
+  return true
+}
+
+/** Kaydetme sonrası "Geri al" düğmeli kısa bildirim */
+export function savedToast(message: string) {
+  showToast(message, [{ label: 'Geri al', run: () => void undoLast() }], 6000)
 }
 
 /**

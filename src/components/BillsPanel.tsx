@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { AlertTriangle, ArrowDownLeft, ArrowUpRight, CalendarClock, Check, CheckCircle2, Plus, Receipt, Repeat } from 'lucide-react'
 import type { Bill, BillPayment } from '../lib/types'
-import { deleteBill, deleteBillPayment, saveBill, saveBillPayment, useData } from '../lib/store'
-import { billsForMonth, cashFlow, kindOf, lastMonths, monthTotals, paidMatrix, repeatText, type BillRow } from '../lib/bills'
+import { deleteBill, deleteBillPayment, saveBill, saveBillPayment, useData, savedToast } from '../lib/store'
+import { billsForMonth, cashFlow, kindOf, lastMonths, monthTotals, paidMatrix, repeatText, type BillRow, BILL_CATS, billCategory, categoryTotals } from '../lib/bills'
 import { TR_MONTHS, addMonths, formatDMY, monthLabel, startOfMonth, todayISO } from '../lib/date'
 import { PALETTE, money, uid } from '../lib/util'
 import { showToast } from '../lib/toast'
@@ -103,7 +103,7 @@ export default function BillsPanel({ kind = 'gider' }: { kind?: Kind }) {
                     <Check size={16} />
                   </button>
                   <button className="bill-main" onClick={() => setPaying(r)}>
-                    <span className="bill-name"><i className="dot" style={{ background: r.bill.color }} />{r.bill.name}{r.bill.source === 'kurum' && <em className="tag">kurum</em>}</span>
+                    <span className="bill-name"><i className="dot" style={{ background: r.bill.color }} />{r.bill.name}<em className="tag cat-tag">{billCategory(r.bill)}</em></span>
                     <small>
                       <CalendarClock size={12} /> {t.dayLabel} {formatDMY(r.due)}
                       {repeatText(r.bill) !== 'Her ay' && <span className="muted"> · <Repeat size={11} /> {repeatText(r.bill)}</span>}
@@ -172,6 +172,7 @@ function Overview({ kind }: { kind: Kind }) {
   const cur = data.settings.currency
   const months = lastMonths(todayISO().slice(0, 7), 12)
   const matrix = paidMatrix(data, months, kind)
+  const cats = categoryTotals(data, months, kind)
   const colTotals = months.map((_, i) => matrix.reduce((a, r) => a + r.cells[i], 0))
   const grand = colTotals.reduce((a, b) => a + b, 0)
   const max = Math.max(1, ...colTotals)
@@ -193,6 +194,17 @@ function Overview({ kind }: { kind: Kind }) {
           </div>
         ))}
       </div>
+      {cats.length > 1 && (
+        <div className="hbars cat-bars" aria-label="Kategoriye göre dağılım">
+          {cats.map((c) => (
+            <div key={c.category} className="hbar-row" title={`${c.category}: ${money(Math.round(c.total), cur)}`}>
+              <span className="hbar-label">{c.category}</span>
+              <span className="hbar-track"><span className="hbar-fill" style={{ width: `${(c.total / cats[0].total) * 100}%` }} /></span>
+              <span className="hbar-val">%{Math.round((c.total / grand) * 100)}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="table-wrap">
         <table className="table bill-table">
           <thead><tr><th>Kalem</th>{months.map((mo) => <th key={mo}>{TR_MONTHS[Number(mo.slice(5)) - 1].slice(0, 3)}</th>)}<th>Toplam</th></tr></thead>
@@ -235,6 +247,7 @@ function BillForm({ initial, onClose }: { initial: Bill; onClose: () => void }) 
     if (['2', '3', '6', '12'].includes(freq)) base.every = Number(freq)
     if (freq === 'secili') base.months = (b.months ?? []).length ? [...b.months!].sort((x, y) => x - y) : [Number(b.from.slice(5, 7))]
     saveBill(base)
+    savedToast(`${base.name} kaydedildi`)
     onClose()
   }
   const toggleMonth = (n: number) => {
@@ -259,6 +272,14 @@ function BillForm({ initial, onClose }: { initial: Bill; onClose: () => void }) 
       }
     >
       <label className="field"><span>Ad</span><input autoFocus value={b.name} onChange={(e) => setB({ ...b, name: e.target.value })} placeholder={t.namePh} /></label>
+      <div className="field">
+        <span>Kategori</span>
+        <div className="chips">
+          {BILL_CATS[kind].map((c) => (
+            <button key={c} className={'chip' + (billCategory(b) === c ? ' sel' : '')} onClick={() => setB({ ...b, category: c })}>{c}</button>
+          ))}
+        </div>
+      </div>
       <div className="row wrap">
         <label className="field" style={{ width: 160 }}><span>{t.dayField}</span><input type="number" inputMode="numeric" min={1} max={31} value={b.day} onChange={(e) => setB({ ...b, day: Number(e.target.value) })} /></label>
         <label className="field grow"><span>Tutar ({data.settings.currency}) — değişkense boş bırakın</span><input type="number" inputMode="decimal" min={0} value={b.amount ?? ''} onChange={(e) => setB({ ...b, amount: e.target.value === '' ? undefined : Number(e.target.value) })} placeholder="her seferinde değişiyor" /></label>
@@ -308,6 +329,7 @@ function PayForm({ row, month, onClose }: { row: BillRow; month: string; onClose
   const save = () => {
     if (!amount || amount <= 0) return
     saveBillPayment({ id: uid(), billId: row.bill.id, month, amount: Number(amount), paidOn, note: note.trim() || undefined })
+    savedToast('Ödeme kaydedildi')
     onClose()
   }
   return (

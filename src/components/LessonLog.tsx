@@ -1,3 +1,4 @@
+import { tap } from '../lib/a11y'
 import { useMemo, useState } from 'react'
 import { isOff } from '../lib/status'
 import { BookOpen, NotebookPen } from 'lucide-react'
@@ -116,7 +117,7 @@ export default function LessonLog({ studentId, groupCode, kind = 'ders' }: { stu
         <ol className="log-list">
           {shown.map((it) =>
             it.kind === 'lesson' ? (
-              <li key={it.key} className={'log-item' + (isOff(it.e) ? ' off' : '')} onClick={() => setEditing(it.e)}>
+              <li key={it.key} className={'log-item' + (isOff(it.e) ? ' off' : '')} {...tap(() => setEditing(it.e))}>
                 <div className="log-date"><b>{formatDMYDay(it.e.date)}</b><small>{it.e.start}–{it.e.end}</small></div>
                 <div className="log-body">
                   {isOff(it.e) ? <span className="muted">Ders yapılmadı (iptal)</span> : <span className="log-topic pre">{it.e.topic || <span className="muted">—</span>}</span>}
@@ -125,7 +126,7 @@ export default function LessonLog({ studentId, groupCode, kind = 'ders' }: { stu
                 </div>
               </li>
             ) : (
-              <li key={it.key} className="log-item note" onClick={() => setEditingNote(it.n)}>
+              <li key={it.key} className="log-item note" {...tap(() => setEditingNote(it.n))}>
                 <div className="log-date"><b>{formatDMYDay(it.n.date)}</b><small><NotebookPen size={11} /> Not</small></div>
                 <div className="log-body"><span>{it.n.text}</span></div>
               </li>

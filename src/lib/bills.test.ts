@@ -89,3 +89,23 @@ describe('tekrar sıklığı', () => {
     expect(billsForMonth(d, '2026-01', '2026-01-10', 'gelir').map((r) => r.bill.id)).toEqual(['g'])
   })
 })
+
+describe('kategoriler', () => {
+  it('seçilen kategori, yoksa addan tahmin', async () => {
+    const { billCategory, categoryTotals } = await import('./bills')
+    const base = { id: 'x', day: 1, color: '#000', from: '2026-01', createdAt: 1 }
+    expect(billCategory({ ...base, name: 'Elektrik' })).toBe('Fatura')
+    expect(billCategory({ ...base, name: 'Ev kirası' })).toBe('Kira')
+    expect(billCategory({ ...base, name: 'Elektrik', category: 'Diğer' })).toBe('Diğer')
+    expect(billCategory({ ...base, name: 'Kurum ödemesi', kind: 'gelir', source: 'kurum' })).toBe('Kurum')
+    const d = {
+      bills: [{ ...base, id: 'a', name: 'Su' }, { ...base, id: 'b', name: 'Doğalgaz' }, { ...base, id: 'c', name: 'Kira' }],
+      billPayments: [
+        { id: '1', billId: 'a', month: '2026-01', amount: 100, paidOn: '2026-01-02' },
+        { id: '2', billId: 'b', month: '2026-01', amount: 300, paidOn: '2026-01-02' },
+        { id: '3', billId: 'c', month: '2026-01', amount: 200, paidOn: '2026-01-02' },
+      ],
+    } as never
+    expect(categoryTotals(d, ['2026-01'])).toEqual([{ category: 'Fatura', cells: [400], total: 400 }, { category: 'Kira', cells: [200], total: 200 }])
+  })
+})

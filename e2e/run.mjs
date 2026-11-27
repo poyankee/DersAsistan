@@ -535,6 +535,26 @@ test('haftalık görünümde ders kenara sürüklenip bekletilince önceki hafta
   assert.deepEqual(errors, [])
 })
 
+test('ana sayfa kartları gizlenip sıralanabilir', async (browser) => {
+  const { page, errors } = await open(browser)
+  await page.waitForSelector('.home-grid')
+  const titles = () => page.locator('.home-grid > .hcard').evaluateAll((els) => els.map((e) => e.querySelector('h3, .next-label')?.textContent?.trim()))
+  assert.equal((await titles()).length, 8)
+  await page.getByRole('button', { name: /Ana sayfayı düzenle/ }).click()
+  await page.locator('.menu-order li', { hasText: 'Bu Hafta' }).locator('input[type=checkbox]').uncheck()
+  await page.getByRole('button', { name: 'Notlarım yukarı' }).click()
+  await page.keyboard.press('Escape')
+  const t = await titles()
+  assert.equal(t.length, 7)
+  assert.ok(!t.some((x) => /Bu Hafta/.test(x)))
+  assert.ok(t.findIndex((x) => /Notlarım/.test(x)) < t.findIndex((x) => /Ay takvimi|Kasım/.test(x)))
+  // Kalıcı
+  await page.reload()
+  await page.waitForSelector('.home-grid')
+  assert.equal((await titles()).length, 7)
+  assert.deepEqual(errors, [])
+})
+
 await waitForServer()
 const browser = await chromium.launch()
 let failed = 0

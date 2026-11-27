@@ -138,3 +138,9 @@
   .tl-item { flex: 0 0 132px; }
   .hcard { padding: 16px; border-radius: 20px; }
 }
+.home-edit { grid-column: 1 / -1; justify-self: center; display: inline-flex; align-items: center; gap: 8px; border: 1px dashed var(--line-strong); background: none; color: var(--text-2); font: inherit; font-size: 14px; font-weight: 600; padding: 8px 16px; border-radius: 999px; cursor: pointer; margin-top: 4px; }
+.home-edit:hover { color: var(--primary); border-color: var(--primary); }
+/* Sıradaki ders kartı ilk sıradan çıkarılırsa da düzgün yerleşsin */
+.home-grid > .next-card { grid-column: span 1; }
+@media (max-width: 899px) { .home-grid > .next-card { grid-column: 1 / -1; } }
+@media (max-width: 720px) { .home-grid > .next-card { order: 0; } }

@@ -269,6 +269,9 @@ export interface Settings {
   /** Soldaki menünün sırası ve gizlenen sayfalar */
   navOrder?: string[]
   navHidden?: string[]
+  /** Ana sayfa kartlarının sırası ve gizlenenler */
+  homeOrder?: string[]
+  homeHidden?: string[]
   /** Ana sayfadaki selamlamada kullanılan ad */
   userName?: string
   /** Ödeme hatırlatıcısında "sonra" denen dersler: ders kimliği → bu tarihe kadar gösterme */

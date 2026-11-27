@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   ArrowRight, BarChart3, Bell, BellRing, BookOpen, CalendarDays, CalendarPlus, Check, ChevronLeft, ChevronRight, Clock, FileText,
-  GraduationCap, Layers, Lightbulb, ListTodo, Moon, Play, Plus, Search, Settings, Sun, Sunrise, Timer, Users, Zap,
+  GraduationCap, Layers, Lightbulb, ListTodo, Moon, Play, Plus, Search, Settings, SlidersHorizontal, Sun, Sunrise, Timer, Users, Zap,
 } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { CalEvent, Memo, Task } from '../lib/types'
@@ -13,6 +13,7 @@ import { showToast } from '../lib/toast'
 import { uid } from '../lib/util'
 import { sortTasks } from './TasksPage'
 import SyncBadge from './SyncBadge'
+import { HomeCardsEditor, homeOrder, type HomeCard } from './HomeCards'
 import Modal from './Modal'
 
 function greeting(min: number) {
@@ -61,6 +62,7 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
   const [day, setDay] = useState(today)
   const [memoOpen, setMemoOpen] = useState<Memo | null>(null)
   const [bellOpen, setBellOpen] = useState(false)
+  const [editCards, setEditCards] = useState(false)
   const now = toMinutes(nowHM())
   const { text, Icon } = greeting(now)
   const name = data.settings.userName?.trim()
@@ -88,6 +90,74 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
     const v = prompt('Adınız (ana sayfadaki selamlamada görünür):', name ?? '')
     if (v === null) return
     setData((d) => ({ ...d, settings: { ...d.settings, userName: v.trim() || undefined } }))
+  }
+
+  // Ana sayfa kartları: kullanıcının seçtiği sırayla ve gizlenenler hariç çizilir
+  const cards: Record<HomeCard, ReactNode> = {
+    lessons: (
+        <section className="hcard lessons-card">
+          <div className="hcard-head">
+            <h3><Layers size={20} /> {day === today ? 'Bugünün Dersleri' : `${dayWord(day, today)} Dersleri`}</h3>
+            <button className="link-head" onClick={() => goCalendar(day)}>Tam programı gör <ArrowRight size={15} /></button>
+          </div>
+          {dayEvents.length === 0 ? (
+            <div className="lessons-empty">
+              <p className="muted">{day === today ? 'Bugün ders yok.' : 'Bu gün ders yok.'}</p>
+              <button className="btn small" onClick={() => onNewEvent(day)}><Plus size={14} /> Ders ekle</button>
+            </div>
+          ) : (
+            <div className="timeline">
+              {dayEvents.map((e) => {
+                const live = e === ongoing
+                const past = day < today || (day === today && toMinutes(e.end) <= now)
+                const Ico = e.kind === 'kurum' ? BookOpen : e.kind === 'ozel' ? Users : CalendarDays
+                return (
+                  <button key={e.id} className={'tl-item' + (live ? ' live' : '') + (past ? ' past' : '') + (isOff(e) ? ' off' : '')} style={{ ['--ev' as string]: eventColor(data, e) }} onClick={() => openEvent(e)}>
+                    <span className="tl-card">
+                      <Ico size={24} strokeWidth={1.7} />
+                      <b>{shortName(data, e)}</b>
+                      <small>{isOff(e) ? 'İptal' : `${e.start} – ${e.end}`}</small>
+                    </span>
+                    <span className="tl-dot" />
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </section>
+    ),
+    next: hero ? (
+          <button className={'hcard next-card' + (hero === ongoing ? ' live' : '')} style={{ ['--ev' as string]: eventColor(data, hero) }} onClick={() => openEvent(hero)}>
+            <span className="next-label">{hero === ongoing ? <><span className="pulse" /> Şu an</> : <><Clock size={18} /> Sıradaki Ders</>}</span>
+            <b className="next-title">{shortName(data, hero)}</b>
+            <span className="next-row"><CalendarDays size={16} /> {dayWord(hero.date, today)}, {hero.start} – {hero.end}</span>
+            <span className="next-row"><Timer size={16} /> {hero === ongoing ? `bitişe ${relative(toMinutes(hero.end) - now)}` : hero.date === today ? `${relative(toMinutes(hero.start) - now)} sonra` : eventTitle(data, hero) !== shortName(data, hero) ? eventTitle(data, hero) : ' '}</span>
+            <span className="next-btn"><Play size={16} fill="currentColor" /> {hero === ongoing ? 'Derse git' : 'Dersi aç'}</span>
+            <MathDeco />
+          </button>
+        ) : (
+          <div className="hcard next-card empty">
+            <span className="next-label"><Clock size={18} /> Sıradaki Ders</span>
+            <b className="next-title">Planlı ders yok</b>
+            <span className="next-row">Takvimden ders ekleyebilir ya da kurum programını yükleyebilirsin.</span>
+          </div>
+        ),
+    quick: (
+        <section className="hcard">
+          <div className="hcard-head"><h3><Zap size={20} /> Hızlı İşlemler</h3></div>
+          <div className="quick-grid">
+            <button onClick={() => onNewEvent()}><span className="qi accent"><CalendarPlus size={20} /></span>Yeni Ders</button>
+            <button onClick={onNewTask}><span className="qi"><ListTodo size={20} /></span>Yeni Görev</button>
+            <button onClick={() => setMemoOpen({ id: uid(), text: '', createdAt: Date.now() })}><span className="qi"><FileText size={20} /></span>Not Ekle</button>
+            <button onClick={goReports}><span className="qi"><BarChart3 size={20} /></span>Rapor Al</button>
+          </div>
+        </section>
+    ),
+    tasks: <TasksBox openTask={openTask} goTasks={goTasks} />,
+    week: <WeekBox />,
+    month: <MiniMonth day={day} onPick={setDay} onOpen={goCalendar} />,
+    memos: <MemosBox onOpen={setMemoOpen} />,
+    upcoming: <UpcomingBox openEvent={openEvent} goBills={goBills} openTask={openTask} />,
   }
 
   return (
@@ -119,74 +189,11 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
       </div>
 
       <div className="home-grid">
-        {/* Günün dersleri: zaman çizelgesi */}
-        <section className="hcard lessons-card">
-          <div className="hcard-head">
-            <h3><Layers size={20} /> {day === today ? 'Bugünün Dersleri' : `${dayWord(day, today)} Dersleri`}</h3>
-            <button className="link-head" onClick={() => goCalendar(day)}>Tam programı gör <ArrowRight size={15} /></button>
-          </div>
-          {dayEvents.length === 0 ? (
-            <div className="lessons-empty">
-              <p className="muted">{day === today ? 'Bugün ders yok.' : 'Bu gün ders yok.'}</p>
-              <button className="btn small" onClick={() => onNewEvent(day)}><Plus size={14} /> Ders ekle</button>
-            </div>
-          ) : (
-            <div className="timeline">
-              {dayEvents.map((e) => {
-                const live = e === ongoing
-                const past = day < today || (day === today && toMinutes(e.end) <= now)
-                const Ico = e.kind === 'kurum' ? BookOpen : e.kind === 'ozel' ? Users : CalendarDays
-                return (
-                  <button key={e.id} className={'tl-item' + (live ? ' live' : '') + (past ? ' past' : '') + (isOff(e) ? ' off' : '')} style={{ ['--ev' as string]: eventColor(data, e) }} onClick={() => openEvent(e)}>
-                    <span className="tl-card">
-                      <Ico size={24} strokeWidth={1.7} />
-                      <b>{shortName(data, e)}</b>
-                      <small>{isOff(e) ? 'İptal' : `${e.start} – ${e.end}`}</small>
-                    </span>
-                    <span className="tl-dot" />
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* Sıradaki ders */}
-        {hero ? (
-          <button className={'hcard next-card' + (hero === ongoing ? ' live' : '')} style={{ ['--ev' as string]: eventColor(data, hero) }} onClick={() => openEvent(hero)}>
-            <span className="next-label">{hero === ongoing ? <><span className="pulse" /> Şu an</> : <><Clock size={18} /> Sıradaki Ders</>}</span>
-            <b className="next-title">{shortName(data, hero)}</b>
-            <span className="next-row"><CalendarDays size={16} /> {dayWord(hero.date, today)}, {hero.start} – {hero.end}</span>
-            <span className="next-row"><Timer size={16} /> {hero === ongoing ? `bitişe ${relative(toMinutes(hero.end) - now)}` : hero.date === today ? `${relative(toMinutes(hero.start) - now)} sonra` : eventTitle(data, hero) !== shortName(data, hero) ? eventTitle(data, hero) : ' '}</span>
-            <span className="next-btn"><Play size={16} fill="currentColor" /> {hero === ongoing ? 'Derse git' : 'Dersi aç'}</span>
-            <MathDeco />
-          </button>
-        ) : (
-          <div className="hcard next-card empty">
-            <span className="next-label"><Clock size={18} /> Sıradaki Ders</span>
-            <b className="next-title">Planlı ders yok</b>
-            <span className="next-row">Takvimden ders ekleyebilir ya da kurum programını yükleyebilirsin.</span>
-          </div>
-        )}
-
-        {/* Hızlı işlemler */}
-        <section className="hcard">
-          <div className="hcard-head"><h3><Zap size={20} /> Hızlı İşlemler</h3></div>
-          <div className="quick-grid">
-            <button onClick={() => onNewEvent()}><span className="qi accent"><CalendarPlus size={20} /></span>Yeni Ders</button>
-            <button onClick={onNewTask}><span className="qi"><ListTodo size={20} /></span>Yeni Görev</button>
-            <button onClick={() => setMemoOpen({ id: uid(), text: '', createdAt: Date.now() })}><span className="qi"><FileText size={20} /></span>Not Ekle</button>
-            <button onClick={goReports}><span className="qi"><BarChart3 size={20} /></span>Rapor Al</button>
-          </div>
-        </section>
-
-        <TasksBox openTask={openTask} goTasks={goTasks} />
-        <WeekBox />
-        <MiniMonth day={day} onPick={setDay} onOpen={goCalendar} />
-        <MemosBox onOpen={setMemoOpen} />
-        <UpcomingBox openEvent={openEvent} goBills={goBills} openTask={openTask} />
+        {homeOrder(data.settings).map((id) => <Fragment key={id}>{cards[id]}</Fragment>)}
+        <button className="home-edit" onClick={() => setEditCards(true)}><SlidersHorizontal size={15} /> Ana sayfayı düzenle</button>
       </div>
 
+      {editCards && <Modal title="Ana sayfayı düzenle" onClose={() => setEditCards(false)}><HomeCardsEditor /></Modal>}
       {memoOpen && <MemoEditor memo={memoOpen} onClose={() => setMemoOpen(null)} />}
       {bellOpen && (
         <Modal title={<span className="row-title"><BellRing size={19} /> Bildirimler</span>} onClose={() => setBellOpen(false)}>

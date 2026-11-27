@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import DateInput from './DateInput'
-import { Bell, BookOpen, Bug, CalendarDays, Download, KeyRound, Lock, Sparkles, Palette, RotateCcw, ShieldCheck, Trash2, Upload, ChevronDown, ChevronUp, LayoutList } from 'lucide-react'
+import { Bell, BookOpen, Bug, CalendarDays, Download, KeyRound, Lock, Sparkles, Palette, RotateCcw, ShieldCheck, Trash2, Upload, ChevronDown, ChevronUp, LayoutDashboard, LayoutList } from 'lucide-react'
 import { decryptText, encryptText, isEncrypted } from '../lib/crypto'
 import { autoBackupInfo, readSnapshots } from '../lib/persist'
 import { makeLock } from '../lib/lock'
@@ -18,6 +18,7 @@ import { uid } from '../lib/util'
 import { buildICS } from '../lib/ics'
 import IcsImportModal from './IcsImportModal'
 import { NAV_LABEL, navOrder, type NavTab } from '../lib/nav'
+import { HomeCardsEditor } from './HomeCards'
 import UpdatePanel from './UpdatePanel'
 import SyncPanel from './SyncPanel'
 import { PALETTE, downloadFile } from '../lib/util'
@@ -70,6 +71,7 @@ export default function SettingsPage() {
       <UpdatePanel />
       <AppearancePanel />
       <MenuPanel />
+      <section className="panel"><h3 className="row-title"><LayoutDashboard size={18} /> Ana sayfa kartları</h3><HomeCardsEditor /></section>
       <NotifyPanel />
       <LockPanel />
       <CategoriesPanel />

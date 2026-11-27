@@ -2,13 +2,17 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { Settings } from '../lib/types'
 import { setData, useData } from '../lib/store'
 
-export type HomeCard = 'lessons' | 'next' | 'quick' | 'tasks' | 'week' | 'month' | 'memos' | 'upcoming'
+export type HomeCard = 'lessons' | 'next' | 'pending' | 'tasks' | 'week' | 'alerts' | 'quick' | 'free' | 'exams' | 'month' | 'memos' | 'upcoming'
 
-export const HOME_DEFAULT: HomeCard[] = ['lessons', 'next', 'quick', 'tasks', 'week', 'month', 'memos', 'upcoming']
+export const HOME_DEFAULT: HomeCard[] = ['lessons', 'next', 'pending', 'tasks', 'week', 'alerts', 'quick', 'free', 'exams', 'month', 'memos', 'upcoming']
 
 export const HOME_LABEL: Record<HomeCard, string> = {
   lessons: 'Bugünün Dersleri',
   next: 'Sıradaki Ders',
+  pending: 'Ders Defteri (kayıt bekleyenler)',
+  alerts: 'Hatırlatmalar',
+  free: 'Boş Saatler',
+  exams: 'Sınavlar',
   quick: 'Hızlı İşlemler',
   tasks: 'Görevlerim',
   week: 'Bu Hafta',
@@ -20,7 +24,13 @@ export const HOME_LABEL: Record<HomeCard, string> = {
 /** Kullanıcının sıraladığı kartlar (yeni kartlar sona eklenir) */
 export function homeOrder(s: Settings, includeHidden = false): HomeCard[] {
   const saved = (s.homeOrder ?? []).filter((c): c is HomeCard => (HOME_DEFAULT as string[]).includes(c))
-  const order = [...saved, ...HOME_DEFAULT.filter((c) => !saved.includes(c))]
+  const order = [...saved]
+  // Kaydedilmiş sırada olmayan (yeni) kartlar varsayılandaki yerlerine yerleşir
+  HOME_DEFAULT.forEach((c, i) => {
+    if (order.includes(c)) return
+    const prev = HOME_DEFAULT.slice(0, i).reverse().find((x) => order.includes(x))
+    order.splice(prev ? order.indexOf(prev) + 1 : 0, 0, c)
+  })
   if (includeHidden) return order
   const hidden = new Set(s.homeHidden ?? [])
   return order.filter((c) => !hidden.has(c))

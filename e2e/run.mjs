@@ -539,19 +539,19 @@ test('ana sayfa kartları gizlenip sıralanabilir', async (browser) => {
   const { page, errors } = await open(browser)
   await page.waitForSelector('.home-grid')
   const titles = () => page.locator('.home-grid > .hcard').evaluateAll((els) => els.map((e) => e.querySelector('h3, .next-label')?.textContent?.trim()))
-  assert.equal((await titles()).length, 8)
+  assert.equal((await titles()).length, 12)
   await page.getByRole('button', { name: /Ana sayfayı düzenle/ }).click()
   await page.locator('.menu-order li', { hasText: 'Bu Hafta' }).locator('input[type=checkbox]').uncheck()
   await page.getByRole('button', { name: 'Notlarım yukarı' }).click()
   await page.keyboard.press('Escape')
   const t = await titles()
-  assert.equal(t.length, 7)
+  assert.equal(t.length, 11)
   assert.ok(!t.some((x) => /Bu Hafta/.test(x)))
   assert.ok(t.findIndex((x) => /Notlarım/.test(x)) < t.findIndex((x) => /Ay takvimi|Kasım/.test(x)))
   // Kalıcı
   await page.reload()
   await page.waitForSelector('.home-grid')
-  assert.equal((await titles()).length, 7)
+  assert.equal((await titles()).length, 11)
   assert.deepEqual(errors, [])
 })
 
@@ -602,6 +602,31 @@ test('manzaralı temalar: varsayılan Gün batımı, Kış ve Klasik seçilebili
   assert.equal(await scene(), null)
   await page.locator('.scene-card', { hasText: 'Gece' }).click()
   assert.equal(await page.evaluate(() => document.documentElement.getAttribute('data-theme')), 'dark')
+  assert.deepEqual(errors, [])
+})
+
+test('ana sayfa: Ders Defteri\'nden konu yazma, boş saatten ders ekleme, özet çipleri', async (browser) => {
+  const { page, errors } = await open(browser)
+  await seed(page)
+  await page.waitForSelector('.home-grid')
+  // 09:00 dersi bitti, konusu yok → Ders Defteri'nde
+  const card = page.locator('.pending-card')
+  assert.match(await card.innerText(), /Gül/)
+  assert.match(await page.locator('.day-chips').innerText(), /1 kayıt bekliyor/)
+  await card.locator('input').fill('Kesirler giriş')
+  await card.locator('input').press('Enter')
+  assert.match(await card.innerText(), /Son dersler yazıldı/)
+  // Zaman çizelgesinde konu görünür
+  assert.match(await page.locator('.lessons-card').innerText(), /Kesirler giriş/)
+  // Sıradaki ders kartında geçen dersin konusu
+  assert.match(await page.locator('.next-card').innerText(), /Geçen ders[\s\S]*Kesirler giriş/i)
+  // Boş saatten ders ekleme: pencere o saatle açılır
+  const chip = page.locator('.free-chip').first()
+  const start = (await chip.locator('b').innerText()).split(' ')[0]
+  await chip.click()
+  assert.equal(await page.locator('.modal').count(), 1)
+  const modalText = await page.locator('.modal').evaluate((m) => m.innerText + ' ' + [...m.querySelectorAll('input, select')].map((i) => i.value).join(' '))
+  assert.match(modalText, new RegExp(start.replace(':', '.?')))
   assert.deepEqual(errors, [])
 })
 

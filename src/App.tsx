@@ -163,9 +163,9 @@ export default function App() {
       return false
     })
   })
-  const newEvent = (date?: string) => {
+  const newEvent = (date?: string, start?: string, end?: string) => {
     const s = Math.ceil(toMinutes(nowHM()) / 30) * 30
-    setEditing({ date: date ?? todayISO(), start: fromMinutes(Math.min(s, 22 * 60)), end: fromMinutes(Math.min(s + 60, 23 * 60)) })
+    setEditing({ date: date ?? todayISO(), start: start ?? fromMinutes(Math.min(s, 22 * 60)), end: end ?? fromMinutes(Math.min(s + 60, 23 * 60)) })
   }
   const goCalendar = (date?: string) => {
     if (date) setCalDate({ date, n: Date.now() })
@@ -238,7 +238,7 @@ export default function App() {
 
       <main className="content">
         <div key={tab} className="page-anim">
-        {tab === 'bugun' && <TodayPage openEvent={openEvent} goCalendar={goCalendar} goSettings={() => go('ayarlar')} onSearch={() => setSearching(true)} openTask={setTask} goBills={() => goBills('gider')} goTasks={() => go('gorevler')} onNewEvent={newEvent} onNewTask={() => setTask(newTask())} goReports={() => go('ozet')} reminderCount={reminders.length} onReminders={() => setRemindOpen(true)} />}
+        {tab === 'bugun' && <TodayPage openEvent={openEvent} goCalendar={goCalendar} goSettings={() => go('ayarlar')} onSearch={() => setSearching(true)} openTask={setTask} goBills={() => goBills('gider')} goTasks={() => go('gorevler')} onNewEvent={newEvent} onNewTask={() => setTask(newTask())} goReports={() => go('ozet')} reminderCount={reminders.length} onReminders={() => setRemindOpen(true)} onOpenExam={setExam} onAddExam={() => setExam(newExam())} />}
         {tab === 'gorevler' && <TasksPage onOpen={setTask} />}
         {tab === 'odemeler' && <PaymentsPage key={payTab?.n ?? 0} initial={payTab?.tab} openStudent={openStudent} />}
         {tab === 'takvim' && (

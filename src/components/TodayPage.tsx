@@ -4,7 +4,7 @@ import {
   GraduationCap, Layers, Lightbulb, ListTodo, Moon, Play, Plus, Search, Settings, SlidersHorizontal, Sun, Sunrise, Timer, Users, Zap,
 } from 'lucide-react'
 import type { OpenEvent } from '../App'
-import type { CalEvent, Memo, Task } from '../lib/types'
+import type { CalEvent, Exam, Memo, Task } from '../lib/types'
 import { deleteMemo, eventColor, eventTitle, saveMemo, saveTask, setData, subSuffix, useData } from '../lib/store'
 import { TR_DAYS_SHORT, addDays, addMonths, formatDMY, formatLong, fromISO, monthLabel, nowHM, startOfMonth, startOfWeek, toMinutes, todayISO } from '../lib/date'
 import { upcomingBills } from '../lib/bills'
@@ -12,10 +12,14 @@ import { isOff } from '../lib/status'
 import { showToast } from '../lib/toast'
 import { uid } from '../lib/util'
 import { sortTasks } from './TasksPage'
+import { newTask } from './TaskExamForms'
 import SyncBadge from './SyncBadge'
 import { HomeCardsEditor, homeOrder, type HomeCard } from './HomeCards'
 import Modal from './Modal'
 import Landscape from './Landscape'
+import FreeSlotsModal from './FreeSlotsModal'
+import { AlertsBox, ExamsBox, FreeBox, PendingBox, WeekBox, quoteOfDay } from './HomeBoxes'
+import { happened } from '../lib/status'
 import { useScene } from '../lib/useScene'
 
 function greeting(min: number) {
@@ -39,7 +43,9 @@ const shortName = (d: ReturnType<typeof useData>, e: CalEvent) =>
 const dayWord = (iso: string, today: string) => (iso === today ? 'Bugün' : iso === addDays(today, 1) ? 'Yarın' : `${fromISO(iso).getDate()} ${monthLabel(iso).split(' ')[0].slice(0, 3)} ${TR_DAYS_SHORT[(fromISO(iso).getDay() + 6) % 7]}`)
 
 /** Ana sayfa: selamlama, günün dersleri, sıradaki ders, hızlı işlemler, görevler, haftalık bakış, takvim, notlar, yaklaşanlar */
-export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch, openTask, goBills, goTasks, onNewEvent, onNewTask, goReports, reminderCount, onReminders }: {
+export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch, openTask, goBills, goTasks, onNewEvent, onNewTask, goReports, reminderCount, onReminders, onOpenExam, onAddExam }: {
+  onOpenExam: (x: Exam) => void
+  onAddExam: () => void
   goBills: () => void
   goTasks: () => void
   openEvent: OpenEvent
@@ -47,7 +53,7 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
   goSettings: () => void
   onSearch: () => void
   openTask: (t: Task) => void
-  onNewEvent: (date?: string) => void
+  onNewEvent: (date?: string, start?: string, end?: string) => void
   onNewTask: () => void
   goReports: () => void
   reminderCount: number
@@ -66,6 +72,7 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
   const [memoOpen, setMemoOpen] = useState<Memo | null>(null)
   const [bellOpen, setBellOpen] = useState(false)
   const [editCards, setEditCards] = useState(false)
+  const [findFree, setFindFree] = useState(false)
   const now = toMinutes(nowHM())
   const { text, Icon } = greeting(now)
   const name = data.settings.userName?.trim()
@@ -75,10 +82,22 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
     [data.events],
   )
   const dayEvents = data.events.filter((e) => e.date === day).sort((a, b) => a.start.localeCompare(b.start))
+  const dayLessons = dayEvents.filter((e) => !isOff(e)).length
+  const dayDone = dayEvents.filter((e) => happened(e, today, nowHM())).length
   const ongoing = active.find((e) => e.date === today && toMinutes(e.start) <= now && toMinutes(e.end) > now)
   const next = active.find((e) => e.date > today || (e.date === today && toMinutes(e.start) > now))
   const hero = ongoing ?? next
   const todayLeft = active.filter((e) => e.date === today && toMinutes(e.end) > now).length
+  // Sıradaki dersin bir önceki kaydı: geçen ders ne işlendi, ödev ne verildi
+  const lastOf = hero
+    ? data.events
+        .filter((e) => e.id !== hero.id && (e.topic || e.homework) && (hero.studentId ? e.studentId === hero.studentId : hero.groupCode ? e.groupCode === hero.groupCode : false) && e.date + e.start < hero.date + hero.start)
+        .sort((a, b) => (b.date + b.start).localeCompare(a.date + a.start))[0]
+    : undefined
+  const todayAll = data.events.filter((e) => e.date === today && !isOff(e) && e.kind !== 'diger')
+  const todayDone = todayAll.filter((e) => happened(e, today, nowHM())).length
+  const pendingCount = data.events.filter((e) => e.kind !== 'diger' && !isOff(e) && !e.topic && e.status !== 'done' && e.date >= addDays(today, -7) && happened(e, today, nowHM())).length
+  const tasksToday = data.tasks.filter((t) => !t.done && t.due && t.due <= today).length
 
   // Bildirimler: ödeme bekleyen dersler, gecikmiş ödemelerim, gecikmiş görevler
   const lateBills = useMemo(() => upcomingBills(data, today, 0).filter((r) => r.state === 'late' || r.due === today), [data, today])
@@ -101,6 +120,8 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
         <section className="hcard lessons-card">
           <div className="hcard-head">
             <h3><Layers size={20} /> {day === today ? 'Bugünün Dersleri' : `${dayWord(day, today)} Dersleri`}</h3>
+            {dayLessons > 0 && <span className="count-pill ok">{dayDone}/{dayLessons} tamam</span>}
+            <span className="spacer" />
             <button className="link-head" onClick={() => goCalendar(day)}>Tam programı gör <ArrowRight size={15} /></button>
           </div>
           {dayEvents.length === 0 ? (
@@ -114,12 +135,17 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
                 const live = e === ongoing
                 const past = day < today || (day === today && toMinutes(e.end) <= now)
                 const Ico = e.kind === 'kurum' ? BookOpen : e.kind === 'ozel' ? Users : CalendarDays
+                const pct = live ? Math.round(((now - toMinutes(e.start)) / Math.max(1, toMinutes(e.end) - toMinutes(e.start))) * 100) : 0
                 return (
                   <button key={e.id} className={'tl-item' + (live ? ' live' : '') + (past ? ' past' : '') + (isOff(e) ? ' off' : '')} style={{ ['--ev' as string]: eventColor(data, e) }} onClick={() => openEvent(e)}>
                     <span className="tl-card">
+                      {past && !isOff(e) && <span className={'tl-badge' + (e.topic ? ' ok' : '')} title={e.topic ? 'Konu yazıldı' : 'Konu yazılmadı'}>{e.topic ? <Check size={11} strokeWidth={3} /> : '✍️'}</span>}
+                      {live && <span className="tl-badge live">Şimdi</span>}
                       <Ico size={24} strokeWidth={1.7} />
                       <b>{shortName(data, e)}</b>
                       <small>{isOff(e) ? 'İptal' : `${e.start} – ${e.end}`}</small>
+                      {e.topic && <em className="tl-topic">{e.topic.split('\n')[0]}</em>}
+                      {live && <span className="tl-progress"><i style={{ width: `${pct}%` }} /></span>}
                     </span>
                     <span className="tl-dot" />
                   </button>
@@ -135,6 +161,13 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
             <b className="next-title">{shortName(data, hero)}</b>
             <span className="next-row"><CalendarDays size={16} /> {dayWord(hero.date, today)}, {hero.start} – {hero.end}</span>
             <span className="next-row"><Timer size={16} /> {hero === ongoing ? `bitişe ${relative(toMinutes(hero.end) - now)}` : hero.date === today ? `${relative(toMinutes(hero.start) - now)} sonra` : eventTitle(data, hero) !== shortName(data, hero) ? eventTitle(data, hero) : ' '}</span>
+            {lastOf && (
+              <span className="next-last">
+                <small>Geçen ders · {formatDMY(lastOf.date)}</small>
+                {lastOf.topic && <span>{lastOf.topic.split('\n')[0]}</span>}
+                {lastOf.homework && <span className="hw">Ödev: {lastOf.homework}</span>}
+              </span>
+            )}
             <span className="next-btn"><Play size={16} fill="currentColor" /> {hero === ongoing ? 'Derse git' : 'Dersi aç'}</span>
             {scene ? <span className="card-scene"><Landscape scene={scene} variant="card" /></span> : <MathDeco />}
           </button>
@@ -148,16 +181,22 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
     quick: (
         <section className="hcard">
           <div className="hcard-head"><h3><Zap size={20} /> Hızlı İşlemler</h3></div>
-          <div className="quick-grid">
+          <div className="quick-grid six">
             <button onClick={() => onNewEvent()}><span className="qi accent"><CalendarPlus size={20} /></span>Yeni Ders</button>
             <button onClick={onNewTask}><span className="qi"><ListTodo size={20} /></span>Yeni Görev</button>
+            <button onClick={onAddExam}><span className="qi"><GraduationCap size={20} /></span>Sınav Ekle</button>
             <button onClick={() => setMemoOpen({ id: uid(), text: '', createdAt: Date.now() })}><span className="qi"><FileText size={20} /></span>Not Ekle</button>
+            <button onClick={() => setFindFree(true)}><span className="qi"><Search size={20} /></span>Boş Saat Bul</button>
             <button onClick={goReports}><span className="qi"><BarChart3 size={20} /></span>Rapor Al</button>
           </div>
         </section>
     ),
     tasks: <TasksBox openTask={openTask} goTasks={goTasks} />,
-    week: <WeekBox />,
+    week: <WeekBox onDay={setDay} />,
+    pending: <PendingBox openEvent={openEvent} />,
+    alerts: <AlertsBox onReminders={onReminders} goBills={goBills} goTasks={goTasks} />,
+    free: <FreeBox day={day} onNew={(d, a, b) => onNewEvent(d, a, b)} onFind={() => setFindFree(true)} />,
+    exams: <ExamsBox onOpenExam={onOpenExam} onAddExam={onAddExam} />,
     month: <MiniMonth day={day} onPick={setDay} onOpen={goCalendar} />,
     memos: <MemosBox onOpen={setMemoOpen} />,
     upcoming: <UpcomingBox openEvent={openEvent} goBills={goBills} openTask={openTask} />,
@@ -182,6 +221,16 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
         </div>
       </header>
 
+      <div className="home-sub">
+        <div className="day-chips">
+          {todayAll.length > 0 && <button className="day-chip" onClick={() => goCalendar(today)}><GraduationCap size={15} /> {todayDone}/{todayAll.length} ders</button>}
+          {pendingCount > 0 && <button className="day-chip warn" onClick={() => document.getElementById('kayit-bekleyen')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><FileText size={15} /> {pendingCount} kayıt bekliyor</button>}
+          {tasksToday > 0 && <button className="day-chip" onClick={goTasks}><ListTodo size={15} /> {tasksToday} görev</button>}
+          {reminderCount > 0 && <button className="day-chip warn" onClick={onReminders}><Bell size={15} /> {reminderCount} ödeme bekleniyor</button>}
+        </div>
+        <p className="day-quote">“{quoteOfDay(today)}”</p>
+      </div>
+
       <div className="home-date">
         <CalendarDays size={22} />
         <b>{formatLong(day)}</b>
@@ -196,6 +245,7 @@ export default function TodayPage({ openEvent, goCalendar, goSettings, onSearch,
         <button className="home-edit" onClick={() => setEditCards(true)}><SlidersHorizontal size={15} /> Ana sayfayı düzenle</button>
       </div>
 
+      {findFree && <FreeSlotsModal from={day} onPick={(d, a, b) => { setFindFree(false); onNewEvent(d, a, b) }} onClose={() => setFindFree(false)} />}
       {editCards && <Modal title="Ana sayfayı düzenle" onClose={() => setEditCards(false)}><HomeCardsEditor /></Modal>}
       {memoOpen && <MemoEditor memo={memoOpen} onClose={() => setMemoOpen(null)} />}
       {bellOpen && (
@@ -236,6 +286,12 @@ function TasksBox({ openTask, goTasks }: { openTask: (t: Task) => void; goTasks:
   const open = sortTasks(data.tasks.filter((t) => !t.done), 'tarih')
   const doneToday = data.tasks.filter((t) => t.done && t.doneAt === today).slice(0, 2)
   const list = [...doneToday, ...open].slice(0, 5)
+  const [title, setTitle] = useState('')
+  const add = () => {
+    if (!title.trim()) return
+    saveTask(newTask({ title: title.trim(), due: today }))
+    setTitle('')
+  }
   const toggle = (t: Task) => {
     const before = { ...t }
     saveTask({ ...t, done: !t.done, doneAt: !t.done ? today : undefined })
@@ -246,6 +302,11 @@ function TasksBox({ openTask, goTasks }: { openTask: (t: Task) => void; goTasks:
       <div className="hcard-head">
         <h3><Check size={20} /> Görevlerim</h3>
         <button className="link-head muted" onClick={goTasks}>{open.length} açık görev</button>
+      </div>
+      <div className="home-task-add">
+        <Plus size={16} />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="Bugün için görev ekle…" aria-label="Bugün için görev ekle" />
+        {title.trim() && <button className="btn small primary" onClick={add}>Ekle</button>}
       </div>
       {list.length === 0 ? <p className="muted small">Açık görev yok.</p> : (
         <ul className="home-tasks">
@@ -260,28 +321,6 @@ function TasksBox({ openTask, goTasks }: { openTask: (t: Task) => void; goTasks:
           ))}
         </ul>
       )}
-    </section>
-  )
-}
-
-/* ---------------- Bu hafta ---------------- */
-
-function WeekBox() {
-  const data = useData()
-  const today = todayISO()
-  const ws = startOfWeek(today)
-  const we = addDays(ws, 6)
-  const lessons = data.events.filter((e) => e.date >= ws && e.date <= we && !isOff(e) && e.kind !== 'diger').length
-  const tasks = data.tasks.filter((t) => !t.done).length
-  const students = new Set(data.events.filter((e) => e.kind === 'ozel' && e.studentId && e.date >= ws && e.date <= we && !isOff(e)).map((e) => e.studentId)).size
-  return (
-    <section className="hcard">
-      <div className="hcard-head"><h3><BarChart3 size={20} /> Bu Hafta</h3></div>
-      <div className="week-stats">
-        <div className="ws a"><GraduationCap size={28} strokeWidth={1.6} /><b>{lessons}</b><span>Ders</span></div>
-        <div className="ws b"><Check size={28} strokeWidth={1.6} /><b>{tasks}</b><span>Görev</span></div>
-        <div className="ws c"><Users size={28} strokeWidth={1.6} /><b>{students}</b><span>Öğrenci</span></div>
-      </div>
     </section>
   )
 }

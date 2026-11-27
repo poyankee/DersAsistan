@@ -1,5 +1,5 @@
 /** Uygulama sürümü ve "bu sürümde neler değişti" listesi (Ayarlar → Yenilikler) */
-export const APP_VERSION = '0.15'
+export const APP_VERSION = '0.16'
 
 /** Bu arayüz paketinin derleme numarası (yerelde 0) */
 export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
@@ -12,6 +12,19 @@ export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
 export const NATIVE_LEVEL = 1
 
 export const CHANGELOG: { version: string; items: string[] }[] = [
+  {
+    version: '0.16',
+    items: [
+      'Yeni Bugün sayfası: başlıkta günün özeti (yapılan ders, kayıt bekleyen, görev, ödeme) ve günün sözü',
+      'Ders Defteri kartı: biten dersin konusunu doğrudan ana sayfadan yazın (Enter) ya da konusuz "yapıldı" sayın',
+      'Bugünün Dersleri: konusu yazılanlarda ✓, yazılmayanlarda ✍️, süren derste ilerleme çubuğu ve konu özeti',
+      'Sıradaki Ders: geçen derste ne işlendiği ve verilen ödev',
+      'Bu Hafta: ders sayısı, toplam saat, öğrenci ve günlere göre ders saati grafiği (güne dokununca o gün açılır)',
+      'Hatırlatmalar: ödeme bekleyen dersler (tutarsız), son günü yaklaşan ödemelerim, geciken ve bugünkü görevler',
+      'Boş Saatler: günün boş aralıkları; dokununca o saate ders eklenir. Sınavlar: kalan gün sayacı',
+      'Görevlerim kartından bugüne hızlı görev ekleme; Hızlı İşlemler\'e Sınav Ekle ve Boş Saat Bul',
+    ],
+  },
   {
     version: '0.15',
     items: [

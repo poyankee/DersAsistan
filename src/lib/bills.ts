@@ -22,13 +22,29 @@ export function dueDate(bill: Bill, month: string): string {
   return `${month}-${pad(Math.min(Math.max(1, bill.day), last))}`
 }
 
+const monthIndex = (ym: string) => Number(ym.slice(0, 4)) * 12 + Number(ym.slice(5, 7)) - 1
+
+export const kindOf = (b: Bill) => b.kind ?? 'gider'
+
+/** Kalem o ay geçerli mi: başlangıç/bitiş arasında ve tekrar sıklığına uyuyor */
 export function activeIn(bill: Bill, month: string): boolean {
-  return bill.from <= month && (!bill.until || month <= bill.until)
+  if (bill.from > month || (bill.until && month > bill.until)) return false
+  if (bill.months?.length) return bill.months.includes(Number(month.slice(5, 7)))
+  const every = Math.max(1, bill.every ?? 1)
+  return (monthIndex(month) - monthIndex(bill.from)) % every === 0
 }
 
-export function billsForMonth(d: AppData, month: string, today: string): BillRow[] {
+/** Tekrar sıklığının okunur hâli */
+export function repeatText(b: Bill): string {
+  if (b.until && b.until === b.from) return 'Tek seferlik'
+  if (b.months?.length) return b.months.map((m) => ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'][m - 1]).join(', ')
+  const e = b.every ?? 1
+  return e === 1 ? 'Her ay' : e === 12 ? 'Yılda bir' : `${e} ayda bir`
+}
+
+export function billsForMonth(d: AppData, month: string, today: string, kind: 'gider' | 'gelir' = 'gider'): BillRow[] {
   return d.bills
-    .filter((b) => activeIn(b, month))
+    .filter((b) => kindOf(b) === kind && activeIn(b, month))
     .map((bill) => {
       const payments = d.billPayments.filter((p) => p.billId === bill.id && p.month === month)
       const paid = payments.reduce((a, p) => a + p.amount, 0)
@@ -75,7 +91,7 @@ export function lastMonths(month: string, count: number): string[] {
 }
 
 /** Toplu görünüm: kalem × ay ödenen tutarlar */
-export function paidMatrix(d: AppData, months: string[]): { bill: Bill; cells: number[]; total: number }[] {
+export function paidMatrix(d: AppData, months: string[], kind: 'gider' | 'gelir' = 'gider'): { bill: Bill; cells: number[]; total: number }[] {
   const idx = new Map(months.map((m, i) => [m, i]))
   const rows = new Map<string, number[]>()
   for (const p of d.billPayments) {
@@ -85,7 +101,7 @@ export function paidMatrix(d: AppData, months: string[]): { bill: Bill; cells: n
     rows.get(p.billId)![i] += p.amount
   }
   return d.bills
-    .filter((b) => rows.has(b.id))
+    .filter((b) => rows.has(b.id) && kindOf(b) === kind)
     .map((bill) => ({ bill, cells: rows.get(bill.id)!, total: rows.get(bill.id)!.reduce((a, b) => a + b, 0) }))
     .sort((a, b) => b.total - a.total)
 }
@@ -104,33 +120,39 @@ export interface CashFlow {
   month: string
   /** Öğrencilerden o ay alınan ödemeler (tahsilat tarihine göre) */
   ozel: number
-  /** Kurumdan alınan ödemeler (kayıt varsa); yoksa yapılmış ek ders saati × saat ücreti (tahmini) */
+  /** Gelirlerim'de o ay için "alındı" işaretlenenler (kurum, maaş, ek ödemeler…) */
+  gelir: number
+  /** Bunun kurumdan gelen kısmı */
   kurum: number
+  /** Kurum ödemesi işaretlenmediyse puantaja göre tahmin (ek ders saati × ücret); toplamlara katılmaz */
+  kurumEstimate: number
   kurumHours: number
-  /** Kurum geliri tahmini mi (kurum ödemesi kaydı yok) */
-  kurumEstimated: boolean
-  /** Ayarlardaki sabit aylık gelir (maaş vb.) */
-  fixed: number
   income: number
-  /** O ayın kalemleri için yapılan ödemeler */
+  /** O ayın gider kalemleri için yapılan ödemeler */
   out: number
   net: number
 }
 
-/** Aylık giren / çıkan: özel ders tahsilatı + kurum ek dersi + sabit gelir − ödemelerim */
+/** Aylık giren / çıkan: özel ders tahsilatı + Gelirlerim − Ödemelerim */
 export function cashFlow(d: AppData, month: string, today = todayISO()): CashFlow {
   const rate = d.settings.kurumHourlyRate ?? 0
-  const fixed = d.settings.fixedIncome ?? 0
   let ozel = 0
   for (const p of d.payments) if (p.date.slice(0, 7) === month) ozel += p.amount
+  const kindById = new Map(d.bills.map((b) => [b.id, b]))
+  let out = 0
+  let gelir = 0
+  let kurum = 0
+  for (const p of d.billPayments) {
+    if (p.month !== month) continue
+    const b = kindById.get(p.billId)
+    if (b && kindOf(b) === 'gelir') {
+      gelir += p.amount
+      if (b.source === 'kurum') kurum += p.amount
+    } else out += p.amount
+  }
   let kurumHours = 0
   if (rate) for (const e of d.events) if (e.kind === 'kurum' && e.date.slice(0, 7) === month && happened(e, today)) kurumHours += e.hours ?? 1
-  let out = 0
-  for (const p of d.billPayments) if (p.month === month) out += p.amount
-  // Kuruma ait gerçek ödeme kaydı varsa (alındığı güne göre) o kullanılır; yoksa saat × ücret tahmini
-  const received = (d.kurumPayments ?? []).filter((p) => p.date.slice(0, 7) === month)
-  const kurumEstimated = received.length === 0
-  const kurum = kurumEstimated ? kurumHours * rate : received.reduce((a, p) => a + p.amount, 0)
-  const income = ozel + kurum + fixed
-  return { month, ozel, kurum, kurumHours, kurumEstimated, fixed, income, out, net: income - out }
+  const kurumEstimate = kurum === 0 ? kurumHours * rate : 0
+  const income = ozel + gelir
+  return { month, ozel, gelir, kurum, kurumEstimate, kurumHours, income, out, net: income - out }
 }

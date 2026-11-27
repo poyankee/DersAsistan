@@ -175,3 +175,20 @@
 .remind-list .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .remind-list .avatar { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-style: normal; font-weight: 700; flex: none; }
 @media (max-width: 520px) { .remind-list li { flex-wrap: wrap; } .remind-list .grow { flex-basis: calc(100% - 50px); } }
+
+/* Menü düzeni */
+.menu-order { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 4px; max-width: 520px; }
+.menu-order li { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 12px; border-radius: 12px; background: var(--surface-2); }
+.menu-order li.off { opacity: .55; }
+.menu-order .grow { flex: 1; }
+.mo-num { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; background: var(--surface); color: var(--muted); }
+.more-grid button { position: relative; }
+.more-grid button.active { background: var(--primary-soft); color: var(--primary); }
+.more-grid .nav-badge { position: absolute; top: 8px; right: 8px; }
+.scroll-seg { overflow-x: auto; flex-wrap: nowrap; }
+.scroll-seg button { flex: 0 0 auto; }
+.bill-name .tag { font-style: normal; font-size: 10.5px; font-weight: 700; padding: 1px 6px; border-radius: 6px; background: var(--primary-soft); color: var(--primary); margin-left: 4px; }
+.bill-row.income .bill-check.on { background: #16a34a; border-color: #16a34a; }
+.count-table td, .count-table th { text-align: right; font-variant-numeric: tabular-nums; }
+.count-table td:first-child, .count-table th:first-child { text-align: left; }
+.count-table .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }

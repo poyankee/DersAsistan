@@ -2,10 +2,11 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import type React from 'react'
 import { CalendarDays, CalendarSearch, Printer, Receipt, ChevronLeft, ChevronRight, GraduationCap, ListTodo, MoreHorizontal, Plus, Upload, ZoomIn, ZoomOut } from 'lucide-react'
 import FreeSlotsModal from './FreeSlotsModal'
+import { isOff } from '../lib/status'
 import { holidayMap } from '../lib/holidays'
 import type { OpenEvent } from '../App'
 import type { AppData, CalEvent, Task } from '../lib/types'
-import { eventColor, eventTitle, useData } from '../lib/store'
+import { eventColor, eventTitle, useData, subSuffix } from '../lib/store'
 import {
   TR_DAYS_SHORT, addDays, addMonths, formatLong, formatShort, fromISO, fromMinutes, isPast,
   monthLabel, nowHM, startOfMonth, startOfWeek, toMinutes, todayISO, weekdayIndex,
@@ -641,9 +642,21 @@ const DayEvents = memo(function DayEvents({ data, date, events, drag, hourPx, on
     list = events.filter((e) => e.id !== drag.id)
     if (drag.date === date) list = [...list, { ...drag.orig, date: drag.date, start: drag.start, end: drag.end }]
   }
+  // İptal edilen dersler yer kaplamaz: sütun hesabına girmez, arkada soluk durur, üstüne ders sürüklenebilir
+  const off = list.filter((e) => isOff(e) && drag?.id !== e.id)
+  const live = list.filter((e) => !isOff(e) || drag?.id === e.id)
   return (
     <>
-      {layoutDay(list).map(({ e, col, cols }) => {
+      {off.map((e) => {
+        const top = (toMinutes(e.start) / 60) * hourPx
+        const h = Math.max(22, ((toMinutes(e.end) - toMinutes(e.start)) / 60) * hourPx - 2)
+        return (
+          <div key={e.id} className="ev-off" style={{ top, height: h, ['--ev' as string]: eventColor(data, e) }} title={`İptal: ${eventTitle(data, e)} ${e.start}–${e.end}`}>
+            <button className="ev-off-chip" onPointerDown={(ev) => ev.stopPropagation()} onClick={() => onOpen(e)}>İptal · {shortTitle(data, e)}</button>
+          </div>
+        )
+      })}
+      {layoutDay(live).map(({ e, col, cols }) => {
         const top = (toMinutes(e.start) / 60) * hourPx
         const h = Math.max(22, ((toMinutes(e.end) - toMinutes(e.start)) / 60) * hourPx - 2)
         const isDragging = drag?.id === e.id
@@ -775,7 +788,7 @@ function MonthGrid({ data, cursor, selected, openEvent, onSelect, onSwipe }: {
 
 /** Takvim kutuları için kısa ad: sınıfın adı (yoksa kodu), öğrencinin adı ya da etkinlik başlığı */
 function shortTitle(data: AppData, e: CalEvent): string {
-  if (e.kind === 'kurum' && e.groupCode) return data.groups[e.groupCode]?.name || e.groupCode
+  if (e.kind === 'kurum' && e.groupCode) return (data.groups[e.groupCode]?.name || e.groupCode) + subSuffix(e)
   if (e.kind === 'ozel' && e.studentId) return data.students.find((s) => s.id === e.studentId)?.name ?? e.title
   return e.title
 }

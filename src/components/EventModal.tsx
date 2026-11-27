@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import type { CalEvent, EventKind, LessonStatus } from '../lib/types'
-import { deleteEvents, eventTitle, saveCategory, saveEvents, useData } from '../lib/store'
+import { deleteEvents, eventTitle, saveCategory, saveEvents, saveGroup, useData } from '../lib/store'
 import { addDays, formatDMY, fromMinutes, toMinutes, todayISO } from '../lib/date'
 import { PALETTE, uid } from '../lib/util'
 import { applyShiftToSeries, conflictsOf, futureSeriesEvents } from '../lib/eventOps'
@@ -70,6 +70,7 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
     const base: CalEvent = {
       ...ev,
       groupCode: ev.kind === 'kurum' ? ev.groupCode : undefined,
+      sub: ev.kind === 'kurum' ? ev.sub : undefined,
       studentId: ev.kind === 'ozel' ? ev.studentId : undefined,
       categoryId: ev.kind === 'diger' ? ev.categoryId : undefined,
       // Ücret formda sorulmaz: öğrencinin kayıtlı ücretinden gelir
@@ -130,7 +131,7 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
 
       {!lockedKind && (
         <div className="seg">
-          {(['ozel', 'kurum', 'diger'] as EventKind[]).filter((k) => k !== 'kurum' || groups.length || ev.kind === 'kurum').map((k) => (
+          {(['ozel', 'kurum', 'diger'] as EventKind[]).map((k) => (
             <button key={k} className={ev.kind === k ? 'active' : ''} onClick={() => set('kind', k)}>{KIND_LABEL[k]}</button>
           ))}
         </div>
@@ -147,15 +148,32 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
         </label>
       )}
       {ev.kind === 'kurum' && (
-        lockedKind ? <p className="muted small" style={{ margin: '0 0 6px' }}>Kurum programından · {data.groups[ev.groupCode ?? '']?.name ?? ev.groupCode}</p> : (
-          <label className="field">
-            <span>Sınıf</span>
-            <select value={ev.groupCode ?? ''} onChange={(e) => set('groupCode', e.target.value || undefined)}>
-              <option value="">Seçin…</option>
-              {groups.map((g) => <option key={g.code} value={g.code}>{g.name ? `${g.name} (${g.code})` : g.code}</option>)}
-            </select>
-          </label>
-        )
+        <>
+          <div className="seg small" style={{ marginBottom: 8 }}>
+            <button className={!ev.sub ? 'active' : ''} onClick={() => set('sub', undefined)}>Ders</button>
+            <button className={ev.sub === 'etut' ? 'active' : ''} onClick={() => set('sub', 'etut')}>Etüt</button>
+            <button className={ev.sub === 'deneme' ? 'active' : ''} onClick={() => set('sub', 'deneme')}>Deneme sınavı</button>
+          </div>
+          {lockedKind ? <p className="muted small" style={{ margin: '0 0 6px' }}>Kurum programından · {data.groups[ev.groupCode ?? '']?.name ?? ev.groupCode}</p> : (
+            <label className="field">
+              <span>Sınıf</span>
+              <select
+                value={ev.groupCode ?? ''}
+                onChange={(e) => {
+                  if (e.target.value !== '__yeni') return set('groupCode', e.target.value || undefined)
+                  const code = prompt('Yeni sınıfın kodu ya da adı (ör. 8-H, Etüt grubu):')?.trim()
+                  if (!code) return
+                  if (!data.groups[code]) saveGroup({ code, color: PALETTE[Object.keys(data.groups).length % PALETTE.length] })
+                  set('groupCode', code)
+                }}
+              >
+                <option value="">Seçin…</option>
+                {groups.map((g) => <option key={g.code} value={g.code}>{g.name ? `${g.name} (${g.code})` : g.code}</option>)}
+                <option value="__yeni">+ Yeni sınıf…</option>
+              </select>
+            </label>
+          )}
+        </>
       )}
       {ev.kind === 'diger' && (
         <>

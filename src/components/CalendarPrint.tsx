@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, FileDown, X } from 'lucide-react'
 import type { AppData, CalEvent } from '../lib/types'
-import { eventColor, useData } from '../lib/store'
+import { eventColor, subSuffix, useData } from '../lib/store'
 import { TR_DAYS, addDays, addMonths, formatDMY, fromISO, monthLabel, startOfMonth, startOfWeek } from '../lib/date'
 import { holidayMap } from '../lib/holidays'
 import { isOff } from '../lib/status'
@@ -11,7 +11,7 @@ import { isNative, printPage } from '../lib/native'
 type Mode = 'hafta' | 'ay'
 
 const shortName = (d: AppData, e: CalEvent) =>
-  e.kind === 'kurum' && e.groupCode ? d.groups[e.groupCode]?.name || e.groupCode
+  e.kind === 'kurum' && e.groupCode ? (d.groups[e.groupCode]?.name || e.groupCode) + subSuffix(e)
   : e.kind === 'ozel' && e.studentId ? d.students.find((s) => s.id === e.studentId)?.name ?? e.title
   : e.title
 

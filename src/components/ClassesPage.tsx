@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { happened, isOff } from '../lib/status'
-import { BookOpenText, FileText, ChevronLeft, GraduationCap, ListTodo, NotebookPen, Pencil, School } from 'lucide-react'
+import { BookOpenText, FileText, ChevronLeft, GraduationCap, ListTodo, NotebookPen, Pencil, Plus, School } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { ClassNote, Exam, Task } from '../lib/types'
 import { deleteClassNote, saveClassNote, saveGroup, useData } from '../lib/store'
@@ -9,6 +9,7 @@ import { PALETTE, uid } from '../lib/util'
 import LessonLog from './LessonLog'
 import ReportModal from './ReportModal'
 import { lessonReport } from '../lib/report'
+import Modal from './Modal'
 
 /** Kurum sınıfları listesi ve sınıf sayfası */
 export default function ClassesPage({ openEvent, open, setOpen, onAddExam, onAddTask, onOpenExam }: {
@@ -23,6 +24,7 @@ export default function ClassesPage({ openEvent, open, setOpen, onAddExam, onAdd
   const today = todayISO()
   const ym = today.slice(0, 7)
 
+  const [adding, setAdding] = useState(false)
   const rows = useMemo(
     () =>
       Object.values(data.groups)
@@ -42,9 +44,14 @@ export default function ClassesPage({ openEvent, open, setOpen, onAddExam, onAdd
 
   return (
     <div className="page">
-      <div className="page-head"><h2>Kurum Sınıfları</h2></div>
+      <div className="page-head">
+        <h2>Kurum Sınıfları</h2>
+        <div className="spacer" />
+        <button className="btn primary" onClick={() => setAdding(true)}><Plus size={16} /> Sınıf ekle</button>
+      </div>
+      {adding && <NewClassForm onClose={() => setAdding(false)} onCreated={(code) => { setAdding(false); setOpen(code) }} />}
       {rows.length === 0 ? (
-        <div className="empty-hint"><p>Kurum ders programını yüklediğinizde sınıflarınız burada listelenir.</p></div>
+        <div className="empty-hint"><p>Kurum ders programını yüklediğinizde sınıflarınız burada listelenir. Etüt grubu gibi programda olmayan sınıfları "Sınıf ekle" ile kendiniz ekleyebilirsiniz.</p></div>
       ) : (
         <div className="cards">
           {rows.map(({ g, last, next, month, exam }) => (
@@ -172,5 +179,35 @@ function ClassProfile({ code, onBack, openEvent, onAddExam, onAddTask, onOpenExa
         </ul>
       ))}
     </div>
+  )
+}
+
+function NewClassForm({ onClose, onCreated }: { onClose: () => void; onCreated: (code: string) => void }) {
+  const data = useData()
+  const [code, setCode] = useState('')
+  const [name, setName] = useState('')
+  const [color, setColor] = useState(PALETTE[Object.keys(data.groups).length % PALETTE.length])
+  const exists = !!data.groups[code.trim()]
+  const save = () => {
+    const c = code.trim()
+    if (!c || exists) return
+    saveGroup({ code: c, name: name.trim() || undefined, color })
+    onCreated(c)
+  }
+  return (
+    <Modal
+      title="Yeni sınıf"
+      onClose={onClose}
+      footer={<><div className="spacer" /><button className="btn" onClick={onClose}>Vazgeç</button><button className="btn primary" disabled={!code.trim() || exists} onClick={save}>Ekle</button></>}
+    >
+      <label className="field"><span>Kod ya da kısa ad</span><input autoFocus value={code} onChange={(e) => setCode(e.target.value)} placeholder="ör. 8-H, Etüt-1, LGS deneme grubu" /></label>
+      {exists && <p className="warn-text small">Bu kodla bir sınıf zaten var.</p>}
+      <label className="field"><span>Görünen ad (isteğe bağlı)</span><input value={name} onChange={(e) => setName(e.target.value)} placeholder="ör. 8-H Matematik" /></label>
+      <div className="field">
+        <span>Renk</span>
+        <div className="swatches">{PALETTE.map((c) => <button key={c} className={'swatch' + (color === c ? ' sel' : '')} style={{ background: c }} onClick={() => setColor(c)} aria-label={c} />)}</div>
+      </div>
+      <p className="muted small">Takvimde "Kurum dersi" eklerken bu sınıfı seçip türünü Ders, Etüt ya da Deneme sınavı yapabilirsiniz.</p>
+    </Modal>
   )
 }

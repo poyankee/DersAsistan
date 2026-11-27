@@ -1,7 +1,7 @@
 import type { AppData, Category, Student } from './types'
 
 /** Verinin güncel şema sürümü. Yapı değiştikçe MIGRATIONS'a bir adım eklenir. */
-export const SCHEMA_VERSION = 5
+export const SCHEMA_VERSION = 6
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'yl', name: 'Yüksek lisans', color: '#8e24aa' },
@@ -24,7 +24,6 @@ export function emptyData(): AppData {
     bills: [],
     billPayments: [],
     classNotes: [],
-    kurumPayments: [],
     memos: [],
     trash: [],
     ignoredImportKeys: [],
@@ -69,6 +68,26 @@ const MIGRATIONS: ((d: Loose) => Loose)[] = [
   (d) => ({ ...d, bills: d.bills ?? [], billPayments: d.billPayments ?? [] }),
   // 4 → 5: kurum ödemeleri ve ana sayfa notları
   (d) => ({ ...d, kurumPayments: d.kurumPayments ?? [], memos: d.memos ?? [] }),
+  // 5 → 6: kurum ödemeleri ve sabit gelir "Gelirlerim" kalemlerine dönüşür
+  (d) => {
+    const old = (d.kurumPayments as { id: string; date: string; amount: number; period?: string; note?: string; createdAt?: number }[] | undefined) ?? []
+    const bills = [...(d.bills ?? [])]
+    const billPayments = [...(d.billPayments ?? [])]
+    const thisMonth = new Date().toISOString().slice(0, 7)
+    if (old.length) {
+      const months = old.map((p) => p.period ?? p.date.slice(0, 7)).sort()
+      const id = 'kurum-gelir'
+      bills.push({ id, name: 'Kurum ödemesi', day: 5, color: '#1e88e5', from: months[0], kind: 'gelir', source: 'kurum', createdAt: Date.now() })
+      for (const p of old) billPayments.push({ id: p.id, billId: id, month: p.period ?? p.date.slice(0, 7), amount: p.amount, paidOn: p.date, note: p.note })
+    }
+    const settings = { ...(d.settings ?? {}) } as Record<string, unknown>
+    const fixed = Number(settings.fixedIncome) || 0
+    if (fixed > 0) bills.push({ id: 'sabit-gelir', name: 'Maaş / sabit gelir', day: 15, amount: fixed, color: '#43a047', from: thisMonth, kind: 'gelir', createdAt: Date.now() })
+    delete settings.fixedIncome
+    const { kurumPayments: _k, ...rest } = d
+    void _k
+    return { ...rest, bills, billPayments, settings: settings as unknown as Loose['settings'] }
+  },
 ]
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x)
@@ -118,7 +137,6 @@ export function parseData(raw: unknown): { data: AppData; report: LoadReport } {
     bills: list(d.bills, (b) => typeof b.name === 'string' && typeof b.day === 'number' && /^\d{4}-\d{2}$/.test(String(b.from))),
     billPayments: list(d.billPayments, (p) => typeof p.amount === 'number' && /^\d{4}-\d{2}$/.test(String(p.month))),
     classNotes: list(d.classNotes, any),
-    kurumPayments: list(d.kurumPayments, (p) => typeof p.amount === 'number' && DATE.test(String(p.date))),
     memos: list(d.memos, (m) => typeof m.text === 'string'),
     // 30 günden eski silinenler kalıcı olarak temizlenir
     trash: list<AppData['trash'][number]>(d.trash, any).filter((t) => Date.now() - t.deletedAt < 30 * 86400000),

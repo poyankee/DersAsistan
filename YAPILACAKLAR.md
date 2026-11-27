@@ -1,6 +1,7 @@
 # Yapılacaklar
 
 ## Sıradaki adımlar
+- [ ] Seçilmeyi bekleyen öneriler (v0.13): B. gider/gelir kategorileri, C. (yapıldı: CSV), D. iptal nedeni ve istatistiği, E. ana sayfa kartlarını gizleme/sıralama, F. aylık harcama hedefi
 - [ ] Gerçek telefonda deneme geri bildirimi (takvim hissi, widget, bildirimler, kısayollar)
 
 ### Seçilmedi (v0.6 sonrası öneriler: ders modu, mesaj şablonları vb.)
@@ -118,6 +119,9 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
 - v0.10 Android geri hareketi, görev kategorileri / sıralama / önemli işareti / alt adımlar / ekler,
   takvimde sade kutular, takvimin PDF çıktısı, arama kutusu; Ödemelerim hatırlatma, takvimde ödeme günleri,
   aylık giren / çıkan; yeni ana ekran widget'ı; kalıcı APK imzası
+- v0.13 Menü yeniden düzenlendi (Sınıflar, Kişisel, Ödemeler ayrı; sıralama/gizleme), Gelirlerim (kurum, maaş, ek
+  gelirler), tekrar sıklığı (2/3/6/12 ayda bir, seçili aylar), Raporlar (ders sayıları, gelir–gider, maliyet, CSV),
+  elle sınıf + etüt/deneme türü, Kişisel'de kategori ekleme, iptal edilen ders yer kaplamaz, şema 6
 - v0.12 Yeni ana sayfa (zaman çizelgesi, sıradaki ders, hızlı işlemler, bu hafta, mini takvim, notlarım, yaklaşanlar, zil),
   ödeme hatırlatıcısı (menü baloncuğu), kurum ödemeleri, öğrenci notları ayrı sekmede, tek seferlik dersler ders düzeninde
   ayrı, takvimde haftalar arası sürükleme

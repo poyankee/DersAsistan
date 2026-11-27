@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import DateInput from './DateInput'
-import { Bell, BookOpen, Bug, CalendarDays, Download, KeyRound, Lock, Sparkles, Palette, RotateCcw, ShieldCheck, Trash2, Upload } from 'lucide-react'
+import { Bell, BookOpen, Bug, CalendarDays, Download, KeyRound, Lock, Sparkles, Palette, RotateCcw, ShieldCheck, Trash2, Upload, ChevronDown, ChevronUp, LayoutList } from 'lucide-react'
 import { decryptText, encryptText, isEncrypted } from '../lib/crypto'
 import { autoBackupInfo, readSnapshots } from '../lib/persist'
 import { makeLock } from '../lib/lock'
@@ -17,6 +17,7 @@ import { TR_DAYS, addDays, formatDMY, todayISO } from '../lib/date'
 import { uid } from '../lib/util'
 import { buildICS } from '../lib/ics'
 import IcsImportModal from './IcsImportModal'
+import { NAV_LABEL, navOrder, type NavTab } from '../lib/nav'
 import UpdatePanel from './UpdatePanel'
 import SyncPanel from './SyncPanel'
 import { PALETTE, downloadFile } from '../lib/util'
@@ -68,6 +69,7 @@ export default function SettingsPage() {
       <SyncPanel />
       <UpdatePanel />
       <AppearancePanel />
+      <MenuPanel />
       <NotifyPanel />
       <LockPanel />
       <CategoriesPanel />
@@ -429,6 +431,8 @@ function LockPanel() {
 
 const GUIDE: [string, string][] = [
   ['Telefon ve tableti eşitlemek', 'Ayarlar → Hesap ve eşitleme. Önce telefonda sunucu adresini girip hesap oluşturun, sonra tablette aynı bilgilerle giriş yapın. Değişiklikler birkaç saniyede öteki cihaza geçer; veriler cihazda şifrelenir.'],
+  ['Menü düzeni', 'Ayarlar → Menü düzeni: sayfaların sırasını oklarla değiştirin, kullanmadıklarınızı gizleyin. Telefonda ilk 4 sayfa alt menüde, gerisi "Menü"de.'],
+  ['Gelirler ve giderler', 'Ödemeler → Ödemelerim (kira, kart, fatura) ve Gelirlerim (maaş, kurum ödemesi, ek gelirler). Her ay, 2 ayda bir, yılda bir ya da tek seferlik olabilir; bir aya birden fazla ödeme yazılabilir (ör. kurumdan 5\'i ve 15\'i).'],
   ['Güncellemeler', 'Yeni sürümler kendiliğinden indirilir; ekranın altında "Yeni sürüm hazır" çıkınca "Yeniden başlat"a dokunun. APK aramanıza gerek yok.'],
   ['Kurum programını yüklemek', 'Takvim → sağ üstteki ⋯ → "Kurum programını yükle". Aynı dosyayı tekrar yükleseniz de dersler çiftlenmez; değişen günler ayrıca gösterilir.'],
   ['Ders eklemek', '"+" düğmesi → Etkinlik. Özel ders için öğrenciyi, kendi işleriniz için "Kişisel"i seçin. "Her hafta tekrarla" ile dönemlik ders oluşturulur.'],
@@ -480,6 +484,47 @@ function ErrorPanel() {
         <button className="btn small" onClick={() => downloadFile('ders-asistani-hata-raporu.txt', errorReport(APP_VERSION), 'text/plain')}>Raporu paylaş</button>
         {n > 0 && <button className="btn small ghost" onClick={() => { clearErrors(); setN(0) }}>Temizle</button>}
       </div>
+    </section>
+  )
+}
+
+/** Soldaki menünün sırası ve görünen sayfalar */
+function MenuPanel() {
+  const data = useData()
+  const order = navOrder(data.settings, true)
+  const hidden = new Set(data.settings.navHidden ?? [])
+  const save = (navOrder: string[], navHidden: string[]) => setData((d) => ({ ...d, settings: { ...d.settings, navOrder, navHidden } }))
+  const move = (i: number, dir: number) => {
+    const j = i + dir
+    if (j < 0 || j >= order.length) return
+    const next = [...order]
+    ;[next[i], next[j]] = [next[j], next[i]]
+    save(next, [...hidden])
+  }
+  const toggle = (t: NavTab) => {
+    const h = new Set(hidden)
+    if (h.has(t)) h.delete(t)
+    else h.add(t)
+    save(order, [...h])
+  }
+  return (
+    <section className="panel">
+      <h3 className="row-title"><LayoutList size={18} /> Menü düzeni</h3>
+      <p className="muted small" style={{ marginTop: 0 }}>Soldaki menünün sırasını oklarla değiştirin; kullanmadığınız sayfaları gizleyin. Telefonda ilk 4 sayfa alt menüde, gerisi "Menü"de görünür.</p>
+      <ol className="menu-order">
+        {order.map((t, i) => (
+          <li key={t} className={hidden.has(t) && t !== 'bugun' ? 'off' : ''}>
+            <span className="mo-num">{i + 1}</span>
+            <b className="grow">{NAV_LABEL[t]}</b>
+            {t !== 'bugun' && (
+              <label className="check small"><input type="checkbox" checked={!hidden.has(t)} onChange={() => toggle(t)} /> Göster</label>
+            )}
+            <button className="icon-btn small" onClick={() => move(i, -1)} disabled={i === 0} aria-label={`${NAV_LABEL[t]} yukarı`}><ChevronUp size={18} /></button>
+            <button className="icon-btn small" onClick={() => move(i, 1)} disabled={i === order.length - 1} aria-label={`${NAV_LABEL[t]} aşağı`}><ChevronDown size={18} /></button>
+          </li>
+        ))}
+      </ol>
+      {(data.settings.navOrder || data.settings.navHidden?.length) && <button className="btn small ghost" onClick={() => setData((d) => ({ ...d, settings: { ...d.settings, navOrder: undefined, navHidden: undefined } }))}>Varsayılana dön</button>}
     </section>
   )
 }

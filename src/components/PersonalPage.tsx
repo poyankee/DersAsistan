@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { CalendarRange, GraduationCap, ListTodo, Plus, UserX } from 'lucide-react'
 import type { CalEvent, Exam, Task } from '../lib/types'
-import { saveTask, useData } from '../lib/store'
+import { saveCategory, saveTask, useData } from '../lib/store'
+import { PALETTE, uid } from '../lib/util'
 import { TR_DAYS, formatDMY, formatDMYDay, todayISO, weekdayIndex } from '../lib/date'
 import { showToast } from '../lib/toast'
 
@@ -13,10 +14,21 @@ export default function PersonalPage({ onAddTask, onAddExam, onOpenTask, onOpenE
   onOpenExam: (x: Exam) => void
 }) {
   const data = useData()
+  const addCategory = () => {
+    const name = prompt('Yeni kategori adı (ör. Spor, İngilizce kursu, Tez):')?.trim()
+    if (!name) return
+    if (data.categories.some((c) => c.name.toLocaleLowerCase('tr') === name.toLocaleLowerCase('tr'))) return showToast('Bu adla bir kategori zaten var')
+    saveCategory({ id: uid(), name, color: PALETTE[(data.categories.length + 2) % PALETTE.length] })
+    showToast(`"${name}" kategorisi eklendi`)
+  }
   return (
     <div className="page">
-      <div className="page-head"><h2>Kişisel</h2></div>
-      <p className="muted small" style={{ marginTop: -8 }}>Takvime "Kişisel" türünde eklediğiniz etkinlikler kategorilerine göre burada toplanır. Kategoriler Ayarlar'dan düzenlenebilir.</p>
+      <div className="page-head">
+        <h2>Kişisel</h2>
+        <div className="spacer" />
+        <button className="btn primary" onClick={addCategory}><Plus size={16} /> Kategori ekle</button>
+      </div>
+      <p className="muted small" style={{ marginTop: -8 }}>Takvime "Kişisel" türünde eklediğiniz etkinlikler kategorilerine göre burada toplanır (ör. Yüksek lisans, Spor, Kurs).</p>
       {data.categories.map((c) => <CategoryCard key={c.id} id={c.id} onAddTask={onAddTask} onAddExam={onAddExam} onOpenTask={onOpenTask} onOpenExam={onOpenExam} />)}
     </div>
   )

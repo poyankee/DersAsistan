@@ -1,5 +1,5 @@
 /** Uygulama sürümü ve "bu sürümde neler değişti" listesi (Ayarlar → Yenilikler) */
-export const APP_VERSION = '0.12'
+export const APP_VERSION = '0.13'
 
 /** Bu arayüz paketinin derleme numarası (yerelde 0) */
 export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
@@ -12,6 +12,18 @@ export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
 export const NATIVE_LEVEL = 1
 
 export const CHANGELOG: { version: string; items: string[] }[] = [
+  {
+    version: '0.13',
+    items: [
+      'Yeni menü: Sınıflar, Kişisel ve Ödemeler ayrı sayfalar; menü sırası ve gizleme Ayarlar → Menü düzeni',
+      'Ödemeler: Ödemelerim, Gelirlerim (maaş, kurum ödemeleri, ek ve tek seferlik gelirler), Alacaklar',
+      '2 ayda bir, 3 ayda bir, yılda bir ya da seçili aylarda tekrarlayan ödemeler',
+      'Raporlar: ders sayıları (bu ay kime kaç ders), gelir–gider, maliyet ve saat başı kazanç, Excel\'e aktarma',
+      'Sınıflar: elle sınıf ekleme; kurum dersinde Ders / Etüt / Deneme sınavı türü',
+      'Kişisel sayfasından kategori ekleme',
+      'İptal edilen ders takvimde yer kaplamaz',
+    ],
+  },
   {
     version: '0.12',
     items: [

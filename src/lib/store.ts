@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import type { AppData, Bill, BillPayment, Book, CalEvent, ClassNote, Exam, Group, Holiday, KurumPayment, Memo, Payment, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
+import type { AppData, Bill, BillPayment, Book, CalEvent, ClassNote, Exam, Group, Holiday, Memo, Payment, Student, StudentNote, Task, TrashItem, TrashKind } from './types'
 import { PALETTE, colorFor, uid } from './util'
 import type { Category } from './types'
 import { isNative } from './native'
@@ -77,7 +77,7 @@ function widgetPayload(d: AppData): string {
       let title = e.title
       let sub = cat ?? 'Etkinlik'
       if (e.kind === 'kurum' && e.groupCode) {
-        title = g?.name || e.groupCode
+        title = (g?.name || e.groupCode) + subSuffix(e)
         sub = (g?.name ? e.groupCode + ' · ' : '') + 'Kurum' + (e.hours && e.hours > 1 ? ` · ${e.hours} saat` : '')
       } else if (e.kind === 'ozel') {
         title = d.students.find((s) => s.id === e.studentId)?.name ?? e.title
@@ -429,24 +429,21 @@ export function eventColor(d: AppData, e: CalEvent): string {
   return '#616161'
 }
 
+export const SUB_LABEL: Record<NonNullable<CalEvent['sub']>, string> = { etut: 'Etüt', deneme: 'Deneme sınavı' }
+
+/** Kurum etkinliği etüt/deneme ise başlığa eklenecek ek (" · Etüt") */
+export const subSuffix = (e: CalEvent) => (e.kind === 'kurum' && e.sub ? ` · ${SUB_LABEL[e.sub]}` : '')
+
 export function eventTitle(d: AppData, e: CalEvent): string {
   if (e.kind === 'kurum' && e.groupCode) {
     const name = d.groups[e.groupCode]?.name
-    return name ? `${name} (${e.groupCode})` : e.groupCode
+    return (name ? `${name} (${e.groupCode})` : e.groupCode) + subSuffix(e)
   }
   if (e.kind === 'ozel' && e.studentId) {
     const s = d.students.find((x) => x.id === e.studentId)
     return s ? `Özel: ${s.name}` : e.title
   }
   return e.title || '(Başlıksız)'
-}
-
-export function saveKurumPayment(p: KurumPayment) {
-  setData((d) => ({ ...d, kurumPayments: upsert(d.kurumPayments, p) }))
-}
-
-export function deleteKurumPayment(id: string) {
-  setData((d) => ({ ...d, kurumPayments: d.kurumPayments.filter((p) => p.id !== id) }))
 }
 
 export function saveMemo(m: Memo) {

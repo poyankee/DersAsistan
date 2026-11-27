@@ -39,3 +39,20 @@ describe('veri doğrulama ve sürüm geçişleri', () => {
     expect(() => parseData({ version: SCHEMA_VERSION + 1, events: [] })).toThrow(/güncelleyin/)
   })
 })
+
+describe('şema 5 → 6', () => {
+  it('kurum ödemeleri ve sabit gelir Gelirlerim kalemlerine taşınır', () => {
+    const v5 = {
+      version: 5, events: [], students: [], payments: [], bills: [], billPayments: [],
+      kurumPayments: [{ id: 'k1', date: '2026-10-06', amount: 4200, period: '2026-10', note: 'Ekim', createdAt: 1 }, { id: 'k2', date: '2026-10-15', amount: 800, createdAt: 2 }],
+      settings: { dayStart: 8, dayEnd: 21, currency: '₺', fixedIncome: 30000 },
+    }
+    const { data } = parseData(v5)
+    const kurum = data.bills.find((b) => b.source === 'kurum')!
+    expect(kurum).toMatchObject({ kind: 'gelir', from: '2026-10' })
+    expect(data.billPayments.filter((p) => p.billId === kurum.id).map((p) => [p.month, p.amount, p.paidOn])).toEqual([['2026-10', 4200, '2026-10-06'], ['2026-10', 800, '2026-10-15']])
+    expect(data.bills.find((b) => b.name.startsWith('Maaş'))).toMatchObject({ kind: 'gelir', amount: 30000 })
+    expect((data.settings as unknown as Record<string, unknown>).fixedIncome).toBeUndefined()
+    expect((data as unknown as Record<string, unknown>).kurumPayments).toBeUndefined()
+  })
+})

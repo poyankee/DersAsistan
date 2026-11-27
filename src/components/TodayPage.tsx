@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import type { OpenEvent } from '../App'
 import type { CalEvent, Memo, Task } from '../lib/types'
-import { deleteMemo, eventColor, eventTitle, saveMemo, saveTask, setData, useData } from '../lib/store'
+import { deleteMemo, eventColor, eventTitle, saveMemo, saveTask, setData, subSuffix, useData } from '../lib/store'
 import { TR_DAYS_SHORT, addDays, addMonths, formatDMY, formatLong, fromISO, monthLabel, nowHM, startOfMonth, startOfWeek, toMinutes, todayISO } from '../lib/date'
 import { upcomingBills } from '../lib/bills'
 import { isOff } from '../lib/status'
@@ -29,7 +29,7 @@ function relative(mins: number) {
 }
 
 const shortName = (d: ReturnType<typeof useData>, e: CalEvent) =>
-  e.kind === 'kurum' && e.groupCode ? d.groups[e.groupCode]?.name || e.groupCode
+  e.kind === 'kurum' && e.groupCode ? (d.groups[e.groupCode]?.name || e.groupCode) + subSuffix(e)
   : e.kind === 'ozel' && e.studentId ? `Özel: ${d.students.find((s) => s.id === e.studentId)?.name ?? e.title}`
   : e.title
 

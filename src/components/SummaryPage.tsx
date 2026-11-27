@@ -6,29 +6,28 @@ import FinanceKpis from './FinanceKpis'
 import { payNoteText, studentFinance } from '../lib/finance'
 import IncomePanel from './IncomePanel'
 import PuantajPanel from './PuantajPanel'
-import BillsPanel from './BillsPanel'
+import { CashReport, CostReport, StudentReport } from './Reports'
 import { addMonths, formatDMY, monthLabel, startOfMonth, todayISO } from '../lib/date'
 import { money } from '../lib/util'
 
-type STab = 'ozet' | 'alacak' | 'gelir' | 'puantaj' | 'odemelerim'
+type STab = 'ogrenci' | 'ozet' | 'gelirgider' | 'maliyet' | 'gelir' | 'puantaj'
 
-export default function SummaryPage({ openStudent, initial }: { openStudent: (id: string) => void; initial?: STab }) {
-  const [tab, setTab] = useState<STab>(initial ?? 'ozet')
+/** Raporlar: yalnızca tablolar ve özetler (para işlemleri Ödemeler sayfasında) */
+export default function SummaryPage() {
+  const [tab, setTab] = useState<STab>('ogrenci')
+  const T: [STab, string][] = [['ogrenci', 'Ders sayıları'], ['ozet', 'Aylık özet'], ['gelirgider', 'Gelir – gider'], ['maliyet', 'Maliyet'], ['gelir', 'Ders geliri'], ['puantaj', 'Puantaj']]
   return (
     <div className="page">
       <div className="page-head"><h2>Raporlar</h2></div>
-      <div className="seg tabs-seg">
-        <button className={tab === 'ozet' ? 'active' : ''} onClick={() => setTab('ozet')}>Aylık özet</button>
-        <button className={tab === 'alacak' ? 'active' : ''} onClick={() => setTab('alacak')}>Alacaklar</button>
-        <button className={tab === 'gelir' ? 'active' : ''} onClick={() => setTab('gelir')}>Gelir</button>
-        <button className={tab === 'puantaj' ? 'active' : ''} onClick={() => setTab('puantaj')}>Puantaj / Kurum</button>
-        <button className={tab === 'odemelerim' ? 'active' : ''} onClick={() => setTab('odemelerim')}>Ödemelerim</button>
+      <div className="seg tabs-seg scroll-seg">
+        {T.map(([k, l]) => <button key={k} className={tab === k ? 'active' : ''} onClick={() => setTab(k)}>{l}</button>)}
       </div>
+      {tab === 'ogrenci' && <StudentReport />}
       {tab === 'ozet' && <MonthlySummary />}
-      {tab === 'alacak' && <Receivables openStudent={openStudent} />}
+      {tab === 'gelirgider' && <CashReport />}
+      {tab === 'maliyet' && <CostReport />}
       {tab === 'gelir' && <IncomePanel />}
       {tab === 'puantaj' && <PuantajPanel />}
-      {tab === 'odemelerim' && <BillsPanel />}
     </div>
   )
 }
@@ -127,7 +126,7 @@ function MonthlySummary() {
 }
 
 /** Alacaklar: toplam/gecikmiş + öğrenci bazında liste */
-function Receivables({ openStudent }: { openStudent: (id: string) => void }) {
+export function Receivables({ openStudent }: { openStudent: (id: string) => void }) {
   const data = useData()
   const today = todayISO()
   const cur = data.settings.currency

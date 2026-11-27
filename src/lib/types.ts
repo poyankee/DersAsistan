@@ -13,6 +13,8 @@ export interface CalEvent {
   title: string
   /** Kurum dersleri için sınıf/grup kodu (ör. 478-H0811) */
   groupCode?: string
+  /** Kurum etkinliğinin türü: ders (boş), etüt ya da deneme sınavı */
+  sub?: 'etut' | 'deneme'
   /** Özel ders için öğrenci */
   studentId?: string
   /** Tekrarlayan derslerin ortak kimliği */
@@ -66,6 +68,8 @@ export interface Student {
   parentPhone?: string
   /** Ders başı ücret (paket öğrencilerinde paket fiyatı / ders sayısı) */
   fee: number
+  /** Ders başı masraf (yol, materyal) — maliyet raporu için */
+  lessonCost?: number
   /** Öğrenciye özel serbest alanlar (ör. Okul, Hedef, Adres) */
   custom?: { id: string; label: string; value: string }[]
   /** Ne zaman öder: her ders / ay sonu / peşin */
@@ -148,6 +152,14 @@ export interface Bill {
   /** İlk ve (varsa) son ay: YYYY-MM. Tek seferlik ödemede ikisi aynıdır. */
   from: string
   until?: string
+  /** Gider (ödediğim) ya da gelir (aldığım). Varsayılan gider. */
+  kind?: 'gider' | 'gelir'
+  /** Kaç ayda bir (1 = her ay, 2 = iki ayda bir, 12 = yılda bir); başlangıç ayından sayılır */
+  every?: number
+  /** Yalnızca bu aylarda (1–12); doluysa "every" yerine geçer */
+  months?: number[]
+  /** Kurumdan gelen ödeme (puantajla karşılaştırılır) */
+  source?: 'kurum'
   createdAt: number
 }
 
@@ -254,6 +266,9 @@ export interface NotifySettings {
 }
 
 export interface Settings {
+  /** Soldaki menünün sırası ve gizlenen sayfalar */
+  navOrder?: string[]
+  navHidden?: string[]
   /** Ana sayfadaki selamlamada kullanılan ad */
   userName?: string
   /** Ödeme hatırlatıcısında "sonra" denen dersler: ders kimliği → bu tarihe kadar gösterme */
@@ -262,8 +277,6 @@ export interface Settings {
   autoUpdate?: boolean
   /** Kurum ek ders saat ücreti (opsiyonel, özet hesabı için) */
   kurumHourlyRate?: number
-  /** Kişisel muhasebe: sabit aylık gelir (maaş vb.), giren/çıkan hesabında kullanılır */
-  fixedIncome?: number
   dayStart: number
   dayEnd: number
   currency: string
@@ -281,18 +294,6 @@ export interface Settings {
   accent?: string
   /** İlk açılış tanıtımı görüldü mü */
   introSeen?: boolean
-}
-
-/** Kurumdan alınan ödeme (ek ders ücreti, maaş farkı vb.) */
-export interface KurumPayment {
-  id: string
-  /** Paranın alındığı gün */
-  date: string
-  amount: number
-  /** Hangi ayın ödemesi (YYYY-MM), bilinmiyorsa boş */
-  period?: string
-  note?: string
-  createdAt: number
 }
 
 /** Ana sayfadaki kısa notlar */
@@ -321,7 +322,6 @@ export interface AppData {
   bills: Bill[]
   billPayments: BillPayment[]
   classNotes: ClassNote[]
-  kurumPayments: KurumPayment[]
   memos: Memo[]
   trash: TrashItem[]
   /** Kullanıcının sildiği kurum ders saatleri: yeniden içe aktarılmaz */

@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react'
-import { BarChart3, CalendarDays, CalendarPlus, GraduationCap, Home, ListTodo, Plus, Search, Settings, Users, Wallet } from 'lucide-react'
+import { BarChart3, CalendarDays, CalendarPlus, GraduationCap, Home, LayoutGrid, ListTodo, Plus, School, Search, Settings, UserRound, Users, Wallet } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import CalendarPage from './components/CalendarPage'
 import PeoplePage, { type PeopleView } from './components/PeoplePage'
@@ -24,20 +24,19 @@ import { onAppAction, setBackHandler } from './lib/native'
 import { syncSoon } from './lib/syncManager'
 import SyncBadge from './components/SyncBadge'
 import { syncNotifications } from './lib/notify'
+import { NAV_LABEL, navOrder, type NavTab } from './lib/nav'
+import PaymentsPage, { type PayTab } from './components/PaymentsPage'
 
 // Raporlar ve Ayarlar yalnızca açıldıklarında yüklenir
 const SummaryPage = lazy(() => import('./components/SummaryPage'))
 const SettingsPage = lazy(() => import('./components/SettingsPage'))
 
-export type Tab = 'bugun' | 'takvim' | 'gorevler' | 'ozel' | 'ozet' | 'ayarlar'
+export type Tab = NavTab | 'ayarlar'
 
-const TABS: { id: Tab; label: string; short: string; icon: LucideIcon }[] = [
-  { id: 'bugun', label: 'Bugün', short: 'Bugün', icon: Home },
-  { id: 'takvim', label: 'Takvim', short: 'Takvim', icon: CalendarDays },
-  { id: 'gorevler', label: 'Görevler', short: 'Görevler', icon: ListTodo },
-  { id: 'ozel', label: 'Öğrenciler', short: 'Öğrenciler', icon: Users },
-  { id: 'ozet', label: 'Raporlar', short: 'Raporlar', icon: BarChart3 },
-]
+const ICONS: Record<NavTab, LucideIcon> = { bugun: Home, takvim: CalendarDays, gorevler: ListTodo, ozel: Users, siniflar: School, kisisel: UserRound, odemeler: Wallet, ozet: BarChart3 }
+/** Telefonda alt menüde gösterilen sayfa sayısı (geri kalanı "Menü"de) */
+const BOTTOM_COUNT = 4
+const PEOPLE_VIEW: Partial<Record<Tab, PeopleView>> = { ozel: 'ogrenci', siniflar: 'sinif', kisisel: 'kisisel' }
 
 /** Kayıtlı bir etkinliğe dokununca küçük kart, yeni etkinlik için form açılır */
 export type OpenEvent = (ev: CalEvent | Partial<CalEvent>) => void
@@ -51,11 +50,17 @@ export default function App() {
   const [exam, setExam] = useState<Exam | null>(null)
   const [fabOpen, setFabOpen] = useState(false)
   const [searching, setSearching] = useState(false)
-  const [peopleView, setPeopleView] = useState<PeopleView>('ogrenci')
   const [studentId, setStudentId] = useState<string | null>(null)
   const [classCode, setClassCode] = useState<string | null>(null)
   const [payPick, setPayPick] = useState(false)
-  const [reportTab, setReportTab] = useState<{ tab: 'odemelerim'; n: number } | null>(null)
+  const [payTab, setPayTab] = useState<{ tab: PayTab; n: number } | null>(null)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const order = navOrder(data.settings)
+  const TABS = order.map((id) => ({ id, label: NAV_LABEL[id], short: NAV_LABEL[id], icon: ICONS[id] }))
+  const goBills = (t: PayTab = 'gider') => {
+    setPayTab({ tab: t, n: Date.now() })
+    go('odemeler')
+  }
   const [calDate, setCalDate] = useState<{ date: string; n: number } | null>(null)
   const [remindOpen, setRemindOpen] = useState(false)
   const reminders = usePayReminders()
@@ -120,7 +125,7 @@ export default function App() {
   // Android geri hareketi: açık dosyayı kapat → önceki sekme → Bugün → (en sonda) uygulamadan çık
   useEffect(() => {
     setBackHandler(() => {
-      if (tab === 'ozel' && (studentId || classCode || payPick)) {
+      if ((tab === 'ozel' && (studentId || payPick)) || (tab === 'siniflar' && classCode)) {
         setStudentId(null)
         setClassCode(null)
         setPayPick(false)
@@ -147,14 +152,12 @@ export default function App() {
     go('takvim')
   }
   const openStudent = (id: string) => {
-    setPeopleView('ogrenci')
     setStudentId(id)
     go('ozel')
   }
   const openClass = (code: string) => {
-    setPeopleView('sinif')
     setClassCode(code)
-    go('ozel')
+    go('siniflar')
   }
 
   // Simge kısayolları ve bildirime dokunma
@@ -164,13 +167,12 @@ export default function App() {
         if (a.type === 'new-lesson') newEvent()
         else if (a.type === 'payment') {
           go('ozel')
-          setPeopleView('ogrenci')
           setStudentId(null)
           setPayPick(true)
         } else if (a.type === 'today') go('bugun')
         else if (a.type === 'task') setTask(newTask())
         else if (a.type === 'tasks') go('gorevler')
-        else if (a.type === 'bills') { setReportTab({ tab: 'odemelerim', n: Date.now() }); go('ozet') }
+        else if (a.type === 'bills') goBills('gider')
         else if (a.type === 'student' && a.id) openStudent(a.id)
         else if ((a.type === 'wrap' || a.type === 'event') && a.id) {
           const ev = data.events.find((e) => e.id === a.id)
@@ -214,8 +216,9 @@ export default function App() {
 
       <main className="content">
         <div key={tab} className="page-anim">
-        {tab === 'bugun' && <TodayPage openEvent={openEvent} goCalendar={goCalendar} goSettings={() => go('ayarlar')} onSearch={() => setSearching(true)} openTask={setTask} goBills={() => { setReportTab({ tab: 'odemelerim', n: Date.now() }); go('ozet') }} goTasks={() => go('gorevler')} onNewEvent={newEvent} onNewTask={() => setTask(newTask())} goReports={() => go('ozet')} reminderCount={reminders.length} onReminders={() => setRemindOpen(true)} />}
+        {tab === 'bugun' && <TodayPage openEvent={openEvent} goCalendar={goCalendar} goSettings={() => go('ayarlar')} onSearch={() => setSearching(true)} openTask={setTask} goBills={() => goBills('gider')} goTasks={() => go('gorevler')} onNewEvent={newEvent} onNewTask={() => setTask(newTask())} goReports={() => go('ozet')} reminderCount={reminders.length} onReminders={() => setRemindOpen(true)} />}
         {tab === 'gorevler' && <TasksPage onOpen={setTask} />}
+        {tab === 'odemeler' && <PaymentsPage key={payTab?.n ?? 0} initial={payTab?.tab} openStudent={openStudent} />}
         {tab === 'takvim' && (
           <CalendarPage
             key={calDate?.n ?? 0}
@@ -223,13 +226,13 @@ export default function App() {
             openEvent={openEvent}
             onAddExam={(date) => setExam(newExam({ date }))}
             onOpenTask={setTask}
-            onOpenBills={() => { setReportTab({ tab: 'odemelerim', n: Date.now() }); go('ozet') }}
+            onOpenBills={() => goBills('gider')}
           />
         )}
-        {tab === 'ozel' && (
+        {PEOPLE_VIEW[tab] && (
           <PeoplePage
-            view={peopleView}
-            setView={setPeopleView}
+            key={tab}
+            view={PEOPLE_VIEW[tab]!}
             openEvent={openEvent}
             selected={studentId}
             onSelect={setStudentId}
@@ -246,20 +249,43 @@ export default function App() {
           />
         )}
         <Suspense fallback={<p className="muted pad">Yükleniyor…</p>}>
-          {tab === 'ozet' && <SummaryPage key={reportTab?.n ?? 0} initial={reportTab?.tab} openStudent={openStudent} />}
+          {tab === 'ozet' && <SummaryPage />}
           {tab === 'ayarlar' && <SettingsPage />}
         </Suspense>
         </div>
       </main>
 
       <nav className="bottom-nav">
-        {TABS.map((t) => (
+        {TABS.slice(0, BOTTOM_COUNT).map((t) => (
           <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => go(t.id)}>
             <span className="pill"><t.icon size={21} strokeWidth={tab === t.id ? 2.4 : 2} />{t.id === 'ozel' && reminders.length > 0 && <em className="nav-badge">{reminders.length}</em>}</span>
             <span className="lbl">{t.short}</span>
           </button>
         ))}
+        {(() => {
+          const rest = TABS.slice(BOTTOM_COUNT)
+          const inRest = tab === 'ayarlar' || rest.some((t) => t.id === tab)
+          const badge = rest.some((t) => t.id === 'ozel') && reminders.length > 0
+          return (
+            <button className={inRest ? 'active' : ''} onClick={() => setMoreOpen(true)}>
+              <span className="pill"><LayoutGrid size={21} strokeWidth={inRest ? 2.4 : 2} />{badge && <em className="nav-badge">{reminders.length}</em>}</span>
+              <span className="lbl">Menü</span>
+            </button>
+          )
+        })()}
       </nav>
+      {moreOpen && (
+        <Modal title="Menü" onClose={() => setMoreOpen(false)}>
+          <div className="action-grid more-grid">
+            {[...TABS.slice(BOTTOM_COUNT), { id: 'ayarlar' as Tab, label: 'Ayarlar', short: 'Ayarlar', icon: Settings }].map((t) => (
+              <button key={t.id} className={tab === t.id ? 'active' : ''} onClick={() => { setMoreOpen(false); go(t.id) }}>
+                <t.icon size={22} /><span>{t.label}</span>
+                {t.id === 'ozel' && reminders.length > 0 && <em className="nav-badge">{reminders.length}</em>}
+              </button>
+            ))}
+          </div>
+        </Modal>
+      )}
       {tab !== 'ayarlar' && tab !== 'ozet' && (
         <button className="fab" onClick={() => setFabOpen(true)} aria-label="Yeni"><Plus size={26} /></button>
       )}
@@ -270,7 +296,7 @@ export default function App() {
             <button onClick={() => { setFabOpen(false); newEvent() }}><CalendarPlus size={22} /><span>Etkinlik</span></button>
             <button onClick={() => { setFabOpen(false); setTask(newTask()) }}><ListTodo size={22} /><span>Görev</span></button>
             <button onClick={() => { setFabOpen(false); setExam(newExam()) }}><GraduationCap size={22} /><span>Sınav / teslim</span></button>
-            <button onClick={() => { setFabOpen(false); go('ozel'); setPeopleView('ogrenci'); setStudentId(null); setPayPick(true) }} disabled={!data.students.length}><Wallet size={22} /><span>Ödeme al</span></button>
+            <button onClick={() => { setFabOpen(false); go('ozel'); setStudentId(null); setPayPick(true) }} disabled={!data.students.length}><Wallet size={22} /><span>Ödeme al</span></button>
           </div>
         </Modal>
       )}

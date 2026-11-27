@@ -226,6 +226,7 @@ export function StudentForm({ initial, onClose, onDeleted }: { initial: Student;
       <label className="field"><span>Ad Soyad</span><input autoFocus value={s.name} onChange={(e) => set('name', e.target.value)} /></label>
       <div className="row">
         <label className="field grow"><span>Ders ücreti ({data.settings.currency})</span><input type="number" inputMode="numeric" min={0} value={s.fee} onChange={(e) => set('fee', Number(e.target.value))} /></label>
+        <label className="field grow"><span>Ders başı masraf (yol, materyal)</span><input type="number" inputMode="numeric" min={0} value={s.lessonCost ?? ''} onChange={(e) => setS({ ...s, lessonCost: e.target.value === '' ? undefined : Number(e.target.value) })} placeholder="isteğe bağlı" /></label>
         <div className="field grow">
           <span>Ne zaman öder?</span>
           <div className="seg small" style={{ margin: 0 }}>

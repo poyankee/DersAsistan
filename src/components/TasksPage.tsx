@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { ArrowDownUp, Check, ListTodo, Paperclip, Plus, Star, Trash2 } from 'lucide-react'
 import type { Task } from '../lib/types'
 import { deleteTask, saveCategory, saveTask, useData } from '../lib/store'
@@ -43,8 +43,6 @@ export function sortTasks(list: Task[], sort: TaskSort): Task[] {
 export default function TasksPage({ onOpen }: { onOpen: (t: Task) => void }) {
   const data = useData()
   const today = todayISO()
-  const [title, setTitle] = useState('')
-  const [due, setDue] = useState('')
   const [filter, setFilter] = useState<Filter>('acik')
   const [sort, setSortRaw] = useState<TaskSort>(() => pref('task-sort', 'yeni'))
   // '' = tümü, '-' = kategorisiz, diğerleri kategori kimliği
@@ -87,11 +85,6 @@ export default function TasksPage({ onOpen }: { onOpen: (t: Task) => void }) {
   }, [data.tasks, today, sort, activeCat]) // eslint-disable-line react-hooks/exhaustive-deps
   const openCount = groups.late.length + groups.today.length + groups.week.length + groups.later.length + groups.someday.length
 
-  const add = () => {
-    if (!title.trim()) return
-    saveTask(newTask({ title: title.trim(), due: due || undefined, categoryId: activeCat && activeCat !== '-' ? activeCat : undefined }))
-    setTitle('')
-  }
   const toggle = (t: Task) => {
     const before = { ...t }
     saveTask({ ...t, done: !t.done, doneAt: !t.done ? today : undefined })
@@ -180,17 +173,7 @@ export default function TasksPage({ onOpen }: { onOpen: (t: Task) => void }) {
         </label>
       </div>
 
-      <div className="todo-add">
-        <ListTodo size={18} />
-        <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder={activeCat && activeCat !== '-' ? `${data.categories.find((c) => c.id === activeCat)?.name} kategorisine görev ekle…` : 'Yeni görev yazın ve Enter\'a basın…'} />
-        <div className="chips">
-          {([['Tarihsiz', ''], ['Bugün', today], ['Yarın', addDays(today, 1)]] as const).map(([l, d]) => (
-            <button key={l} className={'chip' + (due === d ? ' sel' : '')} onClick={() => setDue(d)}>{l}</button>
-          ))}
-          <DateInput className="mini-date" allowEmpty value={due} onChange={setDue} placeholder="Tarih" />
-        </div>
-        <button className="btn primary" onClick={add} disabled={!title.trim()}><Plus size={16} /> Ekle</button>
-      </div>
+      <AddTaskBar categoryId={activeCat && activeCat !== '-' ? activeCat : undefined} categoryName={activeCat && activeCat !== '-' ? data.categories.find((c) => c.id === activeCat)?.name : undefined} />
 
       {filter === 'acik' && (
         <>
@@ -220,3 +203,31 @@ export default function TasksPage({ onOpen }: { onOpen: (t: Task) => void }) {
     </div>
   )
 }
+
+/**
+ * Hızlı görev ekleme çubuğu. Yazı kendi durumunda tutulur: her tuşta tüm görev listesi
+ * yeniden çizilmez (büyük listelerde yazma gecikmesini önler).
+ */
+const AddTaskBar = memo(function AddTaskBar({ categoryId, categoryName }: { categoryId?: string; categoryName?: string }) {
+  const today = todayISO()
+  const [title, setTitle] = useState('')
+  const [due, setDue] = useState('')
+  const add = () => {
+    if (!title.trim()) return
+    saveTask(newTask({ title: title.trim(), due: due || undefined, categoryId }))
+    setTitle('')
+  }
+  return (
+    <div className="todo-add">
+      <ListTodo size={18} />
+      <input value={title} onChange={(e) => setTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder={categoryName ? `${categoryName} kategorisine görev ekle…` : 'Yeni görev yazın ve Enter\'a basın…'} />
+      <div className="chips">
+        {([['Tarihsiz', ''], ['Bugün', today], ['Yarın', addDays(today, 1)]] as const).map(([l, d]) => (
+          <button key={l} className={'chip' + (due === d ? ' sel' : '')} onClick={() => setDue(d)}>{l}</button>
+        ))}
+        <DateInput className="mini-date" allowEmpty value={due} onChange={setDue} placeholder="Tarih" />
+      </div>
+      <button className="btn primary" onClick={add} disabled={!title.trim()}><Plus size={16} /> Ekle</button>
+    </div>
+  )
+})

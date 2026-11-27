@@ -26,12 +26,20 @@ const splitKey = (k: string) => {
 }
 
 /** Veriyi eşitlenecek kayıtlara ayırır: anahtar → JSON */
+// Kayıtlar değişmez nesnelerdir (değişince yenisi oluşur): aynı nesnenin JSON'u tekrar hesaplanmaz
+const jsonCache = new WeakMap<object, string>()
+const toJson = (r: object) => {
+  let j = jsonCache.get(r)
+  if (j === undefined) jsonCache.set(r, (j = JSON.stringify(r)))
+  return j
+}
+
 export function toRecords(d: AppData): Map<string, string> {
   const m = new Map<string, string>()
   for (const c of LIST_COLLS) {
-    for (const r of (d[c] ?? []) as { id: string }[]) if (r && typeof r.id === 'string') m.set(recKey(c, r.id), JSON.stringify(r))
+    for (const r of (d[c] ?? []) as { id: string }[]) if (r && typeof r.id === 'string') m.set(recKey(c, r.id), toJson(r))
   }
-  for (const [code, g] of Object.entries(d.groups ?? {})) m.set(recKey('groups', code), JSON.stringify(g))
+  for (const [code, g] of Object.entries(d.groups ?? {})) m.set(recKey('groups', code), toJson(g))
   for (const k of d.ignoredImportKeys ?? []) m.set(recKey('ignored', k), '1')
   const shared = { ...d.settings }
   for (const k of LOCAL_SETTINGS) delete shared[k]

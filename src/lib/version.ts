@@ -22,6 +22,8 @@ export const CHANGELOG: { version: string; items: string[] }[] = [
       'Sınıflar: elle sınıf ekleme; kurum dersinde Ders / Etüt / Deneme sınavı türü',
       'Kişisel sayfasından kategori ekleme',
       'İptal edilen ders takvimde yer kaplamaz',
+      'Ana sayfa kartları gizlenip sıralanabilir (ana sayfanın altında "Ana sayfayı düzenle")',
+      'Hızlandırma: büyük görev listelerinde yazarken gecikme giderildi, eşitleme daha az işlemci kullanır',
     ],
   },
   {

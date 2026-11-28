@@ -2,7 +2,9 @@
 @media (max-width: 1100px) {
   :root { --sidebar-w: 76px; }
   .sidebar { padding: 14px 10px; align-items: center; }
-  .brand div, .side-nav span, .create-btn { display: none; }
+  .brand div, .side-nav span, .create-btn, .side-search span, .sidebar .sync-badge span { display: none; }
+  .side-search { justify-content: center; width: 48px; height: 44px; padding: 0; }
+  .side-nav .nav-badge { position: absolute; top: 4px; right: 4px; }
   .brand { padding: 2px 0 8px; }
   .side-nav button { justify-content: center; padding: 12px; position: relative; }
 

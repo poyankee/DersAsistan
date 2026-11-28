@@ -119,6 +119,7 @@ Her sonucu elle girmek yorucu olacağı için girişi otomatikleştirecek seçen
 - v0.10 Android geri hareketi, görev kategorileri / sıralama / önemli işareti / alt adımlar / ekler,
   takvimde sade kutular, takvimin PDF çıktısı, arama kutusu; Ödemelerim hatırlatma, takvimde ödeme günleri,
   aylık giren / çıkan; yeni ana ekran widget'ı; kalıcı APK imzası
+- v0.18 Haftada birden çok gün tekrar (gün başına saat), tatillerde de ekleme, toplu etüt/deneme, ödemede bitiş ayı
 - v0.17 Takvim yeniden tasarım (sağ panel, hap gün başlıkları, simgeli kutular), sayfa başlıklarında manzara, Ayarlar
   bölümlere ayrıldı, açık/koyu düğmesi Ayarlar'a taşındı
 - v0.16 Yeni Bugün sayfası: özet çipleri, Ders Defteri (konuyu ana sayfadan yazma), Hatırlatmalar, Boş Saatler, Sınav

@@ -1,6 +1,6 @@
 import type { AppData, CalEvent } from './types'
 import { eventTitle, getData, saveEvents } from './store'
-import { addDays, formatShort, fromISO, toMinutes } from './date'
+import { addDays, formatShort, fromISO, toMinutes, weekdayIndex } from './date'
 import { showToast } from './toast'
 
 const dayDiff = (a: string, b: string) => Math.round((fromISO(b).getTime() - fromISO(a).getTime()) / 86400000)
@@ -8,7 +8,9 @@ const dayDiff = (a: string, b: string) => Math.round((fromISO(b).getTime() - fro
 /** Aynı serideki, bu dersten sonraki ve henüz yapılmamış dersler */
 export function futureSeriesEvents(d: AppData, ev: CalEvent): CalEvent[] {
   if (!ev.seriesId) return []
-  return d.events.filter((e) => e.seriesId === ev.seriesId && e.id !== ev.id && e.date > ev.date && e.status === 'planned')
+  // Haftada birden çok günü olan serilerde yalnızca aynı gün ve saatteki dersler (ör. sadece Salı 17:00'ler)
+  const wd = weekdayIndex(ev.date)
+  return d.events.filter((e) => e.seriesId === ev.seriesId && e.id !== ev.id && e.date > ev.date && e.status === 'planned' && weekdayIndex(e.date) === wd && e.start === ev.start)
 }
 
 /** Bir dersin tarih/saat değişikliğini serideki sonraki derslere uygular */

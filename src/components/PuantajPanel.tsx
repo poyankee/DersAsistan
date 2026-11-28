@@ -1,3 +1,4 @@
+import type { CalEvent } from '../lib/types'
 import { useMemo, useState } from 'react'
 import { isNative } from '../lib/native'
 import { isOff } from '../lib/status'
@@ -16,7 +17,9 @@ export default function PuantajPanel() {
 
   const { days, groups, cancelled } = useMemo(() => {
     const evs = data.events.filter((e) => e.kind === 'kurum' && e.date.slice(0, 7) === ym)
-    const groups = Array.from(new Set(evs.map((e) => e.groupCode!))).sort()
+    // Toplu etüt / deneme (sınıfsız) ayrı bir sütunda
+    const key = (e: CalEvent) => e.groupCode ?? (e.sub === 'deneme' ? 'Deneme (toplu)' : 'Etüt (toplu)')
+    const groups = Array.from(new Set(evs.map(key))).sort()
     const map = new Map<string, Map<string, number>>()
     let cancelled = 0
     for (const e of evs) {
@@ -26,7 +29,7 @@ export default function PuantajPanel() {
       }
       if (!map.has(e.date)) map.set(e.date, new Map())
       const g = map.get(e.date)!
-      g.set(e.groupCode!, (g.get(e.groupCode!) ?? 0) + (e.hours ?? 1))
+      g.set(key(e), (g.get(key(e)) ?? 0) + (e.hours ?? 1))
     }
     const days = Array.from(map.entries())
       .sort(([a], [b]) => a.localeCompare(b))

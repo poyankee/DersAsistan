@@ -50,6 +50,10 @@ function countBy(d: AppData, ym: string, today: string) {
       key = e.groupCode
       name = d.groups[e.groupCode]?.name ? `${d.groups[e.groupCode].name} (${e.groupCode})` : e.groupCode
       color = d.groups[e.groupCode]?.color
+    } else if (e.kind === 'kurum' && e.sub) {
+      map = classes
+      key = 'toplu-' + e.sub
+      name = e.sub === 'deneme' ? 'Deneme sınavı (tüm sınıflar)' : 'Etüt (tüm sınıflar)'
     }
     if (!map) continue
     const r = map.get(key) ?? { key, name, color, done: 0, planned: 0, cancelled: 0, hours: 0 }

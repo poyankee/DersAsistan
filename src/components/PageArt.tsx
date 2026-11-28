@@ -5,5 +5,5 @@ import { useScene } from '../lib/useScene'
 export default function PageArt({ foot }: { foot?: boolean }) {
   const scene = useScene()
   if (!scene) return null
-  return <div className={foot ? 'page-foot-art' : 'page-art'} aria-hidden><Landscape scene={scene} variant={foot ? 'side' : 'hero'} /></div>
+  return <div className={foot ? 'page-foot-art' : 'page-art'} aria-hidden><Landscape scene={scene} variant="hero" /></div>
 }

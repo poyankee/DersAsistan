@@ -238,3 +238,7 @@
   .settings:not(.has-section) .settings-content { display: none; }
   .sc-back { display: inline-grid; }
 }
+.repeat-times { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
+.rt-row { display: flex; align-items: center; gap: 12px; }
+.rt-row b { width: 90px; font-size: 14px; }
+.check.small { font-size: 13.5px; margin-top: 6px; }

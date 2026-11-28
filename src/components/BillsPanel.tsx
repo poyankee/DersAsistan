@@ -243,7 +243,6 @@ function BillForm({ initial, onClose }: { initial: Bill; onClose: () => void }) 
   const save = () => {
     const base: Bill = { ...b, name: b.name.trim(), day: Math.min(31, Math.max(1, Math.round(b.day) || 1)), every: undefined, months: undefined }
     if (freq === 'tek') base.until = b.from
-    else if (base.until === base.from) base.until = undefined
     if (['2', '3', '6', '12'].includes(freq)) base.every = Number(freq)
     if (freq === 'secili') base.months = (b.months ?? []).length ? [...b.months!].sort((x, y) => x - y) : [Number(b.from.slice(5, 7))]
     saveBill(base)
@@ -287,7 +286,7 @@ function BillForm({ initial, onClose }: { initial: Bill; onClose: () => void }) 
       <div className="field">
         <span>Ne sıklıkla?</span>
         <div className="chips">
-          {FREQS.map(([f, l]) => <button key={f} className={'chip' + (freq === f ? ' sel' : '')} onClick={() => setFreq(f)}>{l}</button>)}
+          {FREQS.map(([f, l]) => <button key={f} className={'chip' + (freq === f ? ' sel' : '')} onClick={() => { if (freq === 'tek' && f !== 'tek') setB({ ...b, until: undefined }); setFreq(f) }}>{l}</button>)}
         </div>
       </div>
       {freq === 'secili' && (
@@ -298,10 +297,22 @@ function BillForm({ initial, onClose }: { initial: Bill; onClose: () => void }) 
           </div>
         </div>
       )}
-      <label className="field">
-        <span>{freq === 'tek' ? 'Hangi ay?' : 'Başlangıç ayı'}{['2', '3', '6', '12'].includes(freq) ? ' (sayım bu aydan başlar)' : ''}</span>
-        <input type="month" value={b.from} onChange={(e) => e.target.value && setB({ ...b, from: e.target.value })} />
-      </label>
+      <div className="row wrap">
+        <label className="field">
+          <span>{freq === 'tek' ? 'Hangi ay?' : 'Başlangıç ayı'}{['2', '3', '6', '12'].includes(freq) ? ' (sayım bu aydan başlar)' : ''}</span>
+          <input type="month" value={b.from} onChange={(e) => e.target.value && setB({ ...b, from: e.target.value, until: b.until && b.until < e.target.value ? e.target.value : b.until })} />
+        </label>
+        {freq !== 'tek' && (
+          <label className="field">
+            <span>Bitiş ayı <small className="muted">(boşsa süresiz)</small></span>
+            <span className="row middle" style={{ minHeight: 0, gap: 6 }}>
+              <input type="month" min={b.from} value={b.until ?? ''} onChange={(e) => setB({ ...b, until: e.target.value || undefined })} />
+              {b.until && <button className="btn small ghost" onClick={() => setB({ ...b, until: undefined })}>Temizle</button>}
+            </span>
+          </label>
+        )}
+      </div>
+      {freq !== 'tek' && b.until && <p className="muted small" style={{ marginTop: -4 }}>{repeatText({ ...b, every: ['2', '3', '6', '12'].includes(freq) ? Number(freq) : undefined })} · {TR_MONTHS[Number(b.from.slice(5)) - 1]} {b.from.slice(0, 4)} – {TR_MONTHS[Number(b.until.slice(5)) - 1]} {b.until.slice(0, 4)}</p>}
       {kind === 'gelir' && (
         <label className="check"><input type="checkbox" checked={b.source === 'kurum'} onChange={(e) => setB({ ...b, source: e.target.checked ? 'kurum' : undefined })} /> Kurumdan gelen ödeme (Puantaj'da beklenenle karşılaştırılır)</label>
       )}

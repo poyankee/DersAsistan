@@ -1,5 +1,5 @@
 /** Uygulama sürümü ve "bu sürümde neler değişti" listesi (Ayarlar → Yenilikler) */
-export const APP_VERSION = '0.17'
+export const APP_VERSION = '0.18'
 
 /** Bu arayüz paketinin derleme numarası (yerelde 0) */
 export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
@@ -12,6 +12,17 @@ export const BUILD: number = typeof __BUILD__ === 'number' ? __BUILD__ : 0
 export const NATIVE_LEVEL = 1
 
 export const CHANGELOG: { version: string; items: string[] }[] = [
+  {
+    version: '0.18',
+    items: [
+      'Haftalık tekrarda birden çok gün: ör. Salı ve Perşembe; her gün için ayrı başlangıç saati',
+      'Tekrarlanan dersler resmi tatillerde de eklenir (takvimde tatil görünür); istenirse "tatilleri atla"',
+      'Bir serideki dersi taşıyınca yalnızca aynı gün ve saatteki sonraki dersler değişir',
+      'Toplu etüt / deneme sınavı: sınıf yerine "Tüm sınıflar" seçilebilir; puantaj ve ders sayılarında ayrı satır',
+      'Ödemelerim / Gelirlerim kaleminde bitiş ayı seçilebilir',
+      'Düzeltmeler: Sınıflar sayfasındaki manzara sayfanın altına oturur; dar menüde arama düğmesi taşmaz',
+    ],
+  },
   {
     version: '0.17',
     items: [

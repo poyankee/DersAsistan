@@ -633,6 +633,52 @@ test('ana sayfa: Ders Defteri\'nden konu yazma, boş saatten ders ekleme, özet 
   assert.deepEqual(errors, [])
 })
 
+test('haftada iki gün tekrar; toplu deneme; ödemede bitiş ayı', async (browser) => {
+  const { page, errors, nav } = await open(browser)
+  await page.evaluate(() => {
+    const d = JSON.parse(localStorage.getItem('ders-asistan-v1'))
+    d.students = [{ id: 's1', name: 'Gül', fee: 600, active: true, color: '#43a047', createdAt: 1 }]
+    d.groups = { '8-H': { code: '8-H', color: '#1e88e5' } }
+    d.savedAt = Date.now() + 1e6
+    localStorage.setItem('ders-asistan-v1', JSON.stringify(d))
+  })
+  await page.reload()
+  // 16.11.2026 Pzt + Per, 4 hafta → 8 ders; 29 Ekim gibi tatiller atlanmaz
+  const newEv = async () => {
+    await page.locator('.create-btn').click()
+    await page.locator('button', { hasText: /^Etkinlik$/ }).click()
+    await page.locator('.modal', { hasText: 'Yeni etkinlik' }).waitFor()
+  }
+  await newEv()
+  await page.locator('.modal select').first().selectOption({ label: 'Gül' })
+  await page.locator('.repeat-box input[type=checkbox]').first().check()
+  await page.locator('.repeat-box .chip', { hasText: 'Per' }).click()
+  await page.locator('.rt-row', { hasText: 'Perşembe' }).waitFor()
+  const count = await page.locator('.repeat-box').innerText()
+  assert.match(count, /\d+ etkinlik/)
+  await page.locator('.modal-foot .btn.primary').click()
+  const evs = await page.evaluate(() => JSON.parse(localStorage.getItem('ders-asistan-v1')).events)
+  const days = new Set(evs.map((e) => new Date(e.date + 'T12:00').getDay()))
+  assert.deepEqual([...days].sort(), [1, 4])
+  // Toplu deneme sınavı
+  await newEv()
+  await page.locator('.modal .seg button', { hasText: 'Kurum dersi' }).click()
+  await page.locator('.modal .seg button', { hasText: 'Deneme sınavı' }).click()
+  await page.locator('.modal select').first().selectOption('__tum')
+  await page.locator('.modal-foot .btn.primary').click()
+  const top = await page.evaluate(() => JSON.parse(localStorage.getItem('ders-asistan-v1')).events.find((e) => e.sub === 'deneme'))
+  assert.equal(top.groupCode, undefined)
+  assert.match(top.title, /Tüm sınıflar/)
+  // Ödemede bitiş ayı
+  await nav('Ödemeler')
+  await page.locator('.bills .chip', { hasText: 'Kira' }).click()
+  await page.locator('.modal input[type=month]').nth(1).fill('2027-06')
+  await page.locator('.modal-foot .btn.primary').click()
+  const bill = await page.evaluate(() => JSON.parse(localStorage.getItem('ders-asistan-v1')).bills.find((b) => b.name === 'Kira'))
+  assert.equal(bill.until, '2027-06')
+  assert.deepEqual(errors, [])
+})
+
 await waitForServer()
 const browser = await chromium.launch()
 let failed = 0

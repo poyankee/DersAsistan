@@ -486,6 +486,7 @@ export function newStudent(): Student {
 
 export function eventColor(d: AppData, e: CalEvent): string {
   if (e.kind === 'kurum' && e.groupCode) return d.groups[e.groupCode]?.color ?? colorFor(e.groupCode)
+  if (e.kind === 'kurum') return e.sub === 'deneme' ? '#d81b60' : '#0288d1'
   if (e.kind === 'ozel' && e.studentId) return d.students.find((s) => s.id === e.studentId)?.color ?? '#33b679'
   if (e.categoryId) return d.categories.find((c) => c.id === e.categoryId)?.color ?? '#616161'
   return '#616161'

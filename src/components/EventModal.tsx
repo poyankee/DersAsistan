@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import type { CalEvent, EventKind, LessonStatus } from '../lib/types'
-import { deleteEvents, eventTitle, saveCategory, saveEvents, saveGroup, useData, savedToast } from '../lib/store'
-import { addDays, formatDMY, fromMinutes, toMinutes, todayISO } from '../lib/date'
+import { SUB_LABEL, deleteEvents, eventTitle, saveCategory, saveEvents, saveGroup, useData, savedToast } from '../lib/store'
+import { TR_DAYS, TR_DAYS_SHORT, addDays, formatDMY, fromMinutes, toMinutes, todayISO, weekdayIndex } from '../lib/date'
 import { PALETTE, uid } from '../lib/util'
 import { applyShiftToSeries, conflictsOf, futureSeriesEvents } from '../lib/eventOps'
 import { isFullHoliday } from '../lib/holidays'
@@ -37,6 +37,12 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
     ...initial,
   } as CalEvent))
   const [repeat, setRepeat] = useState(false)
+  // Tekrar günleri (0 = Pzt) ve her günün başlangıç saati; seçili günün saati formdaki saattir
+  const [repeatDays, setRepeatDays] = useState<number[]>([])
+  const [dayTimes, setDayTimes] = useState<Record<number, string>>({})
+  const [skipHolidays, setSkipHolidays] = useState(false)
+  // Toplu etüt / deneme: belirli bir sınıfa değil tüm sınıflara
+  const [toplu, setToplu] = useState(() => initial.kind === 'kurum' && !!initial.sub && !initial.groupCode && !!initial.id)
   const [until, setUntil] = useState(() => addDays(ev.date, 7 * 16))
   const [error, setError] = useState('')
   const [newCat, setNewCat] = useState<string | null>(null)
@@ -50,37 +56,50 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
   const groups = Object.values(data.groups).sort((a, b) => a.code.localeCompare(b.code))
   const activeStudents = data.students.filter((s) => s.active || s.id === ev.studentId).sort((a, b) => a.name.localeCompare(b.name, 'tr'))
 
+  const baseDay = weekdayIndex(ev.date)
+  const days = [...new Set([baseDay, ...repeatDays])].sort((a, b) => a - b)
+  const startOf = (wd: number) => (wd === baseDay ? ev.start : dayTimes[wd] ?? ev.start)
   const repeatDates = useMemo(() => {
-    if (!isNew || !repeat) return { dates: [] as string[], skipped: 0 }
-    const dates: string[] = []
+    if (!isNew || !repeat) return { items: [] as { date: string; start: string }[], holidays: 0, skipped: 0 }
+    const items: { date: string; start: string }[] = []
+    let holidays = 0
     let skipped = 0
-    for (let d = addDays(ev.date, 7); d <= until; d = addDays(d, 7)) {
-      if (isFullHoliday(data, d)) skipped++
-      else dates.push(d)
+    for (let d = addDays(ev.date, 1); d <= until; d = addDays(d, 1)) {
+      const wd = weekdayIndex(d)
+      if (!days.includes(wd)) continue
+      if (isFullHoliday(data, d)) {
+        holidays++
+        if (skipHolidays) {
+          skipped++
+          continue
+        }
+      }
+      items.push({ date: d, start: startOf(wd) })
     }
-    return { dates, skipped }
-  }, [isNew, repeat, ev.date, until, data])
+    return { items, holidays, skipped }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNew, repeat, ev.date, ev.start, until, data, repeatDays, dayTimes, skipHolidays])
 
   const save = () => {
     if (toMinutes(ev.end) <= toMinutes(ev.start)) return setError('Bitiş saati başlangıçtan sonra olmalı.')
     if (ev.kind === 'ozel' && !ev.studentId) return setError('Lütfen öğrenci seçin.')
-    if (ev.kind === 'kurum' && !ev.groupCode) return setError('Lütfen sınıf seçin.')
+    if (ev.kind === 'kurum' && !ev.groupCode && !(toplu && ev.sub)) return setError('Lütfen sınıf seçin.')
     if (ev.kind === 'diger' && !ev.title.trim()) return setError('Lütfen bir başlık yazın.')
     const student = data.students.find((s) => s.id === ev.studentId)
     const base: CalEvent = {
       ...ev,
-      groupCode: ev.kind === 'kurum' ? ev.groupCode : undefined,
+      groupCode: ev.kind === 'kurum' && !(toplu && ev.sub) ? ev.groupCode : undefined,
       sub: ev.kind === 'kurum' ? ev.sub : undefined,
       studentId: ev.kind === 'ozel' ? ev.studentId : undefined,
       categoryId: ev.kind === 'diger' ? ev.categoryId : undefined,
       // Ücret formda sorulmaz: öğrencinin kayıtlı ücretinden gelir
       fee: ev.kind === 'ozel' ? (isNew || ev.studentId !== (initial as CalEvent).studentId ? student?.fee : ev.fee) : undefined,
-      title: ev.kind === 'kurum' ? ev.groupCode! : ev.kind === 'ozel' ? student?.name ?? '' : ev.title.trim(),
+      title: ev.kind === 'kurum' ? (toplu && ev.sub ? `${SUB_LABEL[ev.sub]} · Tüm sınıflar` : ev.groupCode!) : ev.kind === 'ozel' ? student?.name ?? '' : ev.title.trim(),
     }
     const out: CalEvent[] = [base]
     if (isNew && repeat) {
       base.seriesId = uid()
-      for (const d of repeatDates.dates) out.push({ ...base, id: uid(), date: d, status: 'planned' })
+      for (const it of repeatDates.items) out.push({ ...base, id: uid(), date: it.date, start: it.start, end: fromMinutes(Math.min(24 * 60 - 1, toMinutes(it.start) + dur)), status: 'planned' })
     }
     saveEvents(out)
     const before = initial as CalEvent
@@ -151,7 +170,7 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
       {ev.kind === 'kurum' && (
         <>
           <div className="seg small" style={{ marginBottom: 8 }}>
-            <button className={!ev.sub ? 'active' : ''} onClick={() => set('sub', undefined)}>Ders</button>
+            <button className={!ev.sub ? 'active' : ''} onClick={() => { set('sub', undefined); setToplu(false) }}>Ders</button>
             <button className={ev.sub === 'etut' ? 'active' : ''} onClick={() => set('sub', 'etut')}>Etüt</button>
             <button className={ev.sub === 'deneme' ? 'active' : ''} onClick={() => set('sub', 'deneme')}>Deneme sınavı</button>
           </div>
@@ -159,8 +178,10 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
             <label className="field">
               <span>Sınıf</span>
               <select
-                value={ev.groupCode ?? ''}
+                value={toplu && ev.sub ? '__tum' : ev.groupCode ?? ''}
                 onChange={(e) => {
+                  setToplu(e.target.value === '__tum')
+                  if (e.target.value === '__tum') return set('groupCode', undefined)
                   if (e.target.value !== '__yeni') return set('groupCode', e.target.value || undefined)
                   const code = prompt('Yeni sınıfın kodu ya da adı (ör. 8-H, Etüt grubu):')?.trim()
                   if (!code) return
@@ -169,6 +190,7 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
                 }}
               >
                 <option value="">Seçin…</option>
+                {ev.sub && <option value="__tum">Tüm sınıflar (toplu {ev.sub === 'deneme' ? 'deneme' : 'etüt'})</option>}
                 {groups.map((g) => <option key={g.code} value={g.code}>{g.name ? `${g.name} (${g.code})` : g.code}</option>)}
                 <option value="__yeni">+ Yeni sınıf…</option>
               </select>
@@ -216,11 +238,46 @@ export default function EventModal({ initial, onClose }: { initial: CalEvent | P
         <div className="repeat-box">
           <label className="check"><input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} /> Her hafta tekrarla</label>
           {repeat && (
-            <div className="row middle wrap" style={{ minHeight: 0 }}>
-              <span className="muted small">Son tarih</span>
-              <DateInput value={until} min={ev.date} onChange={setUntil} />
-              <span className="muted small">{repeatDates.dates.length + 1} etkinlik{repeatDates.skipped ? ` · ${repeatDates.skipped} tatil atlandı` : ''}</span>
-            </div>
+            <>
+              <div className="field" style={{ margin: '8px 0 4px' }}>
+                <span>Hangi günler? <small className="muted">(haftada birden çok gün seçebilirsiniz)</small></span>
+                <div className="chips">
+                  {TR_DAYS_SHORT.map((l, i) => (
+                    <button
+                      key={l}
+                      className={'chip' + (days.includes(i) ? ' sel' : '')}
+                      disabled={i === baseDay}
+                      title={i === baseDay ? 'Etkinliğin kendi günü' : undefined}
+                      onClick={() => setRepeatDays((r) => (r.includes(i) ? r.filter((x) => x !== i) : [...r, i]))}
+                    >{l}</button>
+                  ))}
+                </div>
+              </div>
+              {days.length > 1 && (
+                <div className="repeat-times">
+                  {days.map((wd) => (
+                    <div key={wd} className="rt-row">
+                      <b>{TR_DAYS[wd]}</b>
+                      {wd === baseDay ? <span className="muted small">{ev.start} (yukarıdaki saat)</span> : (
+                        <TimePicker label={`${TR_DAYS[wd]} başlangıç`} value={startOf(wd)} onChange={(v) => setDayTimes((t) => ({ ...t, [wd]: v }))} />
+                      )}
+                    </div>
+                  ))}
+                  <small className="muted">Süre her gün aynı: {dur} dk</small>
+                </div>
+              )}
+              <div className="row middle wrap" style={{ minHeight: 0 }}>
+                <span className="muted small">Son tarih</span>
+                <DateInput value={until} min={ev.date} onChange={setUntil} />
+                <span className="muted small">{repeatDates.items.length + 1} etkinlik</span>
+              </div>
+              {repeatDates.holidays > 0 && (
+                <label className="check small">
+                  <input type="checkbox" checked={skipHolidays} onChange={(e) => setSkipHolidays(e.target.checked)} />
+                  Resmi tatillere denk gelen {repeatDates.holidays} günü atla <span className="muted">(seçmezseniz eklenir, takvimde tatil olarak görünür)</span>
+                </label>
+              )}
+            </>
           )}
         </div>
       )}
